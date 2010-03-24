@@ -1,4 +1,5 @@
 #include "PoseEstimator.hpp"
+#include <algorithm>
 
 using namespace eslam;
 
@@ -34,14 +35,29 @@ void PoseEstimator::sampleState()
     {
 	// apply noise, assuming the wheel never goes more than 
 	// what the odometry says, but might do less
-	double d1n = d1 - (fabs(rand())/d1);
-	double d2n = d2 - (fabs(rand())/d2);
+	double d1n = d1 - (std::min(fabs(rand()),1.0)*d1);
+	double d2n = d2 - (std::min(fabs(rand()),1.0)*d2);
 
-	double r = (d1n+d2n)/(d2n-d1n)*w/2.0; // radius of circle travelling on
-	double dtheta = d1n/(r-w/2.0); // change in angle
+	const double sigma = 1e-8;
 
-	double dx = r*(1-cos(dtheta)); // displacement in x coord
-	double dy = r*sin(dtheta); // displacement in y coord
+	double dx, dy, dtheta;
+	if( fabs(d2n-d1n) > sigma ) {
+	    double r = (d1n+d2n)/(d2n-d1n)*w/2.0; // radius of circle travelling on
+
+	    if(fabs(d1n) > sigma) 
+		dtheta = d1n/(r-w/2.0); // change in angle
+	    else
+		dtheta = d2n/(r+w/2.0);
+
+	    dx = r*(1-cos(dtheta)); // displacement in x coord
+	    dy = r*sin(dtheta); // displacement in y coord
+	}
+	else
+	{
+	    dtheta = 0;
+	    dx = d1n;
+	    dy = 0;
+	}
 
 	Pose2D &xt(xi_k[i].x);
 	Eigen::Vector2d dpos = Eigen::Rotation2D<double>(xt.theta)*Eigen::Vector2d(dx, dy);
