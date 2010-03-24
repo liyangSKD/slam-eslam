@@ -4,7 +4,7 @@ libdir=${prefix}/lib
 includedir=${prefix}/include
 
 Name: filter
-Description: Kalman Filter for Pose Estimation
+Description: Particle Filter Implementation 
 Version: @PROJECT_VERSION@
 Libs:
 Cflags: -I${includedir}

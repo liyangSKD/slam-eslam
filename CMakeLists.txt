@@ -18,7 +18,17 @@ add_executable(unit_test ${TEST_SRC} test/UnitTest.cpp)
 
 set(FILTER_HDRS
     src/ParticleFilter.hpp
+    src/PoseEstimator.hpp
     )
+
+set(FILTER_SRCS
+    src/PoseEstimator.cpp
+    )
+
+add_library(particle_filter SHARED ${FILTER_SRCS})
+install(TARGETS particle_filter
+    RUNTIME DESTINATION bin
+    LIBRARY DESTINATION lib)
 
 install(FILES ${FILTER_HDRS} DESTINATION include/particle_filter)
 

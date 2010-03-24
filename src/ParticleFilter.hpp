@@ -5,6 +5,9 @@
 #include <boost/random/uniform_real.hpp>
 #include <boost/random/variate_generator.hpp>
 
+namespace eslam 
+{
+
 template <class State_, class Input_, class Measurement_>
 class ParticleFilter
 {
@@ -67,6 +70,12 @@ public:
 	xi_k = xi_kp;
     };
 
+    std::vector<Particle>& getParticles()
+    {
+	return xi_k;
+    };
+
+
 protected:
     virtual void sampleState() = 0;
     virtual void updateWeights() = 0;
@@ -81,4 +90,5 @@ protected:
     boost::minstd_rand rand_gen;
 };
 
+}
 #endif

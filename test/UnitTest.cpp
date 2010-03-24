@@ -6,6 +6,7 @@
 #include "ParticleFilter.hpp"
 
 using namespace std;
+using namespace eslam;
 
 struct State
 {
