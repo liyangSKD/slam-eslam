@@ -1,7 +1,6 @@
 #ifndef __POSE_ESTIMATOR_HPP__
 #define __POSE_ESTIMATOR_HPP__
 
-#include <Eigen/StdVector>
 #include <vector>
 
 #include "ParticleFilter.hpp"
