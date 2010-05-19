@@ -9,39 +9,25 @@
 #include <Eigen/Core>
 #include <Eigen/Geometry>
 
+#include <base/pose.h>
+#include <asguard/Configuration.hpp>
+#include <asguard/Odometry.hpp>
 
 namespace eslam
 {
 
-struct Pose2D
-{
-    Pose2D();
-    Pose2D(double x, double y, double theta) : x(x), y(y), theta(theta) {};
-
-    double x;
-    double y;
-    double theta;
-};
-
-struct WheelOdometry
-{
-    double wheel_pos[4];
-    double delta[4];
-};
-
-typedef std::vector<Eigen::Vector3d> ContactPoints;
-
 class PoseEstimator :
-    public ParticleFilter<Pose2D, WheelOdometry, ContactPoints>
+    public ParticleFilter<base::Pose2D>
 {
 public:
-    PoseEstimator() {};
+    PoseEstimator();
 
-    void init(int numParticles, const Pose2D& mu, const Pose2D& sigma);
+    void init(int numParticles, const base::Pose2D& mu, const base::Pose2D& sigma);
+    void project(const asguard::BodyState& state);
 
-protected:
-    void sampleState();
-    void updateWeights();
+private:
+    asguard::Configuration config;
+    asguard::SamplingOdometry2D odometry;
 };
 
 }

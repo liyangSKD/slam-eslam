@@ -8,13 +8,11 @@
 namespace eslam 
 {
 
-template <class State_, class Input_, class Measurement_>
+template <class State_>
 class ParticleFilter
 {
 public:
     typedef State_ State;
-    typedef Input_ Input;
-    typedef Measurement_ Measurement;
 
     struct Particle
     {
@@ -28,18 +26,6 @@ public:
     ParticleFilter() :
 	rand_gen( 42u )
     {
-    };
-
-    void project( Input input )
-    {
-	u_k = input;
-	sampleState();
-    };
-
-    void update( Measurement measurement )
-    {
-	z_k = measurement;
-	updateWeights();
     };
 
     void resample()
@@ -77,12 +63,6 @@ public:
 
 
 protected:
-    virtual void sampleState() = 0;
-    virtual void updateWeights() = 0;
-
-    Input u_k;
-    Measurement z_k;
-
     std::vector<Particle> xi_k;
 
     size_t particleCount;

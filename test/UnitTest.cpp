@@ -18,11 +18,23 @@ typedef double Input;
 typedef double Measurement;
 
 class SingleValueTracking :
-    public ParticleFilter<State, Input, Measurement>
+    public ParticleFilter<State>
 {
 public:
     SingleValueTracking() : 
 	dt(0.1) {};
+
+    void project(const Input& input)
+    {
+	u_k = input;
+	sampleState();
+    }
+
+    void update(const Measurement& meas)
+    {
+	z_k = meas;
+	updateWeights();
+    }
 
     void init(int numParticles) 
     {
@@ -65,6 +77,9 @@ protected:
 	    xi_k[i].w = val;
 	};
     };
+
+    Input u_k;
+    Measurement z_k;
 };
 
 BOOST_AUTO_TEST_CASE( tracking_filter )

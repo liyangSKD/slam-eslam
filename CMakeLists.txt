@@ -6,6 +6,14 @@ include(FindPkgConfig)
 
 set(CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake)
 
+pkg_check_modules(BASE REQUIRED "base-types")
+include_directories(${BASE_INCLUDE_DIRS})
+link_directories(${BASE_LIBRARY_DIRS})
+
+pkg_check_modules(ASGUARD REQUIRED "asguard")
+include_directories(${ASGUARD_INCLUDE_DIRS})
+link_directories(${ASGUARD_LIBRARY_DIRS})
+
 find_package(Eigen2 REQUIRED)
 include_directories(${EIGEN2_INCLUDE_DIR})
 
@@ -26,6 +34,7 @@ set(FILTER_SRCS
     )
 
 add_library(particle_filter SHARED ${FILTER_SRCS})
+target_link_libraries(particle_filter ${ASGUARD_LIBRARIES})
 install(TARGETS particle_filter
     RUNTIME DESTINATION bin
     LIBRARY DESTINATION lib)
