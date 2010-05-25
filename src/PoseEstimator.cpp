@@ -25,8 +25,8 @@ void PoseEstimator::init(int numParticles, const base::Pose2D& mu, const base::P
 
 void PoseEstimator::project(const asguard::BodyState& state)
 {
-    odometry.updateBodyState( state );
-    if( !odometry.isValid() )
+    odometry.state.update( state );
+    if( !odometry.state.isValid() )
 	return;
 
     for(int i=0;i<xi_k.size();i++)
