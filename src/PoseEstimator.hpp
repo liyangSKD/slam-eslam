@@ -27,7 +27,7 @@ public:
 
 private:
     asguard::Configuration config;
-    asguard::SamplingWheelOdometry2D odometry;
+    asguard::WheelOdometry2D odometry;
 };
 
 }
