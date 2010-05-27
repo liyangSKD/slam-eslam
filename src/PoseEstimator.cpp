@@ -1,11 +1,18 @@
 #include "PoseEstimator.hpp"
 #include <algorithm>
 
+#include <stdexcept>
+
 using namespace eslam;
 
 PoseEstimator::PoseEstimator()
-    : odometry(config)
+    : odometry(config), env(NULL)
 {
+}
+
+void PoseEstimator::setEnvironment(envire::Environment *env)
+{
+    this->env = env;
 }
 
 void PoseEstimator::init(int numParticles, const base::Pose2D& mu, const base::Pose2D& sigma) 
@@ -38,12 +45,52 @@ void PoseEstimator::project(const asguard::BodyState& state)
     }
 }
 
-/*
-void PoseEstimator::updateWeights()
+void PoseEstimator::update(const asguard::BodyState& state, const Eigen::Quaterniond& orientation)
 {
+    if( !env )
+	throw std::runtime_error("No environment attached.");
+    
+    // calculate foot positions and rotate them using pitch/roll
+    std::vector<Eigen::Vector3d> cpoints;
+
+    // get the orientation first and remove any rotation around the z axis
+    Eigen::Vector3d projy = orientation * Eigen::Vector3d::UnitY(); 
+    Eigen::Quaterniond ocomp = Eigen::AngleAxisd( atan2( -projy.x(), projy.y() ), Eigen::Vector3d::UnitZ()) * orientation;
+
+    for(int i=0;i<4;i++)
+    {
+	for(int j=0;j<5;j++) 
+	{
+	    if( state.getWheelContact( static_cast<asguard::wheelIdx>(i), j ).contact > 0.5 )
+	    {
+		// if there is a contact convert to local frame and store in vector
+		Eigen::Vector3d f = config.getFootPosition( state, static_cast<asguard::wheelIdx>(i), j );
+		cpoints.push_back( ocomp * f );	
+	    }
+	}
+    }
+
+    // now update the weights of the particles by calculating the variance of the contact points 
     for(int i=0;i<xi_k.size();i++)
     {
-	// TODO implement
-    };
+	base::Pose2D &pose(xi_k[i].x);
+	Eigen::Transform3d t = 
+	    Eigen::Translation3d( Eigen::Vector3d(pose.position.x(), pose.position.y(), 0) ) 
+	    * Eigen::AngleAxisd( pose.orientation, Eigen::Vector3d::UnitZ() );
+
+	double sum_xsq = 0, sum_x = 0;
+	for(std::vector<Eigen::Vector3d>::iterator it=cpoints.begin();it!=cpoints.end();it++)
+	{
+	    Eigen::Vector3d gp = t*(*it);
+	    double x = 0; // TODO getHeightAt( gp ) - gp.z();
+	    sum_x += x;
+	    sum_xsq += x*x;
+	}
+	int n = cpoints.size();
+	double var = sum_xsq/n - (sum_x/n)*(sum_x/n);
+
+	// use the variance as the weight
+	xi_k[i].w = var;
+    }
 }
-*/
+

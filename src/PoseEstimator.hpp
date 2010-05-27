@@ -13,6 +13,8 @@
 #include <asguard/Configuration.hpp>
 #include <asguard/Odometry.hpp>
 
+#include <envire/Core.hpp>
+
 namespace eslam
 {
 
@@ -24,10 +26,15 @@ public:
 
     void init(int numParticles, const base::Pose2D& mu, const base::Pose2D& sigma);
     void project(const asguard::BodyState& state);
+    void update(const asguard::BodyState& state, const Eigen::Quaterniond& orientation);
+
+    void setEnvironment(envire::Environment *env);
 
 private:
     asguard::Configuration config;
     asguard::WheelOdometry2D odometry;
+
+    envire::Environment *env;
 };
 
 }
