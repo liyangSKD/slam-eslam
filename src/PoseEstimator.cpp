@@ -1,5 +1,6 @@
 #include "PoseEstimator.hpp"
 #include <algorithm>
+#include <envire/GridAccess.hpp>
 
 #include <stdexcept>
 
@@ -49,6 +50,9 @@ void PoseEstimator::update(const asguard::BodyState& state, const Eigen::Quatern
 {
     if( !env )
 	throw std::runtime_error("No environment attached.");
+
+    // get a gridaccess object for direct access to the DEMs
+    envire::GridAccess ga(env);
     
     // calculate foot positions and rotate them using pitch/roll
     std::vector<Eigen::Vector3d> cpoints;
@@ -82,7 +86,9 @@ void PoseEstimator::update(const asguard::BodyState& state, const Eigen::Quatern
 	for(std::vector<Eigen::Vector3d>::iterator it=cpoints.begin();it!=cpoints.end();it++)
 	{
 	    Eigen::Vector3d gp = t*(*it);
-	    double x = 0; // TODO getHeightAt( gp ) - gp.z();
+	    double x = gp.z();
+	    ga.getElevation( gp ); // this will set the z component of gp to the dem value
+	    x -= gp.z();
 	    sum_x += x;
 	    sum_xsq += x*x;
 	}

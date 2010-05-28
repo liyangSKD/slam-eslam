@@ -1,0 +1,12 @@
+<package>
+    <description brief="particle filter">
+	Particle Filter implementation of the eslam approach.
+    </description>
+    <author>Jakob Schwendner</author>
+    <copyright>
+        DFKI/robotik@dfki.de
+    </copyright>
+
+    <depend package="robots/asguard" />
+    <depend package="slam/envire" />
+</package>
