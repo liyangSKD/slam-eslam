@@ -16,7 +16,7 @@ public:
 
     struct Particle
     {
-	Particle() {};
+	Particle() : w(0.0) {};
 	Particle(State x, double weight) : x(x), w(weight) {};
 
 	State x;
@@ -31,18 +31,21 @@ public:
     void resample()
     {
 	double sumWeights = 0;
-	for(int n=0;n<xi_k.size();sumWeights+=xi_k[n++].w);
+	for(size_t n=0;n<xi_k.size();sumWeights+=xi_k[n++].w);
+
+	if( sumWeights <= 0.0 )
+	    return;
 
 	boost::variate_generator<boost::minstd_rand&, boost::uniform_real<> > 
 	    rand(rand_gen, boost::uniform_real<>(0,sumWeights) );
 
 	std::vector<Particle> xi_kp;
-	for(int n=0;n<xi_k.size();n++)
+	for(size_t n=0;n<xi_k.size();n++)
 	{
 	    double sum=0;
 	    double r_n = rand();
 
-	    for(int i=0;i<xi_k.size();i++)
+	    for(size_t i=0;i<xi_k.size();i++)
 	    {
 		sum += xi_k[i].w;
 		if( r_n < sum )

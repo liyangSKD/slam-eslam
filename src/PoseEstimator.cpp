@@ -7,13 +7,25 @@
 using namespace eslam;
 
 PoseEstimator::PoseEstimator()
-    : odometry(config), env(NULL)
+    : odometry(config), env(NULL), ga(NULL)
 {
+}
+
+PoseEstimator::~PoseEstimator()
+{
+    if( ga )
+	delete ga;
 }
 
 void PoseEstimator::setEnvironment(envire::Environment *env)
 {
     this->env = env;
+
+    if( ga )
+	delete ga;
+
+    // get a gridaccess object for direct access to the DEMs
+    ga = new envire::GridAccess(env);
 }
 
 void PoseEstimator::init(int numParticles, const base::Pose2D& mu, const base::Pose2D& sigma) 
@@ -51,8 +63,6 @@ void PoseEstimator::update(const asguard::BodyState& state, const Eigen::Quatern
     if( !env )
 	throw std::runtime_error("No environment attached.");
 
-    // get a gridaccess object for direct access to the DEMs
-    envire::GridAccess ga(env);
     
     // calculate foot positions and rotate them using pitch/roll
     std::vector<Eigen::Vector3d> cpoints;
@@ -87,16 +97,24 @@ void PoseEstimator::update(const asguard::BodyState& state, const Eigen::Quatern
 	{
 	    Eigen::Vector3d gp = t*(*it);
 	    double x = gp.z();
-	    ga.getElevation( gp ); // this will set the z component of gp to the dem value
+	    ga->getElevation( gp ); // this will set the z component of gp to the dem value
 	    x -= gp.z();
 	    sum_x += x;
 	    sum_xsq += x*x;
 	}
 	int n = cpoints.size();
-	double var = sum_xsq/n - (sum_x/n)*(sum_x/n);
+	if( n > 0 )
+	{
+	    double var = sum_xsq/n - (sum_x/n)*(sum_x/n);
 
-	// use the variance as the weight
-	xi_k[i].w = var;
+	    // use some measurement of the variance as the weight 
+	    if(std::isnan(var))
+	    {
+		xi_k[i].w = 0.0;
+	    }
+	    else
+		xi_k[i].w = 1.0/(.1+var);
+	}
     }
 }
 

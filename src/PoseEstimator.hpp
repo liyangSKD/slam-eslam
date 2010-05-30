@@ -14,6 +14,7 @@
 #include <asguard/Odometry.hpp>
 
 #include <envire/Core.hpp>
+#include <envire/GridAccess.hpp>
 
 namespace eslam
 {
@@ -23,6 +24,7 @@ class PoseEstimator :
 {
 public:
     PoseEstimator();
+    ~PoseEstimator();
 
     void init(int numParticles, const base::Pose2D& mu, const base::Pose2D& sigma);
     void project(const asguard::BodyState& state);
@@ -33,8 +35,9 @@ public:
 private:
     asguard::Configuration config;
     asguard::WheelOdometry2D odometry;
-
+    
     envire::Environment *env;
+    envire::GridAccess *ga;
 };
 
 }
