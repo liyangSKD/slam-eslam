@@ -39,7 +39,7 @@ void PoseEstimator::init(int numParticles, const base::Pose2D& mu, const base::P
 
     for(int i=0;i<numParticles;i++)
     {
-	xi_k.push_back( Particle( base::Pose2D( Eigen::Vector2d(rand_x(), rand_y()), rand_theta()), 0 ));
+	xi_k.push_back( Particle( PoseParticle( Eigen::Vector2d(rand_x(), rand_y()), rand_theta()), 0 ));
     }
 }
 
@@ -87,21 +87,24 @@ void PoseEstimator::update(const asguard::BodyState& state, const Eigen::Quatern
     // now update the weights of the particles by calculating the variance of the contact points 
     for(int i=0;i<xi_k.size();i++)
     {
-	base::Pose2D &pose(xi_k[i].x);
+	PoseParticle &pose(xi_k[i].x);
 	Eigen::Transform3d t = 
 	    Eigen::Translation3d( Eigen::Vector3d(pose.position.x(), pose.position.y(), 0) ) 
 	    * Eigen::AngleAxisd( pose.orientation, Eigen::Vector3d::UnitZ() );
 
+	pose.cpoints.clear();
 	double sum_xsq = 0, sum_x = 0;
 	for(std::vector<Eigen::Vector3d>::iterator it=cpoints.begin();it!=cpoints.end();it++)
 	{
 	    Eigen::Vector3d gp = t*(*it);
 	    double x = gp.z();
 	    ga->getElevation( gp ); // this will set the z component of gp to the dem value
+	    pose.cpoints.push_back( gp );
 	    x -= gp.z();
 	    sum_x += x;
 	    sum_xsq += x*x;
 	}
+
 	int n = cpoints.size();
 	if( n > 0 )
 	{

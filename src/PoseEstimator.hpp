@@ -19,8 +19,16 @@
 namespace eslam
 {
 
+struct PoseParticle : public base::Pose2D
+{
+    PoseParticle( const Eigen::Vector2d& position, double orientation )
+	: base::Pose2D( position, orientation ) {};
+
+    std::vector<Eigen::Vector3d> cpoints;
+};
+
 class PoseEstimator :
-    public ParticleFilter<base::Pose2D>
+    public ParticleFilter<PoseParticle>
 {
 public:
     PoseEstimator();
