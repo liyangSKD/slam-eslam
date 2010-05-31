@@ -69,7 +69,7 @@ void PoseEstimator::update(const asguard::BodyState& state, const Eigen::Quatern
 
     // get the orientation first and remove any rotation around the z axis
     Eigen::Vector3d projy = orientation * Eigen::Vector3d::UnitY(); 
-    Eigen::Quaterniond ocomp = Eigen::AngleAxisd( atan2( -projy.x(), projy.y() ), Eigen::Vector3d::UnitZ()) * orientation;
+    Eigen::Quaterniond ocomp = Eigen::AngleAxisd( -atan2( -projy.x(), projy.y() ), Eigen::Vector3d::UnitZ()) * orientation;
 
     for(int i=0;i<4;i++)
     {
