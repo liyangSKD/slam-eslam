@@ -28,16 +28,37 @@ public:
     {
     };
 
-    void resample()
+    double normalizeWeights()
     {
 	double sumWeights = 0;
 	for(size_t n=0;n<xi_k.size();sumWeights+=xi_k[n++].w);
 
+	double effective = 0;
 	if( sumWeights <= 0.0 )
-	    return;
+	{
+	    for(size_t n=0;n<xi_k.size();n++)
+	    {
+		double &w(xi_k[n++].w);
+		w = 1.0/xi_k.size();
+		effective += w*w;
+	    }
+	}
+	else{
+	    for(size_t n=0;n<xi_k.size();n++)
+	    {
+		double &w(xi_k[n++].w);
+		w /= sumWeights;
+		effective += w*w;
+	    }
+	}
 
+	return 1.0/effective;
+    };
+
+    void resample()
+    {
 	boost::variate_generator<boost::minstd_rand&, boost::uniform_real<> > 
-	    rand(rand_gen, boost::uniform_real<>(0,sumWeights) );
+	    rand(rand_gen, boost::uniform_real<>(0,1.0) );
 
 	std::vector<Particle> xi_kp;
 	for(size_t n=0;n<xi_k.size();n++)
