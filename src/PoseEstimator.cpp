@@ -58,7 +58,35 @@ void PoseEstimator::project(const asguard::BodyState& state)
     }
 }
 
+double PoseEstimator::weightingFunction( double stdev )
+{
+    double x = stdev;
+    const double alpha = config.filter.weightingFactor, beta = 1.0, gamma = 0.05;
+    if( x < alpha )
+	return 1.0;
+    if( x < beta )
+    {
+	double a = (1.0-gamma)/(alpha-beta);
+	double b = 1.0-alpha*a;
+	return a*x + b; 
+    }
+    if( x >= beta )
+	return gamma;
+
+    return 0.0;
+}
+
 void PoseEstimator::update(const asguard::BodyState& state, const Eigen::Quaterniond& orientation)
+{
+    updateWeights(state, orientation);
+    double eff = normalizeWeights();
+    if( eff < config.filter.minEffective )
+    {
+	resample();
+    }
+}
+
+void PoseEstimator::updateWeights(const asguard::BodyState& state, const Eigen::Quaterniond& orientation)
 {
     if( !env )
 	throw std::runtime_error("No environment attached.");
@@ -97,10 +125,13 @@ void PoseEstimator::update(const asguard::BodyState& state, const Eigen::Quatern
 	for(std::vector<Eigen::Vector3d>::iterator it=cpoints.begin();it!=cpoints.end();it++)
 	{
 	    Eigen::Vector3d gp = t*(*it);
+	    ContactPoint p;
 	    double x = gp.z();
 	    ga->getElevation( gp ); // this will set the z component of gp to the dem value
-	    pose.cpoints.push_back( gp );
+	    p.point = gp;
 	    x -= gp.z();
+	    p.zdiff = x;
+	    pose.cpoints.push_back( p );
 	    sum_x += x;
 	    sum_xsq += x*x;
 	}
@@ -108,15 +139,11 @@ void PoseEstimator::update(const asguard::BodyState& state, const Eigen::Quatern
 	int n = cpoints.size();
 	if( n > 0 )
 	{
-	    double var = sum_xsq/n - (sum_x/n)*(sum_x/n);
+	    pose.mean = sum_x/n;
+	    double var = sqrt(sum_xsq/n - (sum_x/n)*(sum_x/n));
 
 	    // use some measurement of the variance as the weight 
-	    if(std::isnan(var))
-	    {
-		xi_k[i].w = 0.0;
-	    }
-	    else
-		xi_k[i].w = 1.0/(.1+var);
+	    xi_k[i].w *= weightingFunction( var );
 	}
     }
 }

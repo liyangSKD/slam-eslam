@@ -19,12 +19,19 @@
 namespace eslam
 {
 
+struct ContactPoint
+{
+    Eigen::Vector3d point;
+    double zdiff;
+};
+
 struct PoseParticle : public base::Pose2D
 {
     PoseParticle( const Eigen::Vector2d& position, double orientation )
 	: base::Pose2D( position, orientation ) {};
 
-    std::vector<Eigen::Vector3d> cpoints;
+    std::vector<ContactPoint> cpoints;
+    double mean;
 };
 
 class PoseEstimator :
@@ -41,6 +48,9 @@ public:
     void setEnvironment(envire::Environment *env);
 
 private:
+    void updateWeights(const asguard::BodyState& state, const Eigen::Quaterniond& orientation);
+    double weightingFunction( double stdev );
+
     asguard::Configuration config;
     asguard::WheelOdometry2D odometry;
     
