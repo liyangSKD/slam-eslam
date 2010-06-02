@@ -71,7 +71,9 @@ public:
 		sum += xi_k[i].w;
 		if( r_n < sum )
 		{
-		    xi_kp.push_back( xi_k[i] );
+		    Particle p( xi_k[i] );
+		    p.w = 1.0 / xi_k.size();
+		    xi_kp.push_back(p);
 		    break;
 		}
 	    }
