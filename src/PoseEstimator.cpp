@@ -6,8 +6,8 @@
 
 using namespace eslam;
 
-PoseEstimator::PoseEstimator()
-    : odometry(config), env(NULL), ga(NULL)
+PoseEstimator::PoseEstimator(base::odometry::Sampling2D& odometry)
+    : odometry(odometry), env(NULL), ga(NULL)
 {
 }
 
@@ -45,13 +45,9 @@ void PoseEstimator::init(int numParticles, const base::Pose2D& mu, const base::P
 
 void PoseEstimator::project(const asguard::BodyState& state)
 {
-    odometry.state.update( state );
-    if( !odometry.state.isValid() )
-	return;
-
     for(int i=0;i<xi_k.size();i++)
     {
-	base::Pose2D delta = odometry.getPoseDeltaSample();
+	base::Pose2D delta = odometry.getPoseDeltaSample2D();
 	base::Pose2D &p( xi_k[i].x );
 	p.position += Eigen::Rotation2D<double>(p.orientation) * delta.position;
 	p.orientation += delta.orientation;
