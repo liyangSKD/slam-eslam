@@ -16,11 +16,21 @@
 #include <envire/Core.hpp>
 #include <envire/GridAccess.hpp>
 
+#include <limits>
+
 namespace eslam
 {
 
 struct ContactPoint
 {
+    ContactPoint() : 
+	point( Eigen::Vector3d(0,0,0)), 
+	zdiff(std::numeric_limits<double>::infinity()) {}
+
+    ContactPoint(const Eigen::Vector3d& point, double zdiff) :
+	point(point),
+	zdiff(zdiff) {}
+
     Eigen::Vector3d point;
     double zdiff;
 };

@@ -89,7 +89,8 @@ void PoseEstimator::updateWeights(const asguard::BodyState& state, const Eigen::
 
     
     // calculate foot positions and rotate them using pitch/roll
-    std::vector<Eigen::Vector3d> cpoints;
+    typedef std::vector<Eigen::Vector3d> vec3array;
+    std::vector<vec3array> cpoints(4);
 
     // get the orientation first and remove any rotation around the z axis
     Eigen::Vector3d projy = orientation * Eigen::Vector3d::UnitY(); 
@@ -99,12 +100,8 @@ void PoseEstimator::updateWeights(const asguard::BodyState& state, const Eigen::
     {
 	for(int j=0;j<5;j++) 
 	{
-	    if( state.getWheelContact( static_cast<asguard::wheelIdx>(i), j ).contact > 0.5 )
-	    {
-		// if there is a contact convert to local frame and store in vector
-		Eigen::Vector3d f = config.getFootPosition( state, static_cast<asguard::wheelIdx>(i), j );
-		cpoints.push_back( ocomp * f );	
-	    }
+	    Eigen::Vector3d f = config.getFootPosition( state, static_cast<asguard::wheelIdx>(i), j );
+	    cpoints[i].push_back( ocomp * f );	
 	}
     }
 
@@ -118,18 +115,26 @@ void PoseEstimator::updateWeights(const asguard::BodyState& state, const Eigen::
 
 	pose.cpoints.clear();
 	double sum_xsq = 0, sum_x = 0;
-	for(std::vector<Eigen::Vector3d>::iterator it=cpoints.begin();it!=cpoints.end();it++)
+	for(int wi=0;wi<4;wi++)
 	{
-	    Eigen::Vector3d gp = t*(*it);
+	    // find the contact points with the lowest zdiff per wheel
 	    ContactPoint p;
-	    double x = gp.z();
-	    ga->getElevation( gp ); // this will set the z component of gp to the dem value
-	    p.point = gp;
-	    x -= gp.z();
-	    p.zdiff = x;
+	    for(std::vector<Eigen::Vector3d>::iterator it=cpoints[wi].begin();it!=cpoints[wi].end();it++)
+	    {
+		Eigen::Vector3d gp = t*(*it);
+		double zdiff = gp.z();
+		ga->getElevation( gp ); // this will set the z component of gp to the dem value
+		zdiff -= gp.z();
+
+		
+		if( zdiff < p.zdiff )
+		   p = ContactPoint( gp, zdiff );
+	    }
+
 	    pose.cpoints.push_back( p );
-	    sum_x += x;
-	    sum_xsq += x*x;
+
+	    sum_x += p.zdiff;
+	    sum_xsq += p.zdiff*p.zdiff;
 	}
 
 	int n = cpoints.size();
