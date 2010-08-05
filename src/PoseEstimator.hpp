@@ -42,6 +42,7 @@ struct PoseParticle : public base::Pose2D
 
     std::vector<ContactPoint> cpoints;
     double mean;
+    double zPos;
 };
 
 class PoseEstimator :
