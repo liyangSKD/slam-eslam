@@ -66,7 +66,7 @@ private:
     base::odometry::Sampling2D &odometry;
     
     envire::Environment *env;
-    envire::GridAccess *ga;
+    envire::PointcloudAccess *ga;
 };
 
 }

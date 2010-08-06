@@ -25,7 +25,7 @@ void PoseEstimator::setEnvironment(envire::Environment *env)
 	delete ga;
 
     // get a gridaccess object for direct access to the DEMs
-    ga = new envire::GridAccess(env);
+    ga = new envire::PointcloudAccess(env);
 }
 
 void PoseEstimator::init(int numParticles, const base::Pose2D& mu, const base::Pose2D& sigma) 
@@ -105,6 +105,8 @@ void PoseEstimator::updateWeights(const asguard::BodyState& state, const Eigen::
 	}
     }
 
+    int total_points = 0;
+
     // now update the weights of the particles by calculating the variance of the contact points 
     for(int i=0;i<xi_k.size();i++)
     {
@@ -114,31 +116,43 @@ void PoseEstimator::updateWeights(const asguard::BodyState& state, const Eigen::
 	    * Eigen::AngleAxisd( pose.orientation, Eigen::Vector3d::UnitZ() );
 
 	pose.cpoints.clear();
+	size_t found_points = 0;
+
 	double sum_xsq = 0, sum_x = 0, sum_z = 0;
 	for(int wi=0;wi<4;wi++)
 	{
 	    // find the contact points with the lowest zdiff per wheel
 	    ContactPoint p;
+	    bool contact = true;
 	    for(std::vector<Eigen::Vector3d>::iterator it=cpoints[wi].begin();it!=cpoints[wi].end();it++)
 	    {
 		Eigen::Vector3d gp = t*(*it);
 		double zdiff = gp.z();
-		ga->getElevation( gp ); // this will set the z component of gp to the dem value
+		if( !ga->getElevation( gp ) )
+		{
+		    contact = false;
+		    break;
+		}
+		    
 		zdiff -= gp.z();
 
 		if( zdiff < p.zdiff )
 		   p = ContactPoint( gp, zdiff );
 	    }
 
-	    pose.cpoints.push_back( p );
+	    if( contact )
+	    {
+		found_points++;
+		pose.cpoints.push_back( p );
 
-	    sum_z += p.point.z();
-	    sum_x += p.zdiff;
-	    sum_xsq += p.zdiff*p.zdiff;
+		sum_z += p.point.z();
+		sum_x += p.zdiff;
+		sum_xsq += p.zdiff*p.zdiff;
+	    }
 	}
 
-	int n = cpoints.size();
-	if( n > 0 )
+	int n = found_points;
+	if( n > 1 ) // need to have at least two for the weighting to make sense
 	{
 	    pose.mean = sum_x/n;
 	    pose.zPos = sum_z/n;
@@ -147,6 +161,15 @@ void PoseEstimator::updateWeights(const asguard::BodyState& state, const Eigen::
 	    // use some measurement of the variance as the weight 
 	    xi_k[i].w *= weightingFunction( var );
 	}
+	else
+	{
+	    // slowly reduce likelyhood of particles with no measurements
+	    xi_k[i].w *= 0.98;
+	}
+	total_points += found_points;
     }
+
+    static int iter = 0;
+    std::cout << "iteration: " << iter++ << "\tfound: " << total_points << "\tmax: " << xi_k.size() << "       \r";
 }
 
