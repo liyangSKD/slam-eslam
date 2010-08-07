@@ -43,6 +43,8 @@ struct PoseParticle : public base::Pose2D
     std::vector<ContactPoint> cpoints;
     double mean;
     double zPos;
+
+    bool floating;
 };
 
 class PoseEstimator :
@@ -58,6 +60,8 @@ public:
 
     void setEnvironment(envire::Environment *env);
 
+    base::Pose getCentroid();
+
 private:
     void updateWeights(const asguard::BodyState& state, const Eigen::Quaterniond& orientation);
     double weightingFunction( double stdev );
@@ -67,6 +71,8 @@ private:
     
     envire::Environment *env;
     envire::PointcloudAccess *ga;
+
+    Eigen::Quaterniond zCompensatedOrientation;
 };
 
 }

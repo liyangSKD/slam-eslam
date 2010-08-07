@@ -82,6 +82,12 @@ void PoseEstimator::update(const asguard::BodyState& state, const Eigen::Quatern
     }
 }
 
+template <class T, int N> 
+    bool compareElement(const T& a, const T& b)
+{
+    return a[N] < b[N];
+}
+
 void PoseEstimator::updateWeights(const asguard::BodyState& state, const Eigen::Quaterniond& orientation)
 {
     if( !env )
@@ -96,6 +102,9 @@ void PoseEstimator::updateWeights(const asguard::BodyState& state, const Eigen::
     Eigen::Vector3d projy = orientation * Eigen::Vector3d::UnitY(); 
     Eigen::Quaterniond ocomp = Eigen::AngleAxisd( -atan2( -projy.x(), projy.y() ), Eigen::Vector3d::UnitZ()) * orientation;
 
+    // store ocomp for calculation of median
+    zCompensatedOrientation = ocomp;
+
     for(int i=0;i<4;i++)
     {
 	for(int j=0;j<5;j++) 
@@ -103,6 +112,9 @@ void PoseEstimator::updateWeights(const asguard::BodyState& state, const Eigen::
 	    Eigen::Vector3d f = config.getFootPosition( state, static_cast<asguard::wheelIdx>(i), j );
 	    cpoints[i].push_back( ocomp * f );	
 	}
+	// remove the two wheels with the highest z value
+	std::sort( cpoints[i].begin(), cpoints[i].end(), compareElement<Eigen::Vector3d,2> );
+	cpoints[i].resize( 3 );
     }
 
     int total_points = 0;
@@ -160,11 +172,14 @@ void PoseEstimator::updateWeights(const asguard::BodyState& state, const Eigen::
 
 	    // use some measurement of the variance as the weight 
 	    xi_k[i].w *= weightingFunction( var );
+	    xi_k[i].x.floating = false;
 	}
 	else
 	{
 	    // slowly reduce likelyhood of particles with no measurements
-	    xi_k[i].w *= 0.98;
+	    // and mark them as floating
+	    xi_k[i].x.floating = true;
+	    xi_k[i].w *= 0.99;
 	}
 	total_points += found_points;
     }
@@ -173,3 +188,26 @@ void PoseEstimator::updateWeights(const asguard::BodyState& state, const Eigen::
     std::cout << "iteration: " << iter++ << "\tfound: " << total_points << "\tmax: " << xi_k.size() << "       \r";
 }
 
+base::Pose PoseEstimator::getCentroid()
+{
+    // calculate the weighted mean for now
+    base::Pose2D mean;
+    double zMean = 0;
+    for(int i=0;i<xi_k.size();i++)
+    {
+	const Particle &particle(xi_k[i]);
+	if( !particle.x.floating )
+	{
+	    mean.position += particle.x.position * particle.w;
+	    mean.orientation += particle.x.orientation * particle.w;
+	    zMean += particle.x.zPos * particle.w;
+	}
+    }
+
+    // and convert into a 3d position
+    base::Pose result( 
+	    Eigen::Vector3d( mean.position.x(), mean.position.y(), zMean ), 
+	    Eigen::AngleAxisd( mean.orientation, Eigen::Vector3d::UnitZ() ) * zCompensatedOrientation );
+
+    return result;
+}
