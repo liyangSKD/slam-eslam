@@ -38,7 +38,7 @@ public:
 	{
 	    for(size_t n=0;n<xi_k.size();n++)
 	    {
-		double &w(xi_k[n++].w);
+		double &w(xi_k[n].w);
 		w = 1.0/xi_k.size();
 		effective += w*w;
 	    }
@@ -46,7 +46,7 @@ public:
 	else{
 	    for(size_t n=0;n<xi_k.size();n++)
 	    {
-		double &w(xi_k[n++].w);
+		double &w(xi_k[n].w);
 		w /= sumWeights;
 		effective += w*w;
 	    }
@@ -69,7 +69,7 @@ public:
 	    for(size_t i=0;i<xi_k.size();i++)
 	    {
 		sum += xi_k[i].w;
-		if( r_n < sum )
+		if( r_n <= sum )
 		{
 		    Particle p( xi_k[i] );
 		    p.w = 1.0 / xi_k.size();
