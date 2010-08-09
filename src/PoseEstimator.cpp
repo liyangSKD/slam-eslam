@@ -4,6 +4,8 @@
 
 #include <stdexcept>
 
+#include <omp.h>
+
 using namespace eslam;
 
 PoseEstimator::PoseEstimator(base::odometry::Sampling2D& odometry)
@@ -120,6 +122,10 @@ void PoseEstimator::updateWeights(const asguard::BodyState& state, const Eigen::
     int total_points = 0;
 
     // now update the weights of the particles by calculating the variance of the contact points 
+#ifdef USE_OPENMP
+#warning "using OpenMP"
+#pragma omp parallel for
+#endif
     for(int i=0;i<xi_k.size();i++)
     {
 	PoseParticle &pose(xi_k[i].x);
