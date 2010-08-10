@@ -70,7 +70,8 @@ private:
     base::odometry::Sampling2D &odometry;
     
     envire::Environment *env;
-    envire::PointcloudAccess *ga;
+
+    std::auto_ptr<envire::PointcloudAccess> ga;
 
     Eigen::Quaterniond zCompensatedOrientation;
 };

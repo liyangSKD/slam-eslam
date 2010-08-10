@@ -9,25 +9,18 @@
 using namespace eslam;
 
 PoseEstimator::PoseEstimator(base::odometry::Sampling2D& odometry)
-    : odometry(odometry), env(NULL), ga(NULL)
+    : odometry(odometry), env(NULL)
 {
 }
 
 PoseEstimator::~PoseEstimator()
 {
-    if( ga )
-	delete ga;
 }
 
 void PoseEstimator::setEnvironment(envire::Environment *env)
 {
     this->env = env;
-
-    if( ga )
-	delete ga;
-
-    // get a gridaccess object for direct access to the DEMs
-    ga = new envire::PointcloudAccess(env);
+    ga = std::auto_ptr<envire::PointcloudAccess>( new envire::PointcloudAccess(env));
 }
 
 void PoseEstimator::init(int numParticles, const base::Pose2D& mu, const base::Pose2D& sigma) 
