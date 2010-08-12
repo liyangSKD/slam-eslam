@@ -129,7 +129,10 @@ void PoseEstimator::updateWeights(const asguard::BodyState& state, const Eigen::
 	pose.cpoints.clear();
 	size_t found_points = 0;
 
-	double sum_xsq = 0, sum_x = 0, sum_z = 0;
+	const double xythresh = 0.05;
+	const double zModelError = 0.1;
+
+	double sum_xsq = 0, sum_x = 0;
 	for(int wi=0;wi<4;wi++)
 	{
 	    // find the contact points with the lowest zdiff per wheel
@@ -137,15 +140,16 @@ void PoseEstimator::updateWeights(const asguard::BodyState& state, const Eigen::
 	    bool contact = true;
 	    for(std::vector<Eigen::Vector3d>::iterator it=cpoints[wi].begin();it!=cpoints[wi].end();it++)
 	    {
-		Eigen::Vector3d gp = t*(*it);
+		const Eigen::Vector3d &cpoint(*it);
+
+		Eigen::Vector3d gp = t*cpoint;
 		double zdiff = gp.z();
-		if( !ga->getElevation( gp ) )
+		if( !ga->getElevation( gp, xythresh, pose.zPos + cpoint.z(), pose.zSigma + zModelError ) )
 		{
 		    contact = false;
 		    break;
 		}
-		    
-		zdiff -= gp.z();
+		zdiff = zdiff - gp.z();
 
 		if( zdiff < p.zdiff )
 		   p = ContactPoint( gp, zdiff );
@@ -156,7 +160,6 @@ void PoseEstimator::updateWeights(const asguard::BodyState& state, const Eigen::
 		found_points++;
 		pose.cpoints.push_back( p );
 
-		sum_z += p.point.z();
 		sum_x += p.zdiff;
 		sum_xsq += p.zdiff*p.zdiff;
 	    }
@@ -165,9 +168,9 @@ void PoseEstimator::updateWeights(const asguard::BodyState& state, const Eigen::
 	int n = found_points;
 	if( n > 1 ) // need to have at least two for the weighting to make sense
 	{
-	    pose.mean = sum_x/n;
-	    pose.zPos = sum_z/n;
+	    pose.zPos = -sum_x/n;
 	    double var = sqrt(sum_xsq/n - (sum_x/n)*(sum_x/n));
+	    pose.zSigma = var;
 
 	    // use some measurement of the variance as the weight 
 	    xi_k[i].w *= weightingFunction( var );

@@ -41,8 +41,8 @@ struct PoseParticle : public base::Pose2D
 	: base::Pose2D( position, orientation ) {};
 
     std::vector<ContactPoint> cpoints;
-    double mean;
     double zPos;
+    double zSigma;
 
     bool floating;
 };
