@@ -37,8 +37,8 @@ struct ContactPoint
 
 struct PoseParticle : public base::Pose2D
 {
-    PoseParticle( const Eigen::Vector2d& position, double orientation )
-	: base::Pose2D( position, orientation ) {};
+    PoseParticle( const Eigen::Vector2d& position, double orientation, double zpos = 0, double zsigma = 0 )
+	: base::Pose2D( position, orientation ), zPos(zpos), zSigma(zsigma), floating(true) {};
 
     std::vector<ContactPoint> cpoints;
     double zPos;
@@ -54,7 +54,7 @@ public:
     PoseEstimator(base::odometry::Sampling2D& odometry);
     ~PoseEstimator();
 
-    void init(int numParticles, const base::Pose2D& mu, const base::Pose2D& sigma);
+    void init(int numParticles, const base::Pose2D& mu, const base::Pose2D& sigma, double zpos = 0, double zsigma = 0);
     void project(const asguard::BodyState& state);
     void update(const asguard::BodyState& state, const Eigen::Quaterniond& orientation);
 

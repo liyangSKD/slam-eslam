@@ -23,7 +23,7 @@ void PoseEstimator::setEnvironment(envire::Environment *env)
     ga = std::auto_ptr<envire::PointcloudAccess>( new envire::PointcloudAccess(env));
 }
 
-void PoseEstimator::init(int numParticles, const base::Pose2D& mu, const base::Pose2D& sigma) 
+void PoseEstimator::init(int numParticles, const base::Pose2D& mu, const base::Pose2D& sigma, double zpos, double zsigma) 
 {
     boost::variate_generator<boost::minstd_rand&, boost::normal_distribution<> > 
 	rand_x(rand_gen, boost::normal_distribution<>(mu.position.x(),sigma.position.x()) );
@@ -34,7 +34,14 @@ void PoseEstimator::init(int numParticles, const base::Pose2D& mu, const base::P
 
     for(int i=0;i<numParticles;i++)
     {
-	xi_k.push_back( Particle( PoseParticle( Eigen::Vector2d(rand_x(), rand_y()), rand_theta()), 0 ));
+	xi_k.push_back( 
+		Particle( 
+		    PoseParticle( 
+			Eigen::Vector2d(rand_x(), rand_y()), 
+			rand_theta(),
+			zpos,
+			zsigma
+		    ), 0 ));
     }
 }
 
