@@ -20,7 +20,7 @@ PoseEstimator::~PoseEstimator()
 void PoseEstimator::setEnvironment(envire::Environment *env)
 {
     this->env = env;
-    ga = std::auto_ptr<envire::PointcloudAccess>( new envire::PointcloudAccess(env));
+    ga = std::auto_ptr<envire::MLSAccess>( new envire::MLSAccess(env));
 }
 
 void PoseEstimator::init(int numParticles, const base::Pose2D& mu, const base::Pose2D& sigma, double zpos, double zsigma) 
@@ -136,10 +136,6 @@ void PoseEstimator::updateWeights(const asguard::BodyState& state, const Eigen::
 	pose.cpoints.clear();
 	size_t found_points = 0;
 
-	const double xythresh = 0.05;
-	const double zModelError = 0.1;
-
-	double sum_xsq = 0, sum_x = 0;
 	for(int wi=0;wi<4;wi++)
 	{
 	    // find the contact points with the lowest zdiff per wheel
@@ -150,37 +146,57 @@ void PoseEstimator::updateWeights(const asguard::BodyState& state, const Eigen::
 		const Eigen::Vector3d &cpoint(*it);
 
 		Eigen::Vector3d gp = t*cpoint;
-		double zdiff = gp.z();
-		if( !ga->getElevation( gp, xythresh, pose.zPos + cpoint.z(), pose.zSigma + zModelError ) )
+		double zpos, zstdev = pose.zSigma;
+		if( !ga->getElevation( gp, zpos, zstdev ) )
 		{
 		    contact = false;
 		    break;
 		}
-		zdiff = zdiff - gp.z();
+
+		const double zdiff = gp.z() - zpos;
 
 		if( zdiff < p.zdiff )
-		   p = ContactPoint( gp, zdiff );
+		{
+		    const double zvar = pose.zSigma * pose.zSigma + zstdev * zstdev;
+		    p = ContactPoint( gp, zdiff, zvar );
+		}
 	    }
 
 	    if( contact )
 	    {
 		found_points++;
 		pose.cpoints.push_back( p );
-
-		sum_x += p.zdiff;
-		sum_xsq += p.zdiff*p.zdiff;
 	    }
 	}
 
-	int n = found_points;
-	if( n > 1 ) // need to have at least two for the weighting to make sense
+	if( found_points > 1 ) // need to have at least two for the weighting to make sense
 	{
-	    pose.zPos = -sum_x/n;
-	    double var = sqrt(sum_xsq/n - (sum_x/n)*(sum_x/n));
-	    pose.zSigma = var;
+	    // calculate the z-delta with the highest combined probability
+	    // of the individual contact points
+	    double d1=0, d2=0; 
+	    for(std::vector<ContactPoint>::iterator it=pose.cpoints.begin();it!=pose.cpoints.end();it++)
+	    {
+		ContactPoint &p(*it);
+		d1 += p.zdiff/p.zvar;
+		d1 += 1.0/p.zvar;
+	    }
+	    const double delta = d1 / d2;
+
+	    // calculate the joint probability of the individual foot contact points using the
+	    // most likely z-height from the previous calculation of delta
+	    double zk = 1.0;
+	    for(std::vector<ContactPoint>::iterator it=pose.cpoints.begin();it!=pose.cpoints.end();it++)
+	    {
+		ContactPoint &p(*it);
+		const double odiff = p.zdiff - delta;
+		zk *= 1/sqrt(2*M_PI*p.zvar)*exp(-(odiff*odiff)/(2.0*p.zvar));
+	    }
+
+	    pose.zPos += delta;
+	    pose.zSigma = sqrt(d2);
 
 	    // use some measurement of the variance as the weight 
-	    xi_k[i].w *= weightingFunction( var );
+	    xi_k[i].w *= zk;
 	    xi_k[i].x.floating = false;
 	}
 	else
@@ -205,7 +221,7 @@ base::Pose PoseEstimator::getCentroid()
     for(int i=0;i<xi_k.size();i++)
     {
 	const Particle &particle(xi_k[i]);
-	if( !particle.x.floating )
+	//if( !particle.x.floating )
 	{
 	    mean.position += particle.x.position * particle.w;
 	    mean.orientation += particle.x.orientation * particle.w;

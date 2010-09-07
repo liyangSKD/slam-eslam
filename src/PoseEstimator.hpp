@@ -27,12 +27,15 @@ struct ContactPoint
 	point( Eigen::Vector3d(0,0,0)), 
 	zdiff(std::numeric_limits<double>::infinity()) {}
 
-    ContactPoint(const Eigen::Vector3d& point, double zdiff) :
+    ContactPoint(const Eigen::Vector3d& point, double zdiff, double zvar) :
 	point(point),
-	zdiff(zdiff) {}
+	zdiff(zdiff),
+	zvar(zvar) 
+    {}
 
     Eigen::Vector3d point;
     double zdiff;
+    double zvar;
 };
 
 struct PoseParticle : public base::Pose2D
@@ -71,7 +74,7 @@ private:
     
     envire::Environment *env;
 
-    std::auto_ptr<envire::PointcloudAccess> ga;
+    std::auto_ptr<envire::MLSAccess> ga;
 
     Eigen::Quaterniond zCompensatedOrientation;
 };
