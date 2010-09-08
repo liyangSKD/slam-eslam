@@ -130,7 +130,7 @@ void PoseEstimator::updateWeights(const asguard::BodyState& state, const Eigen::
     {
 	PoseParticle &pose(xi_k[i].x);
 	Eigen::Transform3d t = 
-	    Eigen::Translation3d( Eigen::Vector3d(pose.position.x(), pose.position.y(), 0) ) 
+	    Eigen::Translation3d( Eigen::Vector3d(pose.position.x(), pose.position.y(), pose.zPos) ) 
 	    * Eigen::AngleAxisd( pose.orientation, Eigen::Vector3d::UnitZ() );
 
 	pose.cpoints.clear();
@@ -178,25 +178,36 @@ void PoseEstimator::updateWeights(const asguard::BodyState& state, const Eigen::
 	    {
 		ContactPoint &p(*it);
 		d1 += p.zdiff/p.zvar;
-		d1 += 1.0/p.zvar;
+		d2 += 1.0/p.zvar;
 	    }
 	    const double delta = d1 / d2;
 
 	    // calculate the joint probability of the individual foot contact points using the
 	    // most likely z-height from the previous calculation of delta
-	    double zk = 1.0;
+	    double pz = 1.0;
 	    for(std::vector<ContactPoint>::iterator it=pose.cpoints.begin();it!=pose.cpoints.end();it++)
 	    {
 		ContactPoint &p(*it);
 		const double odiff = p.zdiff - delta;
-		zk *= 1/sqrt(2*M_PI*p.zvar)*exp(-(odiff*odiff)/(2.0*p.zvar));
+		const double zk = 1/sqrt(2*M_PI*p.zvar)*exp(-(odiff*odiff)/(2.0*p.zvar));
+		std::cout << "1/zk: " << 1.0/zk << std::endl;
+		pz *= 1.0/zk;
 	    }
 
-	    pose.zPos += delta;
-	    pose.zSigma = sqrt(d2);
+	    {
+		std::cout << "pose.zPos:" << pose.zPos
+		    << "\tpose.zSigma:" << pose.zSigma
+		    << "\tdelta:" << delta 
+		    << "\td1: " << d1
+		    << "\td2: " << d2
+		    << "\tpz: " << pz 
+		    << std::endl;
+	    }	
+	    pose.zPos += -delta;
+	    pose.zSigma = 1.0/sqrt(d2);
 
 	    // use some measurement of the variance as the weight 
-	    xi_k[i].w *= zk;
+	    xi_k[i].w *= pz;
 	    xi_k[i].x.floating = false;
 	}
 	else
