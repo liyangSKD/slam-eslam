@@ -179,6 +179,7 @@ void PoseEstimator::updateWeights(const asguard::BodyState& state, const Eigen::
 		ContactPoint &p(*it);
 		d1 += p.zdiff/p.zvar;
 		d2 += 1.0/p.zvar;
+		std::cout << "p.zdiff: " << p.zdiff << " p.zvar: " << p.zvar << " stdev: " << sqrt(p.zvar) << std::endl;
 	    }
 	    const double delta = d1 / d2;
 
@@ -188,15 +189,18 @@ void PoseEstimator::updateWeights(const asguard::BodyState& state, const Eigen::
 	    for(std::vector<ContactPoint>::iterator it=pose.cpoints.begin();it!=pose.cpoints.end();it++)
 	    {
 		ContactPoint &p(*it);
-		const double odiff = p.zdiff - delta;
-		const double zk = 1/sqrt(2*M_PI*p.zvar)*exp(-(odiff*odiff)/(2.0*p.zvar));
-		std::cout << "1/zk: " << 1.0/zk << std::endl;
-		pz *= 1.0/zk;
+		const double odiff = (p.zdiff - delta)/p.zvar;
+
+		const double zk = exp(-(odiff*odiff)/(2.0));
+		pz *= zk;
 	    }
+	    pz = 1.0;
 
 	    {
-		std::cout << "pose.zPos:" << pose.zPos
-		    << "\tpose.zSigma:" << pose.zSigma
+		std::cout 
+		    << "points: " << found_points
+		    << "\tzPos:" << pose.zPos
+		    << "\tzSigma:" << pose.zSigma
 		    << "\tdelta:" << delta 
 		    << "\td1: " << d1
 		    << "\td2: " << d2
