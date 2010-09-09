@@ -119,7 +119,9 @@ void PoseEstimator::updateWeights(const asguard::BodyState& state, const Eigen::
 	cpoints[i].resize( 3 );
     }
 
-    int total_points = 0;
+    size_t total_points = 0;
+    size_t data_particles = 0;
+    double sum_data_weights = 0.0;
 
     // now update the weights of the particles by calculating the variance of the contact points 
 #ifdef USE_OPENMP
@@ -146,7 +148,8 @@ void PoseEstimator::updateWeights(const asguard::BodyState& state, const Eigen::
 		const Eigen::Vector3d &cpoint(*it);
 
 		Eigen::Vector3d gp = t*cpoint;
-		double zpos, zstdev = pose.zSigma;
+		const double cp_stdev = config.filter.weightingFactor;
+		double zpos, zstdev = sqrt(pose.zSigma*pose.zSigma + cp_stdev*cp_stdev);
 		if( !ga->getElevation( gp, zpos, zstdev ) )
 		{
 		    contact = false;
@@ -157,7 +160,7 @@ void PoseEstimator::updateWeights(const asguard::BodyState& state, const Eigen::
 
 		if( zdiff < p.zdiff )
 		{
-		    const double zvar = pose.zSigma * pose.zSigma + zstdev * zstdev;
+		    const double zvar = pose.zSigma * pose.zSigma + zstdev * zstdev + cp_stdev * cp_stdev;
 		    p = ContactPoint( gp, zdiff, zvar );
 		}
 	    }
@@ -169,7 +172,7 @@ void PoseEstimator::updateWeights(const asguard::BodyState& state, const Eigen::
 	    }
 	}
 
-	if( found_points > 1 ) // need to have at least two for the weighting to make sense
+	if( found_points > 0 ) // need to have at least two for the weighting to make sense
 	{
 	    // calculate the z-delta with the highest combined probability
 	    // of the individual contact points
@@ -179,7 +182,7 @@ void PoseEstimator::updateWeights(const asguard::BodyState& state, const Eigen::
 		ContactPoint &p(*it);
 		d1 += p.zdiff/p.zvar;
 		d2 += 1.0/p.zvar;
-		std::cout << "p.zdiff: " << p.zdiff << " p.zvar: " << p.zvar << " stdev: " << sqrt(p.zvar) << std::endl;
+		//std::cout << "p.zdiff: " << p.zdiff << " p.zvar: " << p.zvar << " stdev: " << sqrt(p.zvar) << std::endl;
 	    }
 	    const double delta = d1 / d2;
 
@@ -189,13 +192,14 @@ void PoseEstimator::updateWeights(const asguard::BodyState& state, const Eigen::
 	    for(std::vector<ContactPoint>::iterator it=pose.cpoints.begin();it!=pose.cpoints.end();it++)
 	    {
 		ContactPoint &p(*it);
-		const double odiff = (p.zdiff - delta)/p.zvar;
+		const double odiff = (p.zdiff - delta)/sqrt(p.zvar);
 
 		const double zk = exp(-(odiff*odiff)/(2.0));
 		pz *= zk;
 	    }
-	    pz = 1.0;
+	    //pz = 1.0;
 
+	    if(false)
 	    {
 		std::cout 
 		    << "points: " << found_points
@@ -212,20 +216,40 @@ void PoseEstimator::updateWeights(const asguard::BodyState& state, const Eigen::
 
 	    // use some measurement of the variance as the weight 
 	    xi_k[i].w *= pz;
+	    xi_k[i].x.mprob = pz;
 	    xi_k[i].x.floating = false;
+	    
+	    data_particles ++;
+	    sum_data_weights += pow(pz,1/found_points);
 	}
 	else
 	{
 	    // slowly reduce likelyhood of particles with no measurements
 	    // and mark them as floating
 	    xi_k[i].x.floating = true;
-	    xi_k[i].w *= 0.99;
+	    xi_k[i].x.mprob = 1.0;
+	    //xi_k[i].w *= 0.99;
 	}
 	total_points += found_points;
     }
 
+    const double floating_weight = data_particles>0 ? sum_data_weights/data_particles : 1.0;
+    //std::cout << "fw: " << floating_weight << " sum_data_weights: " << sum_data_weights << " data_particles: " << data_particles << std::endl;
+
+    for(std::vector<Particle>::iterator it=xi_k.begin();it!=xi_k.end();it++)
+    {
+	//if((*it).x.cpoints.size() < 4)
+	//{
+	double factor = (*it).x.mprob * pow(0.8*floating_weight, 4-(*it).x.cpoints.size());
+	//if( (*it).x.floating )
+	    //factor *= 0.8;
+	
+	(*it).w *= factor;
+	//}
+    }
+
     static int iter = 0;
-    std::cout << "iteration: " << iter++ << "\tfound: " << total_points << "\tmax: " << xi_k.size() << "       \r";
+    std::cerr << "iteration: " << iter++ << "\tfound: " << total_points << "\tmax: " << xi_k.size() << "       \r";
 }
 
 base::Pose PoseEstimator::getCentroid()

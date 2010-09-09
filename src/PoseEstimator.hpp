@@ -47,6 +47,7 @@ struct PoseParticle : public base::Pose2D
     double zPos;
     double zSigma;
 
+    double mprob;
     bool floating;
 };
 
