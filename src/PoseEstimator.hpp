@@ -55,7 +55,7 @@ class PoseEstimator :
     public ParticleFilter<PoseParticle>
 {
 public:
-    PoseEstimator(base::odometry::Sampling2D& odometry);
+    PoseEstimator(base::odometry::Sampling2D& odometry, asguard::Configuration &config );
     ~PoseEstimator();
 
     void init(int numParticles, const base::Pose2D& mu, const base::Pose2D& sigma, double zpos = 0, double zsigma = 0);
@@ -70,7 +70,7 @@ private:
     void updateWeights(const asguard::BodyState& state, const Eigen::Quaterniond& orientation);
     double weightingFunction( double stdev );
 
-    asguard::Configuration config;
+    asguard::Configuration &config;
     base::odometry::Sampling2D &odometry;
     
     envire::Environment *env;

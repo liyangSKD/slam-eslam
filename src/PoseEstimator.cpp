@@ -8,8 +8,8 @@
 
 using namespace eslam;
 
-PoseEstimator::PoseEstimator(base::odometry::Sampling2D& odometry)
-    : odometry(odometry), env(NULL)
+PoseEstimator::PoseEstimator(base::odometry::Sampling2D& odometry, asguard::Configuration &config )
+    : ParticleFilter<PoseParticle>(config.filter.seed), odometry(odometry), env(NULL), config(config)
 {
 }
 
@@ -148,7 +148,7 @@ void PoseEstimator::updateWeights(const asguard::BodyState& state, const Eigen::
 		const Eigen::Vector3d &cpoint(*it);
 
 		Eigen::Vector3d gp = t*cpoint;
-		const double cp_stdev = config.filter.weightingFactor;
+		const double cp_stdev = config.filter.measurementError;
 		double zpos, zstdev = sqrt(pose.zSigma*pose.zSigma + cp_stdev*cp_stdev);
 		if( !ga->getElevation( gp, zpos, zstdev ) )
 		{

@@ -23,6 +23,11 @@ public:
 	double w;
     };
 
+    ParticleFilter( unsigned long seed ) :
+	rand_gen( seed )
+    {
+    };
+
     ParticleFilter() :
 	rand_gen( 42u )
     {
