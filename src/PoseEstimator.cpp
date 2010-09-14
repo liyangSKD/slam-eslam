@@ -197,6 +197,9 @@ void PoseEstimator::updateWeights(const asguard::BodyState& state, const Eigen::
 		const double zk = exp(-(odiff*odiff)/(2.0));
 		pz *= zk;
 	    }
+	    const double cp_stdev = config.filter.measurementError;
+	    const double zd = delta/sqrt(pose.zSigma*pose.zSigma + cp_stdev*cp_stdev);
+	    pz *= exp( -(zd*zd)/2.0 );
 	    //pz = 1.0;
 
 	    if(false)
@@ -240,7 +243,7 @@ void PoseEstimator::updateWeights(const asguard::BodyState& state, const Eigen::
     {
 	//if((*it).x.cpoints.size() < 4)
 	//{
-	double factor = (*it).x.mprob * pow(0.8*floating_weight, 4-(*it).x.cpoints.size());
+	double factor = (*it).x.mprob * pow(config.filter.discountFactor*floating_weight, 4-(*it).x.cpoints.size());
 	//if( (*it).x.floating )
 	    //factor *= 0.8;
 	
