@@ -1,6 +1,6 @@
 #include "PoseEstimator.hpp"
 #include <algorithm>
-#include <envire/GridAccess.hpp>
+#include <envire/tools/GridAccess.hpp>
 
 #include <stdexcept>
 

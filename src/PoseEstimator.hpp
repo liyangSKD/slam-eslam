@@ -14,7 +14,7 @@
 #include <asguard/Odometry.hpp>
 
 #include <envire/Core.hpp>
-#include <envire/GridAccess.hpp>
+#include <envire/tools/GridAccess.hpp>
 
 #include <limits>
 
