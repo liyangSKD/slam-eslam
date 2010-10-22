@@ -40,8 +40,8 @@ struct ContactPoint
 
 struct PoseParticle : public base::Pose2D
 {
-    PoseParticle( const Eigen::Vector2d& position, double orientation, double zpos = 0, double zsigma = 0 )
-	: base::Pose2D( position, orientation ), zPos(zpos), zSigma(zsigma), floating(true) {};
+    PoseParticle( const Eigen::Vector2d& position, double orientation, double zpos = 0, double zsigma = 0, bool floating = true )
+	: base::Pose2D( position, orientation ), zPos(zpos), zSigma(zsigma), floating(floating) {};
 
     std::vector<ContactPoint> cpoints;
     double zPos;
@@ -78,6 +78,16 @@ private:
     std::auto_ptr<envire::MLSAccess> ga;
 
     Eigen::Quaterniond zCompensatedOrientation;
+};
+
+struct PoseDistribution
+{
+    typedef eslam::ParticleFilter<eslam::PoseParticle>::Particle particle;
+
+    base::Time time;
+    std::vector<particle> particles;
+    Eigen::Quaterniond orientation;
+    asguard::BodyState bodyState;
 };
 
 }
