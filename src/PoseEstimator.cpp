@@ -161,7 +161,7 @@ void PoseEstimator::updateWeights(const asguard::BodyState& state, const Eigen::
 		if( zdiff < p.zdiff )
 		{
 		    const double zvar = pose.zSigma * pose.zSigma + zstdev * zstdev + cp_stdev * cp_stdev;
-		    p = ContactPoint( gp, zdiff, zvar );
+		    p = ContactPoint( gp-Eigen::Vector3d::UnitZ()*zdiff, zdiff, zvar );
 		}
 	    }
 
@@ -172,7 +172,7 @@ void PoseEstimator::updateWeights(const asguard::BodyState& state, const Eigen::
 	    }
 	}
 
-	if( found_points > 0 ) // need to have at least two for the weighting to make sense
+	if( found_points > 0 ) 
 	{
 	    // calculate the z-delta with the highest combined probability
 	    // of the individual contact points
