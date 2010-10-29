@@ -131,11 +131,15 @@ void PoseEstimator::updateWeights(const asguard::BodyState& state, const Eigen::
     for(int i=0;i<xi_k.size();i++)
     {
 	PoseParticle &pose(xi_k[i].x);
+	Eigen::Vector3d pos( pose.position.x(), pose.position.y(), pose.zPos );
 	Eigen::Transform3d t = 
-	    Eigen::Translation3d( Eigen::Vector3d(pose.position.x(), pose.position.y(), pose.zPos) ) 
+	    Eigen::Translation3d( pos ) 
 	    * Eigen::AngleAxisd( pose.orientation, Eigen::Vector3d::UnitZ() );
 
 	pose.cpoints.clear();
+	// store some debug information in the particle
+	pose.meas_pos = pos; 
+	pose.meas_theta = pose.orientation;
 	size_t found_points = 0;
 
 	for(int wi=0;wi<4;wi++)

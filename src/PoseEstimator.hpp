@@ -43,12 +43,16 @@ struct PoseParticle : public base::Pose2D
     PoseParticle( const Eigen::Vector2d& position, double orientation, double zpos = 0, double zsigma = 0, bool floating = true )
 	: base::Pose2D( position, orientation ), zPos(zpos), zSigma(zsigma), floating(floating) {};
 
-    std::vector<ContactPoint> cpoints;
     double zPos;
     double zSigma;
 
     double mprob;
     bool floating;
+
+    // debug information
+    std::vector<ContactPoint> cpoints;
+    Eigen::Vector3d meas_pos;
+    double meas_theta;
 };
 
 class PoseEstimator :
