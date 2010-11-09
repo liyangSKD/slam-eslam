@@ -27,6 +27,7 @@ add_executable(unit_test ${TEST_SRC} test/UnitTest.cpp)
 set(FILTER_HDRS
     src/ParticleFilter.hpp
     src/PoseEstimator.hpp
+    src/EmbodiedSlamFilter.hpp
     )
 
 set(FILTER_SRCS
