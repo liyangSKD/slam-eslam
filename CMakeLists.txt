@@ -32,6 +32,7 @@ set(FILTER_HDRS
 
 set(FILTER_SRCS
     src/PoseEstimator.cpp
+    src/EmbodiedSlamFilter.cpp
     )
 
 if( USE_OPENMP )

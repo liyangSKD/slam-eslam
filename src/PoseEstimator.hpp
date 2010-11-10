@@ -5,6 +5,7 @@
 
 #include "ParticleFilter.hpp"
 #include <boost/random/normal_distribution.hpp>
+#include <boost/shared_ptr.hpp>
 
 #include <Eigen/Core>
 #include <Eigen/Geometry>
@@ -14,7 +15,7 @@
 #include <asguard/Odometry.hpp>
 
 #include <envire/Core.hpp>
-#include <envire/tools/GridAccess.hpp>
+#include <envire/maps/MultiLevelSurfaceGrid.hpp>
 
 #include <limits>
 
@@ -38,16 +39,64 @@ struct ContactPoint
     double zvar;
 };
 
+class GridAccess
+{
+    Eigen::Transform3d C_global2local;
+    boost::shared_ptr<envire::MultiLevelSurfaceGrid> mlsGrid;
+
+public:
+    void setGrid( boost::shared_ptr<envire::MultiLevelSurfaceGrid> mlsGrid ) 
+    {
+	envire::Environment *env = mlsGrid->getEnvironment();
+	C_global2local =
+	    env->relativeTransform( 
+		    env->getRootNode(),
+		    mlsGrid->getFrameNode() );
+
+	this->mlsGrid = mlsGrid;
+    }
+
+    envire::MultiLevelSurfaceGrid* get()
+    {
+	return mlsGrid.get();
+    };
+
+    bool get(const Eigen::Vector3d& position, double& zpos, double& zstdev)
+    {
+	if( mlsGrid )
+	    return mlsGrid->get( C_global2local * position, zpos, zstdev );
+	else
+	    return false;
+    }
+};
+
 struct PoseParticle : public base::Pose2D
 {
     PoseParticle( const Eigen::Vector2d& position, double orientation, double zpos = 0, double zsigma = 0, bool floating = true )
 	: base::Pose2D( position, orientation ), zPos(zpos), zSigma(zsigma), floating(floating) {};
+
+    Eigen::Transform3d getPose( const Eigen::Quaterniond& _orientation )
+    {
+	// get the orientation first and remove any rotation around the z axis
+	Eigen::Vector3d projy = _orientation * Eigen::Vector3d::UnitY(); 
+	Eigen::Quaterniond ocomp = Eigen::AngleAxisd( -atan2( -projy.x(), projy.y() ), Eigen::Vector3d::UnitZ()) * _orientation;
+
+	Eigen::Vector3d pos( position.x(), position.y(), zPos );
+	Eigen::Transform3d t = 
+	    Eigen::Translation3d( pos ) 
+	    * Eigen::AngleAxisd( orientation, Eigen::Vector3d::UnitZ() )
+	    * ocomp;
+	
+	return t;
+    }
 
     double zPos;
     double zSigma;
 
     double mprob;
     bool floating;
+
+    GridAccess grid;
 
     // debug information
     std::vector<ContactPoint> cpoints;
@@ -66,7 +115,8 @@ public:
     void project(const asguard::BodyState& state);
     void update(const asguard::BodyState& state, const Eigen::Quaterniond& orientation);
 
-    void setEnvironment(envire::Environment *env);
+    void setEnvironment(envire::Environment *env, boost::shared_ptr<envire::MultiLevelSurfaceGrid> grid, bool useShared );
+    void cloneMaps();
 
     base::Pose getCentroid();
 
@@ -78,8 +128,7 @@ private:
     base::odometry::Sampling2D &odometry;
     
     envire::Environment *env;
-
-    std::auto_ptr<envire::MLSAccess> ga;
+    bool useShared;
 
     Eigen::Quaterniond zCompensatedOrientation;
 };

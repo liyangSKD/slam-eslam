@@ -3,6 +3,7 @@
 #include <envire/tools/GridAccess.hpp>
 
 #include <stdexcept>
+#include <set>
 
 #include <omp.h>
 
@@ -17,10 +18,35 @@ PoseEstimator::~PoseEstimator()
 {
 }
 
-void PoseEstimator::setEnvironment(envire::Environment *env)
+void PoseEstimator::cloneMaps()
+{
+    // this function will make sure that no two particles will point to the same map
+    // this works by cloning maps if they are referenced more than once
+    std::set<envire::MultiLevelSurfaceGrid*> used;
+
+    for( std::vector<Particle>::iterator it = xi_k.begin(); it != xi_k.end(); it++ )
+    {
+	envire::MultiLevelSurfaceGrid* grid = it->x.grid.get();
+	if( !used.insert( grid ).second )
+	{
+	    envire::MultiLevelSurfaceGrid* gridClone = grid->clone(); 
+	    grid->getEnvironment()->setFrameNode( gridClone, grid->getFrameNode() );
+	    assert( gridClone->isAttached() );
+	    it->x.grid.setGrid( boost::shared_ptr<envire::MultiLevelSurfaceGrid>( gridClone ) );
+	}
+    }
+}
+
+void PoseEstimator::setEnvironment(envire::Environment *env, boost::shared_ptr<envire::MultiLevelSurfaceGrid> grid, bool useShared )
 {
     this->env = env;
-    ga = std::auto_ptr<envire::MLSAccess>( new envire::MLSAccess(env));
+    this->useShared = useShared;
+
+    for( std::vector<Particle>::iterator it = xi_k.begin(); it != xi_k.end(); it++ )
+	it->x.grid.setGrid( grid );
+
+    if( !useShared )
+	cloneMaps();
 }
 
 void PoseEstimator::init(int numParticles, const base::Pose2D& mu, const base::Pose2D& sigma, double zpos, double zsigma) 
@@ -81,6 +107,8 @@ void PoseEstimator::update(const asguard::BodyState& state, const Eigen::Quatern
     if( eff < config.filter.minEffective )
     {
 	resample();
+	if( !useShared )
+	    cloneMaps();
     }
 }
 
@@ -154,7 +182,7 @@ void PoseEstimator::updateWeights(const asguard::BodyState& state, const Eigen::
 		Eigen::Vector3d gp = t*cpoint;
 		const double cp_stdev = config.filter.measurementError;
 		double zpos, zstdev = sqrt(pose.zSigma*pose.zSigma + cp_stdev*cp_stdev);
-		if( !ga->getElevation( gp, zpos, zstdev ) )
+		if( !pose.grid.get( gp, zpos, zstdev ) )
 		{
 		    contact = false;
 		    break;
