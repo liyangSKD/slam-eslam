@@ -1,4 +1,4 @@
-project(particle_filter)
+project(eslam)
 set(PROJECT_VERSION 1.0)
 
 cmake_minimum_required(VERSION 2.6)
@@ -41,17 +41,17 @@ if( USE_OPENMP )
     set(CMAKE_EXE_LINKER_FLAGS -lgomp)
 endif( USE_OPENMP )
 
-add_library(particle_filter SHARED ${FILTER_SRCS})
-target_link_libraries(particle_filter ${ASGUARD_LIBRARIES})
-install(TARGETS particle_filter
+add_library(eslam SHARED ${FILTER_SRCS})
+target_link_libraries(eslam ${ASGUARD_LIBRARIES})
+install(TARGETS eslam
     RUNTIME DESTINATION bin
     LIBRARY DESTINATION lib)
 
-install(FILES ${FILTER_HDRS} DESTINATION include/particle_filter)
+install(FILES ${FILTER_HDRS} DESTINATION include/eslam)
 
 configure_file(Doxyfile.in Doxyfile @ONLY)
 add_custom_target(doc doxygen Doxyfile)
 
-configure_file(particle_filter.pc.in particle_filter.pc @ONLY)
-install(FILES ${CMAKE_BINARY_DIR}/particle_filter.pc DESTINATION lib/pkgconfig)
+configure_file(eslam.pc.in eslam.pc @ONLY)
+install(FILES ${CMAKE_BINARY_DIR}/eslam.pc DESTINATION lib/pkgconfig)
 

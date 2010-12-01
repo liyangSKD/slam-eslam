@@ -3,7 +3,7 @@
 
 #include <asguard/Odometry.hpp>
 
-#include <particle_filter/PoseEstimator.hpp>
+#include "PoseEstimator.hpp"
 
 #include <envire/Core.hpp>
 #include <envire/maps/MultiLevelSurfaceGrid.hpp>

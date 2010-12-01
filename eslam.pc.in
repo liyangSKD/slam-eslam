@@ -6,6 +6,6 @@ includedir=${prefix}/include
 Name: filter
 Description: Particle Filter Implementation 
 Version: @PROJECT_VERSION@
-Libs: -L${libdir} -lparticle_filter
+Libs: -L${libdir} -leslam
 Cflags: -I${includedir}
 
