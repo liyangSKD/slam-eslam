@@ -1,9 +1,9 @@
 #ifndef __ESLAM_EMBODIEDSLAMFILTER__
 #define __ESLAM_EMBODIEDSLAMFILTER__
 
-#include <asguard/Odometry.hpp>
-
 #include "PoseEstimator.hpp"
+
+#include <asguard/Odometry.hpp>
 
 #include <envire/Core.hpp>
 #include <envire/maps/MultiLevelSurfaceGrid.hpp>

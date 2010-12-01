@@ -12,6 +12,8 @@ struct State
 {
     double pos;
     double v;
+
+    double weight;
 };
 
 typedef double Input;
@@ -45,7 +47,7 @@ public:
 	for(int i=0;i<numParticles;i++)
 	{
 	    State s = {rand(), rand()};
-	    xi_k.push_back( Particle( s, 0 ) );
+	    xi_k.push_back( s );
 	}
     };
 
@@ -60,7 +62,7 @@ protected:
 
 	for(int i=0;i<xi_k.size();i++)
 	{
-	    State &xt(xi_k[i].x);
+	    State &xt(xi_k[i]);
 	    xt.v = xt.v + rand();
 	    xt.pos = xt.pos + xt.v * dt;
 	}
@@ -71,10 +73,10 @@ protected:
 	for(int i=0;i<xi_k.size();i++)
 	{
 	    double sigma = 1;
-	    double mu = xi_k[i].x.pos;
+	    double mu = xi_k[i].pos;
 	    double x = z_k; 
 	    double val = 1.0/sqrt(2.0*M_PI*pow(sigma,2.0))*exp(-pow(x-mu,2.0)/(2.0*pow(sigma,2.0))); 
-	    xi_k[i].w = val;
+	    xi_k[i].weight = val;
 	};
     };
 

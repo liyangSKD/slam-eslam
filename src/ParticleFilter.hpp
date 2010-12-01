@@ -8,20 +8,11 @@
 namespace eslam 
 {
 
-template <class State_>
+template <class _Particle>
 class ParticleFilter
 {
 public:
-    typedef State_ State;
-
-    struct Particle
-    {
-	Particle() : w(0.0) {};
-	Particle(State x, double weight) : x(x), w(weight) {};
-
-	State x;
-	double w;
-    };
+    typedef _Particle Particle;
 
     ParticleFilter( unsigned long seed ) :
 	rand_gen( seed )
@@ -36,14 +27,14 @@ public:
     double normalizeWeights()
     {
 	double sumWeights = 0;
-	for(size_t n=0;n<xi_k.size();sumWeights+=xi_k[n++].w);
+	for(size_t n=0;n<xi_k.size();sumWeights+=xi_k[n++].weight);
 
 	double effective = 0;
 	if( sumWeights <= 0.0 )
 	{
 	    for(size_t n=0;n<xi_k.size();n++)
 	    {
-		double &w(xi_k[n].w);
+		double &w(xi_k[n].weight);
 		w = 1.0/xi_k.size();
 		effective += w*w;
 	    }
@@ -51,7 +42,7 @@ public:
 	else{
 	    for(size_t n=0;n<xi_k.size();n++)
 	    {
-		double &w(xi_k[n].w);
+		double &w(xi_k[n].weight);
 		w /= sumWeights;
 		effective += w*w;
 	    }
@@ -73,11 +64,11 @@ public:
 
 	    for(size_t i=0;i<xi_k.size();i++)
 	    {
-		sum += xi_k[i].w;
+		sum += xi_k[i].weight;
 		if( r_n <= sum )
 		{
 		    Particle p( xi_k[i] );
-		    p.w = 1.0 / xi_k.size();
+		    p.weight = 1.0 / xi_k.size();
 		    xi_kp.push_back(p);
 		    break;
 		}

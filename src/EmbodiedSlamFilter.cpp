@@ -116,7 +116,7 @@ bool EmbodiedSlamFilter::update( const asguard::BodyState& bs, const Eigen::Quat
 	    std::vector<eslam::PoseEstimator::Particle> &particles( getParticles() );
 	    for( std::vector<eslam::PoseEstimator::Particle>::iterator it = particles.begin(); it != particles.end(); it++ )
 	    {
-		eslam::PoseParticle &p( it->x );
+		eslam::PoseEstimator::Particle &p( *it );
 		updateMap( p.getPose( orientation ), scan, p.grid.get() );
 	    }
 	}

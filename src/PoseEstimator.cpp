@@ -10,7 +10,7 @@
 using namespace eslam;
 
 PoseEstimator::PoseEstimator(base::odometry::Sampling2D& odometry, asguard::Configuration &config )
-    : ParticleFilter<PoseParticle>(config.filter.seed), odometry(odometry), env(NULL), config(config)
+    : ParticleFilter<Particle>(config.filter.seed), odometry(odometry), env(NULL), config(config)
 {
 }
 
@@ -26,13 +26,13 @@ void PoseEstimator::cloneMaps()
 
     for( std::vector<Particle>::iterator it = xi_k.begin(); it != xi_k.end(); it++ )
     {
-	envire::MultiLevelSurfaceGrid* grid = it->x.grid.get();
+	envire::MultiLevelSurfaceGrid* grid = it->grid.get();
 	if( !used.insert( grid ).second )
 	{
 	    envire::MultiLevelSurfaceGrid* gridClone = grid->clone(); 
 	    grid->getEnvironment()->setFrameNode( gridClone, grid->getFrameNode() );
 	    assert( gridClone->isAttached() );
-	    it->x.grid.setGrid( boost::shared_ptr<envire::MultiLevelSurfaceGrid>( gridClone ) );
+	    it->grid.setGrid( boost::shared_ptr<envire::MultiLevelSurfaceGrid>( gridClone ) );
 	}
     }
 }
@@ -43,7 +43,7 @@ void PoseEstimator::setEnvironment(envire::Environment *env, boost::shared_ptr<e
     this->useShared = useShared;
 
     for( std::vector<Particle>::iterator it = xi_k.begin(); it != xi_k.end(); it++ )
-	it->x.grid.setGrid( grid );
+	it->grid.setGrid( grid );
 
     if( !useShared )
 	cloneMaps();
@@ -62,12 +62,11 @@ void PoseEstimator::init(int numParticles, const base::Pose2D& mu, const base::P
     {
 	xi_k.push_back( 
 		Particle( 
-		    PoseParticle( 
-			Eigen::Vector2d(rand_x(), rand_y()), 
-			rand_theta(),
-			zpos,
-			zsigma
-		    ), 0 ));
+		    Eigen::Vector2d(rand_x(), rand_y()), 
+		    rand_theta(),
+		    zpos,
+		    zsigma
+		    ));
     }
 }
 
@@ -76,7 +75,8 @@ void PoseEstimator::project(const asguard::BodyState& state)
     for(int i=0;i<xi_k.size();i++)
     {
 	base::Pose2D delta = odometry.getPoseDeltaSample2D();
-	base::Pose2D &p( xi_k[i].x );
+	const Particle &particle( xi_k[i] );
+	base::Pose2D p( particle.position, particle.orientation );
 	p.position += Eigen::Rotation2D<double>(p.orientation) * delta.position;
 	p.orientation += delta.orientation;
     }
@@ -158,7 +158,7 @@ void PoseEstimator::updateWeights(const asguard::BodyState& state, const Eigen::
 #endif
     for(int i=0;i<xi_k.size();i++)
     {
-	PoseParticle &pose(xi_k[i].x);
+	Particle &pose(xi_k[i]);
 	Eigen::Vector3d pos( pose.position.x(), pose.position.y(), pose.zPos );
 	Eigen::Transform3d t = 
 	    Eigen::Translation3d( pos ) 
@@ -250,9 +250,9 @@ void PoseEstimator::updateWeights(const asguard::BodyState& state, const Eigen::
 	    pose.zSigma = 1.0/sqrt(d2);
 
 	    // use some measurement of the variance as the weight 
-	    xi_k[i].w *= pz;
-	    xi_k[i].x.mprob = pz;
-	    xi_k[i].x.floating = false;
+	    xi_k[i].weight *= pz;
+	    xi_k[i].mprob = pz;
+	    xi_k[i].floating = false;
 	    
 	    data_particles ++;
 	    sum_data_weights += pow(pz,1/found_points);
@@ -261,8 +261,8 @@ void PoseEstimator::updateWeights(const asguard::BodyState& state, const Eigen::
 	{
 	    // slowly reduce likelyhood of particles with no measurements
 	    // and mark them as floating
-	    xi_k[i].x.floating = true;
-	    xi_k[i].x.mprob = 1.0;
+	    xi_k[i].floating = true;
+	    xi_k[i].mprob = 1.0;
 	    //xi_k[i].w *= 0.99;
 	}
 	total_points += found_points;
@@ -275,11 +275,11 @@ void PoseEstimator::updateWeights(const asguard::BodyState& state, const Eigen::
     {
 	//if((*it).x.cpoints.size() < 4)
 	//{
-	double factor = (*it).x.mprob * pow(config.filter.discountFactor*floating_weight, 4-(*it).x.cpoints.size());
+	double factor = (*it).mprob * pow(config.filter.discountFactor*floating_weight, 4-(*it).cpoints.size());
 	//if( (*it).x.floating )
 	    //factor *= 0.8;
 	
-	(*it).w *= factor;
+	(*it).weight *= factor;
 	//}
     }
 
@@ -297,9 +297,9 @@ base::Pose PoseEstimator::getCentroid()
 	const Particle &particle(xi_k[i]);
 	//if( !particle.x.floating )
 	{
-	    mean.position += particle.x.position * particle.w;
-	    mean.orientation += particle.x.orientation * particle.w;
-	    zMean += particle.x.zPos * particle.w;
+	    mean.position += particle.position * particle.weight;
+	    mean.orientation += particle.orientation * particle.weight;
+	    zMean += particle.zPos * particle.weight;
 	}
     }
 
