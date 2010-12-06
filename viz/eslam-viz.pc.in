@@ -1,0 +1,11 @@
+prefix=@CMAKE_INSTALL_PREFIX@
+exec_prefix=@CMAKE_INSTALL_PREFIX@
+libdir=${prefix}/lib
+includedir=${prefix}/include
+
+Name: filter
+Description: Particle Filter Implementation 
+Version: @PROJECT_VERSION@
+Libs: -L${libdir} -leslam
+Cflags: -I${includedir}
+

@@ -9,4 +9,5 @@
 
     <depend package="asguard/asguard" />
     <depend package="slam/envire" />
+    <depend package="slam/enview" optional="1" />
 </package>

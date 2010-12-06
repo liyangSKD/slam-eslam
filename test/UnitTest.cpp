@@ -3,7 +3,7 @@
 
 #include <boost/random/normal_distribution.hpp>
 
-#include "ParticleFilter.hpp"
+#include <eslam/ParticleFilter.hpp>
 
 using namespace std;
 using namespace eslam;

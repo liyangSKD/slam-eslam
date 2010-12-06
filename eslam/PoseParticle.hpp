@@ -4,11 +4,12 @@
 #include <limits>
 #include <Eigen/Core>
 #include <Eigen/Geometry>
-#include <Eigen/StdVector>
 
 #include <base/eigen.h>
 #include <base/time.h>
 #include <asguard/BodyState.hpp>
+
+#include <vector>
 
 namespace eslam
 {
@@ -32,6 +33,7 @@ struct ContactPoint
 
 struct PoseParticle
 {
+    PoseParticle() {};
     PoseParticle( const Eigen::Vector2d& position, double orientation, double zpos = 0, double zsigma = 0, bool floating = true )
 	: position(position), orientation(orientation), zPos(zpos), zSigma(zsigma), floating(floating), weight(0) {};
 
