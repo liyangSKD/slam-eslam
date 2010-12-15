@@ -43,15 +43,15 @@ int main( int argc, char **argv )
     osg::ArgumentParser arguments(&argc, argv);
 
     // setup mainWindow and get pointer to environment
-    enview::ApplicationWindow mainWindow;
+    vizkit::ApplicationWindow mainWindow;
 
     a.connect( &a, SIGNAL(lastWindowClosed()), &a, SLOT(quit()) );
 
-    enview::GridNode *gn = new enview::GridNode();
+    vizkit::GridNode *gn = new enview::GridNode();
     mainWindow.addNode(gn);
 
     // test setup for pose visualisation
-    enview::Robot *rv = new enview::Robot();
+    vizkit::Robot *rv = new enview::Robot();
     mainWindow.addNode(rv->getNode());
     //mainWindow.registerSequenceData(rv);
 
@@ -61,7 +61,7 @@ int main( int argc, char **argv )
     //mainWindow.getInstance()->getView()->setTrackedNode( homeNode );
 
     // test setup for particle filter visualisation
-    enview::ParticleVisualization *pv = new enview::ParticleVisualization();
+    vizkit::ParticleVisualization *pv = new enview::ParticleVisualization();
     mainWindow.addNode(pv->getNode());
     mainWindow.registerSequenceData(pv);
 
@@ -96,7 +96,7 @@ int main( int argc, char **argv )
 	while( log.next() && (max_steps > n )) 
 	{
 	    // update the real robots pose
-	    enview::RobotState state;
+	    vizkit::RobotState state;
 	    state.rigidBodyState.position = log.getPose().position;
 	    state.rigidBodyState.orientation = log.getPose().orientation;
 	    state.bodyState = log.getBodyState();
@@ -106,7 +106,7 @@ int main( int argc, char **argv )
 	    filter.update( log.getBodyState(), log.getPose().orientation );
 
 	    // inject odometry data into particle filter
-	    enview::particleVector vec;
+	    vizkit::particleVector vec;
 	    std::vector<eslam::PoseEstimator::Particle>& xi_k( filter.getParticles() );
 
 	    for(size_t i=0;i<xi_k.size();i++)

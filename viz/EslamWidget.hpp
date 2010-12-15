@@ -1,25 +1,25 @@
-#ifndef __ENVIEW_ESLAMWIDGET__
-#define __ENVIEW_ESLAMWIDGET__
+#ifndef __VIZKIT_ESLAMWIDGET__
+#define __VIZKIT_ESLAMWIDGET__
 
 #include <Eigen/Geometry>
 #include <asguard/BodyState.hpp>
 #include <envire/Core.hpp>
 #include <base/pose.h>
 
-#include <enview/QEnviewWidget.hpp>
+#include <vizkit/QVizkitWidget.hpp>
 
 namespace eslam
 {
     class PoseDistribution;
 }
 
-namespace enview
+namespace vizkit
 {
 class EnvireVisualization;
 class AsguardVisualization;
 class ParticleVisualization;
 
-class EslamWidget : public QEnviewWidget
+class EslamWidget : public QVizkitWidget
 {
 public:
     EslamWidget( QWidget* parent = 0, Qt::WindowFlags f = 0 );

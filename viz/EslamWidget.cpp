@@ -3,13 +3,13 @@
 
 #include <eslam/PoseParticle.hpp>
 
-#include <enview/AsguardVisualization.hpp>
-#include <enview/EnvireVisualization.hpp>
+#include <vizkit/AsguardVisualization.hpp>
+#include <vizkit/EnvireVisualization.hpp>
 
-using namespace enview;
+using namespace vizkit;
 
 EslamWidget::EslamWidget( QWidget* parent, Qt::WindowFlags f )
-    : QEnviewWidget( parent, f ),
+    : QVizkitWidget( parent, f ),
     envViz( new EnvireVisualization() ),
     robotViz( new AsguardVisualization() ),
     particleViz( new ParticleVisualization() )
@@ -33,7 +33,7 @@ void EslamWidget::setPoseDistribution( const eslam::PoseDistribution& dist )
 
 void EslamWidget::setReferencePose( const base::Pose& pose, const asguard::BodyState& body_state )
 {
-    enview::AsguardState state;
+    vizkit::AsguardState state;
     state.rigidBodyState.position = pose.position;
     state.rigidBodyState.orientation = pose.orientation;
     state.bodyState = body_state;

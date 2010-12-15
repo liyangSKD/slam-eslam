@@ -60,7 +60,7 @@ protected:
 	boost::variate_generator<boost::minstd_rand&, boost::normal_distribution<> > 
 	    rand(rand_gen, boost::normal_distribution<>(0,sigma) );
 
-	for(int i=0;i<xi_k.size();i++)
+	for(size_t i=0;i<xi_k.size();i++)
 	{
 	    State &xt(xi_k[i]);
 	    xt.v = xt.v + rand();
@@ -70,7 +70,7 @@ protected:
 
     void updateWeights()
     {
-	for(int i=0;i<xi_k.size();i++)
+	for(size_t i=0;i<xi_k.size();i++)
 	{
 	    double sigma = 1;
 	    double mu = xi_k[i].pos;

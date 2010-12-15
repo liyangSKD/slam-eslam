@@ -13,9 +13,10 @@
 #include <boost/function.hpp>
 #include <boost/bind.hpp>
 
-#include <enview/PickHandler.h>
+#include <vizkit/PickHandler.hpp>
 
-namespace enview {
+namespace vizkit 
+{
 
 class ParticlePickedCallback : public PickedCallback
 {
@@ -71,7 +72,7 @@ ParticleVisualization::ParticleVisualization()
     offsetNode = new osg::Group();
     tn->addChild( offsetNode );
     
-    asguard = new enview::AsguardModel();
+    asguard = new vizkit::AsguardModel();
 }
 
 void ParticleVisualization::operatorIntern ( osg::Node* node, osg::NodeVisitor* nv )

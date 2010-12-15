@@ -7,7 +7,7 @@ int main( int argc, char **argv )
     QApplication a( argc, argv );
     osg::ArgumentParser arguments(&argc, argv);
 
-    enview::EslamWidget widget;
+    vizkit::EslamWidget widget;
 
     boost::shared_ptr<envire::Environment> env;
     if( argc >= 2 )

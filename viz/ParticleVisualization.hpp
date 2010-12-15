@@ -2,16 +2,17 @@
 #define PARTICLEVIZUALISATION_H
 #include <Eigen/Geometry>
 #include <vector>
-#include <enview/DataNode.h>
+#include <vizkit/VizPlugin.hpp>
 #include <osg/Geometry>
 
 #include <base/pose.h>
-#include <enview/AsguardModel.hpp>
+#include <vizkit/AsguardModel.hpp>
 #include <eslam/PoseParticle.hpp>
 
-namespace enview {
+namespace vizkit 
+{
 
-class ParticleVisualization: public DataNode<eslam::PoseDistribution>
+class ParticleVisualization : public VizPlugin<eslam::PoseDistribution>
 {
     public:
 	EIGEN_MAKE_ALIGNED_OPERATOR_NEW
@@ -33,7 +34,7 @@ class ParticleVisualization: public DataNode<eslam::PoseDistribution>
 
 	int inspectIdx;
 
-	osg::ref_ptr<enview::AsguardModel> asguard;
+	osg::ref_ptr<vizkit::AsguardModel> asguard;
 };
 
 }
