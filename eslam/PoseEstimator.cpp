@@ -10,7 +10,7 @@
 using namespace eslam;
 
 PoseEstimator::PoseEstimator(base::odometry::Sampling2D& odometry, asguard::Configuration &config )
-    : ParticleFilter<Particle>(config.filter.seed), odometry(odometry), env(NULL), config(config)
+    : ParticleFilter<Particle>(config.filter.seed), config(config), odometry(odometry), env(NULL)
 {
 }
 
@@ -72,7 +72,7 @@ void PoseEstimator::init(int numParticles, const base::Pose2D& mu, const base::P
 
 void PoseEstimator::project(const asguard::BodyState& state)
 {
-    for(int i=0;i<xi_k.size();i++)
+    for(size_t i=0;i<xi_k.size();i++)
     {
 	base::Pose2D delta = odometry.getPoseDeltaSample2D();
 	const Particle &particle( xi_k[i] );
@@ -156,7 +156,7 @@ void PoseEstimator::updateWeights(const asguard::BodyState& state, const Eigen::
 #warning "using OpenMP"
 #pragma omp parallel for
 #endif
-    for(int i=0;i<xi_k.size();i++)
+    for(size_t i=0;i<xi_k.size();i++)
     {
 	Particle &pose(xi_k[i]);
 	Eigen::Vector3d pos( pose.position.x(), pose.position.y(), pose.zPos );
@@ -292,7 +292,7 @@ base::Pose PoseEstimator::getCentroid()
     // calculate the weighted mean for now
     base::Pose2D mean;
     double zMean = 0;
-    for(int i=0;i<xi_k.size();i++)
+    for(size_t i=0;i<xi_k.size();i++)
     {
 	const Particle &particle(xi_k[i]);
 	//if( !particle.x.floating )
