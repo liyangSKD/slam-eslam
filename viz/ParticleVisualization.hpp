@@ -12,7 +12,7 @@
 namespace vizkit 
 {
 
-class ParticleVisualization : public VizPlugin<eslam::PoseDistribution>
+class ParticleVisualization : public VizPluginAdapter<eslam::PoseDistribution>
 {
     public:
 	EIGEN_MAKE_ALIGNED_OPERATOR_NEW

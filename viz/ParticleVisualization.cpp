@@ -63,7 +63,7 @@ ParticleVisualization::ParticleVisualization()
     //particleGeode = getParticleGeode();
 
     ownNode = new osg::Group();
-    ownNode->setUpdateCallback(this);
+    setMainNode( ownNode );
 
     osg::PositionAttitudeTransform* tn =
 	new osg::PositionAttitudeTransform();
@@ -178,7 +178,7 @@ void ParticleVisualization::operatorIntern ( osg::Node* node, osg::NodeVisitor* 
 void ParticleVisualization::updateDataIntern ( const eslam::PoseDistribution& dist )
 {
     this->dist = dist;
-    dirty = true;
+    setDirty();
 }
 
 }

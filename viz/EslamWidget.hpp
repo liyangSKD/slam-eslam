@@ -29,9 +29,9 @@ public:
     void setEnvironment( envire::Environment *env );
 
 private:
-    osg::ref_ptr<EnvireVisualization> envViz;
-    osg::ref_ptr<AsguardVisualization> robotViz;
-    osg::ref_ptr<ParticleVisualization> particleViz;
+    boost::shared_ptr<EnvireVisualization> envViz;
+    boost::shared_ptr<AsguardVisualization> robotViz;
+    boost::shared_ptr<ParticleVisualization> particleViz;
 };
 
 }
