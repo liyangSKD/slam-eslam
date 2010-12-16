@@ -12,7 +12,7 @@ set(TARGET_SRC
     )
 
 add_library(eslam-viz SHARED ${TARGET_SRC})
-target_link_libraries(eslam-viz
+target_link_libraries(eslam-viz eslam
     ${ASGUARD-VIZ_LIBRARIES}
     ${ENVIRE-VIZ_LIBRARIES}
     ${VIZKIT_LIBRARIES}

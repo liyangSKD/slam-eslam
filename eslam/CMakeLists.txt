@@ -17,7 +17,9 @@ if( USE_OPENMP )
 endif( USE_OPENMP )
 
 add_library(eslam SHARED ${FILTER_SRCS})
-target_link_libraries(eslam ${ASGUARD_LIBRARIES})
+target_link_libraries(eslam 
+    ${ASGUARD_LIBRARIES}
+    ${ENVIRE_LIBRARIES} )
 install(TARGETS eslam
     RUNTIME DESTINATION bin
     LIBRARY DESTINATION lib)
