@@ -6,6 +6,7 @@ includedir=${prefix}/include
 Name: filter
 Description: Particle Filter Implementation 
 Version: @PROJECT_VERSION@
-Libs: -L${libdir} -leslam
+Requires: vizkit, eslam
+Libs: -L${libdir} -leslam-viz
 Cflags: -I${includedir}
 
