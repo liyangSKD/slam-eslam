@@ -1,13 +1,12 @@
 #include <QtGui/QApplication>
+#include <vizkit/QtThreadedWidget.hpp>
 
 #include "../viz/EslamWidget.hpp"
 
 int main( int argc, char **argv )
 {
-    QApplication a( argc, argv );
-    osg::ArgumentParser arguments(&argc, argv);
-
-    vizkit::EslamWidget widget;
+    QtThreadedWidget<vizkit::EslamWidget> app;
+    app.start();
 
     boost::shared_ptr<envire::Environment> env;
     if( argc >= 2 )
@@ -16,10 +15,21 @@ int main( int argc, char **argv )
 	// load environment from arg1
 	envire::Serialization so;
 	env = boost::shared_ptr<envire::Environment>(so.unserialize( argv[1] ));
-	widget.setEnvironment(env.get());
+	app.widget->setEnvironment(env.get());
     }
 
-    widget.show();
-    return a.exec();
+    for(int i=0;i<500 && app.isRunning();i++)
+    {
+	asguard::BodyState bs;
+	double r = i/10.0;
+
+	bs.twistAngle = sin(r);
+	for(int j=0;j<4;j++)
+	    bs.wheelPos[j] = r;
+
+	app.widget->setReferencePose( base::Pose(), bs );
+
+	usleep(50*1000);
+    }
 }
 
