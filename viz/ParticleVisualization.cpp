@@ -14,6 +14,7 @@
 #include <boost/bind.hpp>
 
 #include <vizkit/PickHandler.hpp>
+#include <Eigen/LU>
 
 namespace vizkit 
 {
