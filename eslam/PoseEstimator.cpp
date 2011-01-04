@@ -9,7 +9,7 @@
 
 using namespace eslam;
 
-PoseEstimator::PoseEstimator(base::odometry::Sampling2D& odometry, asguard::Configuration &config )
+PoseEstimator::PoseEstimator(asguard::odometry::Wheel& odometry, asguard::Configuration &config )
     : ParticleFilter<Particle>(config.filter.seed), config(config), odometry(odometry), env(NULL)
 {
 }
@@ -31,14 +31,16 @@ void PoseEstimator::cloneMaps()
 	{
 	    envire::MultiLevelSurfaceGrid* gridClone = grid->clone(); 
 	    grid->getEnvironment()->setFrameNode( gridClone, grid->getFrameNode() );
-	    assert( gridClone->isAttached() );
-	    it->grid.setGrid( boost::shared_ptr<envire::MultiLevelSurfaceGrid>( gridClone ) );
+	    it->grid.setGrid( gridClone ); 	
 	}
     }
 }
 
-void PoseEstimator::setEnvironment(envire::Environment *env, boost::shared_ptr<envire::MultiLevelSurfaceGrid> grid, bool useShared )
+void PoseEstimator::setEnvironment(envire::Environment *env, envire::MultiLevelSurfaceGrid* grid, bool useShared )
 {
+    assert(env);
+    assert(grid);
+
     this->env = env;
     this->useShared = useShared;
 
@@ -70,15 +72,20 @@ void PoseEstimator::init(int numParticles, const base::Pose2D& mu, const base::P
     }
 }
 
-void PoseEstimator::project(const asguard::BodyState& state)
+void PoseEstimator::project(const asguard::BodyState& state, const Eigen::Quaterniond& orientation)
 {
+    Eigen::Transform3d dtrans = orientation * odometry.getPoseDelta().toTransform();
+    const double z_delta = dtrans.translation().z();
+
     for(size_t i=0;i<xi_k.size();i++)
     {
 	base::Pose2D delta = odometry.getPoseDeltaSample2D();
-	const Particle &particle( xi_k[i] );
-	base::Pose2D p( particle.position, particle.orientation );
+
+	Particle &p( xi_k[i] );
 	p.position += Eigen::Rotation2D<double>(p.orientation) * delta.position;
 	p.orientation += delta.orientation;
+
+	p.zPos += z_delta;
     }
 }
 

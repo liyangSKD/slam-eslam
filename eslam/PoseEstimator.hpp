@@ -5,7 +5,7 @@
 
 #include "ParticleFilter.hpp"
 #include <boost/random/normal_distribution.hpp>
-#include <boost/shared_ptr.hpp>
+#include <boost/intrusive_ptr.hpp>
 
 #include <Eigen/Core>
 #include <Eigen/Geometry>
@@ -25,10 +25,10 @@ namespace eslam
 class GridAccess
 {
     Eigen::Transform3d C_global2local;
-    boost::shared_ptr<envire::MultiLevelSurfaceGrid> mlsGrid;
+    boost::intrusive_ptr<envire::MultiLevelSurfaceGrid> mlsGrid;
 
 public:
-    void setGrid( boost::shared_ptr<envire::MultiLevelSurfaceGrid> mlsGrid ) 
+    void setGrid( boost::intrusive_ptr<envire::MultiLevelSurfaceGrid> mlsGrid ) 
     {
 	envire::Environment *env = mlsGrid->getEnvironment();
 	C_global2local =
@@ -66,14 +66,14 @@ class PoseEstimator :
     public ParticleFilter<PoseParticleGA>
 {
 public:
-    PoseEstimator(base::odometry::Sampling2D& odometry, asguard::Configuration &config );
+    PoseEstimator(asguard::odometry::Wheel& odometry, asguard::Configuration &config );
     ~PoseEstimator();
 
     void init(int numParticles, const base::Pose2D& mu, const base::Pose2D& sigma, double zpos = 0, double zsigma = 0);
-    void project(const asguard::BodyState& state);
+    void project(const asguard::BodyState& state, const Eigen::Quaterniond& orientation);
     void update(const asguard::BodyState& state, const Eigen::Quaterniond& orientation);
 
-    void setEnvironment(envire::Environment *env, boost::shared_ptr<envire::MultiLevelSurfaceGrid> grid, bool useShared );
+    void setEnvironment(envire::Environment *env, envire::MultiLevelSurfaceGrid* grid, bool useShared );
     void cloneMaps();
 
     base::Pose getCentroid();
@@ -83,7 +83,7 @@ private:
     double weightingFunction( double stdev );
 
     asguard::Configuration &config;
-    base::odometry::Sampling2D &odometry;
+    asguard::odometry::Wheel &odometry;
     
     envire::Environment *env;
     bool useShared;

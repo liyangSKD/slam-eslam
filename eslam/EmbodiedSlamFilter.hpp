@@ -7,6 +7,8 @@
 
 #include <envire/Core.hpp>
 #include <envire/maps/MultiLevelSurfaceGrid.hpp>
+#include <envire/operators/MLSProjection.hpp>
+#include <envire/operators/ScanMeshing.hpp>
 
 #include <base/samples/laser_scan.h>
 
@@ -28,12 +30,19 @@ class EmbodiedSlamFilter
     /** pose of last mapping step */
     base::Pose mapPose;
 
-    boost::shared_ptr<envire::MultiLevelSurfaceGrid> sharedMap;
+    envire::MultiLevelSurfaceGrid* sharedMap;
+
+    // store pointers to processing pipeline
+    envire::FrameNode *scanFrame;
+    envire::LaserScan *scanNode;
+    envire::TriMesh *pcNode;
+    envire::ScanMeshing *smOp;
+    envire::MLSProjection *mlsOp;
 
 public:
     EmbodiedSlamFilter(asguard::Configuration &config);
 
-    boost::shared_ptr<envire::MultiLevelSurfaceGrid> getMapTemplate( envire::Environment* env );
+    envire::MultiLevelSurfaceGrid* getMapTemplate( envire::Environment* env );
     void init( envire::Environment* env, const base::Pose& pose, bool useSharedMap = true );
     void updateMap( const Eigen::Transform3d& pose, const base::samples::LaserScan& scan, envire::MultiLevelSurfaceGrid* mlsGrid );
     bool update( const asguard::BodyState& bs, const Eigen::Quaterniond& orientation, const base::samples::LaserScan& scan );

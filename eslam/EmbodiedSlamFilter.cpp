@@ -6,17 +6,26 @@
 using namespace eslam;
 
 EmbodiedSlamFilter::EmbodiedSlamFilter(asguard::Configuration &config)
-    : config(config), odometry(config), filter(odometry, config) {};
+    : config(config), odometry(config), filter(odometry, config), sharedMap(NULL) {};
 
-boost::shared_ptr<envire::MultiLevelSurfaceGrid> EmbodiedSlamFilter::getMapTemplate( envire::Environment* env )
+envire::MultiLevelSurfaceGrid* EmbodiedSlamFilter::getMapTemplate( envire::Environment* env )
 {
     const double size = 20;
     const double resolution = 0.05;
-    boost::shared_ptr<envire::MultiLevelSurfaceGrid> gridTemplate(
-	    new envire::MultiLevelSurfaceGrid( size/resolution, size/resolution, resolution, resolution ) );
+    envire::MultiLevelSurfaceGrid* gridTemplate = 
+	    new envire::MultiLevelSurfaceGrid( size/resolution, size/resolution, resolution, resolution );
     envire::FrameNode *gridNode = new envire::FrameNode( Eigen::Transform3d( Eigen::Translation3d( -size/2.0, -size/2.0, 0 ) ) ); 
     env->addChild( env->getRootNode(), gridNode );
-    env->setFrameNode( gridTemplate.get(), gridNode );
+    env->setFrameNode( gridTemplate, gridNode );
+
+    envire::MultiLevelSurfaceGrid::SurfacePatch p( 0, 1.0, 0, true );
+    for( int x=-20; x<20; x++ )
+    {
+	for( int y=-20; y<20; y++ )
+	{
+	    gridTemplate->insertTail( size/resolution/2.0 + x, size/resolution/2.0 + y, p );
+	}
+    }
 
     return gridTemplate;
 }
@@ -27,13 +36,15 @@ void EmbodiedSlamFilter::init( envire::Environment* env, const base::Pose& pose,
     filter.init(
 	    config.filter.particleCount, 
 	    base::Pose2D(Eigen::Vector2d(pose.position.x(),pose.position.y()),angle), 
-	    base::Pose2D(Eigen::Vector2d(config.filter.initialError,config.filter.initialError),config.filter.initialError),
+	    //base::Pose2D(Eigen::Vector2d(config.filter.initialError,config.filter.initialError),config.filter.initialError),
+	    base::Pose2D(Eigen::Vector2d(1e-3,1e-3),1e-3),
 	    pose.position.z(),
-	    1.0 // sigma_z
+	    //1.0 // sigma_z
+	    1e-3
 	    );
 
-    mapPose = odPose = pose;
-
+    odPose = pose;
+    udPose = mapPose = base::Pose( Eigen::Vector3d(1000,0,0), Eigen::Quaterniond::Identity() ); 
 
     if( useSharedMap )
     {
@@ -43,7 +54,7 @@ void EmbodiedSlamFilter::init( envire::Environment* env, const base::Pose& pose,
 	if( !grids.empty() )
 	{
 	    // for now use the first grid found...
-	    sharedMap = boost::shared_ptr<envire::MultiLevelSurfaceGrid>(grids.front());
+	    sharedMap = grids.front();
 	}
 	else
 	    sharedMap = getMapTemplate( env );
@@ -54,49 +65,26 @@ void EmbodiedSlamFilter::init( envire::Environment* env, const base::Pose& pose,
 	filter.setEnvironment( env, sharedMap, useSharedMap );
     else
 	filter.setEnvironment( env, getMapTemplate( env ), useSharedMap );
-}
 
-void EmbodiedSlamFilter::updateMap( const Eigen::Transform3d& pose, const base::samples::LaserScan& scan, envire::MultiLevelSurfaceGrid* mlsGrid )
-{
-    envire::Environment* env = mlsGrid->getEnvironment();
-
-    envire::FrameNode *scanFrame = new envire::FrameNode( pose * config.laser2Body );
+    // setup environment for converting scans
+    scanFrame = new envire::FrameNode();
     env->addChild( env->getRootNode(), scanFrame );
-    envire::LaserScan *scanNode = new envire::LaserScan();
-    scanNode->addScanLine( 0, scan );
-    env->setFrameNode( scanNode, scanFrame );
 
-    envire::TriMesh *pcNode = new envire::TriMesh();
+    scanNode = new envire::LaserScan();
+    env->setFrameNode( scanNode, scanFrame );
+    pcNode = new envire::TriMesh();
     env->setFrameNode( pcNode, scanFrame );
 
-    envire::ScanMeshing *smOp = new envire::ScanMeshing();
+    smOp = new envire::ScanMeshing();
     env->attachItem( smOp );
     smOp->addInput( scanNode );
     smOp->addOutput( pcNode );
 
-    smOp->updateAll();
-
-    envire::MLSProjection *mlsOp = new envire::MLSProjection();
-    mlsOp->setHorizontalPatchThickness( 0.20 );
+    mlsOp = new envire::MLSProjection();
+    mlsOp->setHorizontalPatchThickness( 0.50 );
     env->attachItem( mlsOp );
     mlsOp->addInput( pcNode );
-    mlsOp->addOutput( mlsGrid );
-
-    mlsOp->updateAll();
-
-    // we can remove the scanmeshing operator and the laserscan now
-    env->detachItem( smOp );
-    delete smOp;
-    env->detachItem( scanNode );
-    delete scanNode;
-    env->detachItem( mlsOp );
-    delete mlsOp;
-    env->detachItem( pcNode );
-    delete pcNode;
-    env->detachItem( scanFrame );
-    delete scanFrame;
 }
-
 
 bool EmbodiedSlamFilter::update( const asguard::BodyState& bs, const Eigen::Quaterniond& orientation, const base::samples::LaserScan& scan )
 {
@@ -107,9 +95,17 @@ bool EmbodiedSlamFilter::update( const asguard::BodyState& bs, const Eigen::Quat
     const double max_dist = config.filter.updateThreshDistance * .1;
     if( Eigen::AngleAxisd( pdelta.rotation() ).angle() > max_angle || pdelta.translation().norm() > max_dist )
     {
+	// convert scan object to pointcloud
+	scanNode->lines.clear();
+	scanNode->addScanLine( 0, scan );
+	smOp->updateAll();
+
 	if( sharedMap )
 	{
-	    updateMap( getCentroid().toTransform(), scan, sharedMap.get() );
+	    scanFrame->setTransform( getCentroid().toTransform() * config.laser2Body );
+	    mlsOp->removeOutputs();
+	    mlsOp->addOutput( sharedMap );
+	    mlsOp->updateAll();
 	}
 	else
 	{
@@ -117,11 +113,14 @@ bool EmbodiedSlamFilter::update( const asguard::BodyState& bs, const Eigen::Quat
 	    for( std::vector<eslam::PoseEstimator::Particle>::iterator it = particles.begin(); it != particles.end(); it++ )
 	    {
 		eslam::PoseEstimator::Particle &p( *it );
-		updateMap( p.getPose( orientation ), scan, p.grid.get() );
+
+		scanFrame->setTransform( p.getPose( orientation ) * config.laser2Body );
+		mlsOp->removeOutputs();
+		mlsOp->addOutput( p.grid.get() );
+		mlsOp->updateAll();
 	    }
 	}
 
-	std::cout << "map update" << std::endl;
 	mapPose = odPose;
     }
     return result;
@@ -132,7 +131,7 @@ bool EmbodiedSlamFilter::update( const asguard::BodyState& bs, const Eigen::Quat
     odPose = base::Pose( odPose.toTransform() * odometry.getPoseDelta().toTransform() );
 
     odometry.update( bs, orientation );
-    filter.project( bs );
+    filter.project( bs, orientation );
 
     Eigen::Transform3d pdelta( udPose.toTransform().inverse() * odPose.toTransform() );
     const double max_angle = config.filter.updateThreshAngle;
@@ -142,7 +141,6 @@ bool EmbodiedSlamFilter::update( const asguard::BodyState& bs, const Eigen::Quat
 	filter.update( bs, orientation );
 	udPose = odPose;
 
-	std::cout << "measurement update" << std::endl;
 	return true;
     }
     else
