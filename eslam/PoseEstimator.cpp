@@ -9,8 +9,8 @@
 
 using namespace eslam;
 
-PoseEstimator::PoseEstimator(asguard::odometry::Wheel& odometry, asguard::Configuration &config )
-    : ParticleFilter<Particle>(config.filter.seed), config(config), odometry(odometry), env(NULL)
+PoseEstimator::PoseEstimator(asguard::odometry::Wheel& odometry, const eslam::Configuration &config, const asguard::Configuration& asguardConfig )
+    : ParticleFilter<Particle>(config.seed), config(config), asguardConfig(asguardConfig),  odometry(odometry), env(NULL)
 {
 }
 
@@ -92,7 +92,7 @@ void PoseEstimator::project(const asguard::BodyState& state, const Eigen::Quater
 double PoseEstimator::weightingFunction( double stdev )
 {
     double x = stdev;
-    const double alpha = config.filter.weightingFactor, beta = 1.0, gamma = 0.05;
+    const double alpha = config.weightingFactor, beta = 1.0, gamma = 0.05;
     if( x < alpha )
 	return 1.0;
     if( x < beta )
@@ -111,7 +111,7 @@ void PoseEstimator::update(const asguard::BodyState& state, const Eigen::Quatern
 {
     updateWeights(state, orientation);
     double eff = normalizeWeights();
-    if( eff < config.filter.minEffective )
+    if( eff < config.minEffective )
     {
 	resample();
 	if( !useShared )
@@ -146,7 +146,7 @@ void PoseEstimator::updateWeights(const asguard::BodyState& state, const Eigen::
     {
 	for(int j=0;j<5;j++) 
 	{
-	    Eigen::Vector3d f = config.getFootPosition( state, static_cast<asguard::wheelIdx>(i), j );
+	    Eigen::Vector3d f = asguardConfig.getFootPosition( state, static_cast<asguard::wheelIdx>(i), j );
 	    cpoints[i].push_back( ocomp * f );	
 	}
 	// remove the two wheels with the highest z value
@@ -187,7 +187,7 @@ void PoseEstimator::updateWeights(const asguard::BodyState& state, const Eigen::
 		const Eigen::Vector3d &cpoint(*it);
 
 		Eigen::Vector3d gp = t*cpoint;
-		const double cp_stdev = config.filter.measurementError;
+		const double cp_stdev = config.measurementError;
 		double zpos, zstdev = sqrt(pose.zSigma*pose.zSigma + cp_stdev*cp_stdev);
 		if( !pose.grid.get( gp, zpos, zstdev ) )
 		{
@@ -236,7 +236,7 @@ void PoseEstimator::updateWeights(const asguard::BodyState& state, const Eigen::
 		const double zk = exp(-(odiff*odiff)/(2.0));
 		pz *= zk;
 	    }
-	    const double cp_stdev = config.filter.measurementError;
+	    const double cp_stdev = config.measurementError;
 	    const double zd = delta/sqrt(pose.zSigma*pose.zSigma + cp_stdev*cp_stdev);
 	    pz *= exp( -(zd*zd)/2.0 );
 	    //pz = 1.0;
@@ -282,7 +282,7 @@ void PoseEstimator::updateWeights(const asguard::BodyState& state, const Eigen::
     {
 	//if((*it).x.cpoints.size() < 4)
 	//{
-	double factor = (*it).mprob * pow(config.filter.discountFactor*floating_weight, 4-(*it).cpoints.size());
+	double factor = (*it).mprob * pow(config.discountFactor*floating_weight, 4-(*it).cpoints.size());
 	//if( (*it).x.floating )
 	    //factor *= 0.8;
 	

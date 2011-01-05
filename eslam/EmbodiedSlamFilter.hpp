@@ -2,8 +2,10 @@
 #define __ESLAM_EMBODIEDSLAMFILTER__
 
 #include "PoseEstimator.hpp"
+#include "Configuration.hpp"
 
 #include <asguard/Odometry.hpp>
+#include <asguard/Transformation.hpp>
 
 #include <envire/Core.hpp>
 #include <envire/maps/MultiLevelSurfaceGrid.hpp>
@@ -17,7 +19,12 @@ namespace eslam
 
 class EmbodiedSlamFilter
 {
-    asguard::Configuration& config;
+    eslam::Configuration eslamConfig;
+    asguard::Configuration asguardConfig;
+    // TODO: replace this with the proper frame stack
+    asguard::Transformation trans;
+    asguard::odometry::Configuration odometryConfig;
+
     asguard::odometry::Wheel odometry;
     eslam::PoseEstimator filter;
 
@@ -40,7 +47,10 @@ class EmbodiedSlamFilter
     envire::MLSProjection *mlsOp;
 
 public:
-    EmbodiedSlamFilter(asguard::Configuration &config);
+    EmbodiedSlamFilter(
+	const asguard::Configuration& asguardConfig,
+	const asguard::odometry::Configuration& odometryConfig, 
+	const eslam::Configuration& eslamConfig );
 
     envire::MultiLevelSurfaceGrid* getMapTemplate( envire::Environment* env );
     void init( envire::Environment* env, const base::Pose& pose, bool useSharedMap = true );

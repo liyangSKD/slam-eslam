@@ -5,8 +5,18 @@
 
 using namespace eslam;
 
-EmbodiedSlamFilter::EmbodiedSlamFilter(asguard::Configuration &config)
-    : config(config), odometry(config), filter(odometry, config), sharedMap(NULL) {};
+EmbodiedSlamFilter::EmbodiedSlamFilter(
+	const asguard::Configuration& asguardConfig,
+	const asguard::odometry::Configuration& odometryConfig, 
+	const eslam::Configuration& eslamConfig )
+:   eslamConfig( eslamConfig ),
+    asguardConfig( asguardConfig ),
+    trans( asguardConfig ),
+    odometryConfig( odometryConfig ),
+    odometry( odometryConfig, asguardConfig ), 
+    filter( odometry, eslamConfig, asguardConfig ), 
+    sharedMap(NULL) 
+{};
 
 envire::MultiLevelSurfaceGrid* EmbodiedSlamFilter::getMapTemplate( envire::Environment* env )
 {
@@ -34,7 +44,7 @@ void EmbodiedSlamFilter::init( envire::Environment* env, const base::Pose& pose,
 {
     const double angle = pose.orientation.toRotationMatrix().eulerAngles(2,1,0)[0];
     filter.init(
-	    config.filter.particleCount, 
+	    eslamConfig.particleCount, 
 	    base::Pose2D(Eigen::Vector2d(pose.position.x(),pose.position.y()),angle), 
 	    //base::Pose2D(Eigen::Vector2d(config.filter.initialError,config.filter.initialError),config.filter.initialError),
 	    base::Pose2D(Eigen::Vector2d(1e-3,1e-3),1e-3),
@@ -91,8 +101,8 @@ bool EmbodiedSlamFilter::update( const asguard::BodyState& bs, const Eigen::Quat
     bool result = update( bs, orientation );
 
     Eigen::Transform3d pdelta( mapPose.toTransform().inverse() * odPose.toTransform() );
-    const double max_angle = config.filter.updateThreshAngle * .1;
-    const double max_dist = config.filter.updateThreshDistance * .1;
+    const double max_angle = eslamConfig.updateThreshAngle * .1;
+    const double max_dist = eslamConfig.updateThreshDistance * .1;
     if( Eigen::AngleAxisd( pdelta.rotation() ).angle() > max_angle || pdelta.translation().norm() > max_dist )
     {
 	// convert scan object to pointcloud
@@ -102,7 +112,7 @@ bool EmbodiedSlamFilter::update( const asguard::BodyState& bs, const Eigen::Quat
 
 	if( sharedMap )
 	{
-	    scanFrame->setTransform( getCentroid().toTransform() * config.laser2Body );
+	    scanFrame->setTransform( getCentroid().toTransform() * trans.laser2Body );
 	    mlsOp->removeOutputs();
 	    mlsOp->addOutput( sharedMap );
 	    mlsOp->updateAll();
@@ -114,7 +124,7 @@ bool EmbodiedSlamFilter::update( const asguard::BodyState& bs, const Eigen::Quat
 	    {
 		eslam::PoseEstimator::Particle &p( *it );
 
-		scanFrame->setTransform( p.getPose( orientation ) * config.laser2Body );
+		scanFrame->setTransform( p.getPose( orientation ) * trans.laser2Body );
 		mlsOp->removeOutputs();
 		mlsOp->addOutput( p.grid.get() );
 		mlsOp->updateAll();
@@ -134,8 +144,8 @@ bool EmbodiedSlamFilter::update( const asguard::BodyState& bs, const Eigen::Quat
     filter.project( bs, orientation );
 
     Eigen::Transform3d pdelta( udPose.toTransform().inverse() * odPose.toTransform() );
-    const double max_angle = config.filter.updateThreshAngle;
-    const double max_dist = config.filter.updateThreshDistance;
+    const double max_angle = eslamConfig.updateThreshAngle;
+    const double max_dist = eslamConfig.updateThreshDistance;
     if( Eigen::AngleAxisd( pdelta.rotation() ).angle() > max_angle || pdelta.translation().norm() > max_dist )
     {
 	filter.update( bs, orientation );

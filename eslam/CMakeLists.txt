@@ -3,6 +3,7 @@ set(FILTER_HDRS
     PoseEstimator.hpp
     PoseParticle.hpp
     EmbodiedSlamFilter.hpp
+    Configuration.hpp
     )
 
 set(FILTER_SRCS

@@ -2,6 +2,7 @@
 #define __POSE_ESTIMATOR_HPP__
 
 #include "PoseParticle.hpp"
+#include "Configuration.hpp"
 
 #include "ParticleFilter.hpp"
 #include <boost/random/normal_distribution.hpp>
@@ -66,7 +67,7 @@ class PoseEstimator :
     public ParticleFilter<PoseParticleGA>
 {
 public:
-    PoseEstimator(asguard::odometry::Wheel& odometry, asguard::Configuration &config );
+    PoseEstimator(asguard::odometry::Wheel& odometry, const eslam::Configuration &config, const asguard::Configuration& asguardConfig );
     ~PoseEstimator();
 
     void init(int numParticles, const base::Pose2D& mu, const base::Pose2D& sigma, double zpos = 0, double zsigma = 0);
@@ -82,7 +83,8 @@ private:
     void updateWeights(const asguard::BodyState& state, const Eigen::Quaterniond& orientation);
     double weightingFunction( double stdev );
 
-    asguard::Configuration &config;
+    eslam::Configuration config;
+    asguard::Configuration asguardConfig;
     asguard::odometry::Wheel &odometry;
     
     envire::Environment *env;
