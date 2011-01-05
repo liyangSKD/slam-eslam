@@ -1,8 +1,19 @@
 #ifndef __ESLAM_CONFIGURATION_HPP__
 #define __ESLAM_CONFIGURATION_HPP__
 
+#include <cmath>
+
 namespace eslam 
 {
+
+struct UpdateThreshold
+{
+    UpdateThreshold( double distance, double angle )
+	: distance( distance ), angle( angle ) {};
+
+    double distance;
+    double angle;
+};
 
 struct Configuration
 {
@@ -14,8 +25,8 @@ struct Configuration
 	weightingFactor( 0.1 ),
 	measurementError( 0.1 ),
 	discountFactor( 0.9 ),
-	updateThreshDistance( 0.1 ),
-	updateThreshAngle( 10*M_PI/180.0 )
+	measurementThreshold( 0.1, 10*M_PI/180.0 ),
+	mappingThreshold( 0.02, 5*M_PI/180.0 )
     {};
 
     unsigned long seed;
@@ -25,8 +36,8 @@ struct Configuration
     double weightingFactor;
     double measurementError;
     double discountFactor;
-    double updateThreshDistance;
-    double updateThreshAngle;
+    UpdateThreshold measurementThreshold;
+    UpdateThreshold mappingThreshold;
 };
 
 }

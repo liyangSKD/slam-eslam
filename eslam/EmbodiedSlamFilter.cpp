@@ -101,8 +101,8 @@ bool EmbodiedSlamFilter::update( const asguard::BodyState& bs, const Eigen::Quat
     bool result = update( bs, orientation );
 
     Eigen::Transform3d pdelta( mapPose.toTransform().inverse() * odPose.toTransform() );
-    const double max_angle = eslamConfig.updateThreshAngle * .1;
-    const double max_dist = eslamConfig.updateThreshDistance * .1;
+    const double max_angle = eslamConfig.mappingThreshold.angle;
+    const double max_dist = eslamConfig.mappingThreshold.distance;
     if( Eigen::AngleAxisd( pdelta.rotation() ).angle() > max_angle || pdelta.translation().norm() > max_dist )
     {
 	// convert scan object to pointcloud
@@ -144,8 +144,8 @@ bool EmbodiedSlamFilter::update( const asguard::BodyState& bs, const Eigen::Quat
     filter.project( bs, orientation );
 
     Eigen::Transform3d pdelta( udPose.toTransform().inverse() * odPose.toTransform() );
-    const double max_angle = eslamConfig.updateThreshAngle;
-    const double max_dist = eslamConfig.updateThreshDistance;
+    const double max_angle = eslamConfig.measurementThreshold.angle;
+    const double max_dist = eslamConfig.measurementThreshold.distance;
     if( Eigen::AngleAxisd( pdelta.rotation() ).angle() > max_angle || pdelta.translation().norm() > max_dist )
     {
 	filter.update( bs, orientation );
