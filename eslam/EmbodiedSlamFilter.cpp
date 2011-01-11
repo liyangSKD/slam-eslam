@@ -119,12 +119,27 @@ bool EmbodiedSlamFilter::update( const asguard::BodyState& bs, const Eigen::Quat
 	}
 	else
 	{
+	    // assume a 2 deg rotation error for the laser2Body transform
+	    const double scanAngleSigma = 2.0/180.0*M_PI;
+	    Eigen::Matrix<double,6,1> lcov;
+	    lcov << scanAngleSigma,0,0, 0,0,0;
+	    envire::TransformWithUncertainty laser2Body( trans.laser2Body, lcov.cwise().square().asDiagonal());
+
 	    std::vector<eslam::PoseEstimator::Particle> &particles( getParticles() );
 	    for( std::vector<eslam::PoseEstimator::Particle>::iterator it = particles.begin(); it != particles.end(); it++ )
 	    {
 		eslam::PoseEstimator::Particle &p( *it );
 
-		scanFrame->setTransform( p.getPose( orientation ) * trans.laser2Body );
+		// the covariance for the body to world transform comes from
+		// a 1 deg error for pitch and roll
+		// TODO: actually the errors should be in global frame, and not in body
+		// frame... fix later
+		const double pitchRollSigma = 1.0/180.0*M_PI;
+		Eigen::Matrix<double,6,1> pcov;
+		pcov << pitchRollSigma,pitchRollSigma,0, 0,0,p.zSigma;
+		envire::TransformWithUncertainty body2World( p.getPose( orientation ), pcov.cwise().square().asDiagonal());
+
+		scanFrame->setTransform( body2World * laser2Body );
 		mlsOp->removeOutputs();
 		mlsOp->addOutput( p.grid.get() );
 		mlsOp->updateAll();
