@@ -126,9 +126,9 @@ bool EmbodiedSlamFilter::update( const asguard::BodyState& bs, const Eigen::Quat
 	    envire::TransformWithUncertainty laser2Body( trans.laser2Body, lcov.cwise().square().asDiagonal());
 
 	    std::vector<eslam::PoseEstimator::Particle> &particles( getParticles() );
-	    for( std::vector<eslam::PoseEstimator::Particle>::iterator it = particles.begin(); it != particles.end(); it++ )
+	    for( size_t i=0; i< particles.size(); i++ )
 	    {
-		eslam::PoseEstimator::Particle &p( *it );
+		eslam::PoseEstimator::Particle &p( particles[i] );
 
 		// the covariance for the body to world transform comes from
 		// a 1 deg error for pitch and roll
@@ -141,6 +141,7 @@ bool EmbodiedSlamFilter::update( const asguard::BodyState& bs, const Eigen::Quat
 
 		scanFrame->setTransform( body2World * laser2Body );
 		mlsOp->removeOutputs();
+		mlsOp->useUncertainty( true );
 		mlsOp->addOutput( p.grid.get() );
 		mlsOp->updateAll();
 	    }
