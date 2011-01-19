@@ -19,7 +19,8 @@ class ParticleVisualization : public VizPluginAdapter<eslam::PoseDistribution>
 	ParticleVisualization();
 
 	void setVisualiseContacts(bool viscontacts);
-	void inspectParticle(size_t index);
+	void inspectParticle(int index);
+	int getInspectedParticle() const { return inspectIdx; }
 	    
     private:
 	bool viscontacts;

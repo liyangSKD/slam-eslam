@@ -22,7 +22,6 @@ namespace vizkit
 class ParticlePickedCallback : public PickedCallback
 {
     boost::function<void ()> f; 
-    size_t index;
 
 public:
     ParticlePickedCallback( boost::function<void ()> callback )
@@ -52,7 +51,7 @@ osg::Geode* getParticleGeode( const osg::Vec4& color )
     return circle;
 };
 
-void ParticleVisualization::inspectParticle( size_t index )
+void ParticleVisualization::inspectParticle( int index )
 {
     inspectIdx = index;
     setDirty();

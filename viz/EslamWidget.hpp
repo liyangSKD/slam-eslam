@@ -28,6 +28,9 @@ public:
     void setReferencePose( const base::Pose& pose, const asguard::BodyState& body_state );
     void setEnvironment( envire::Environment *env );
 
+    int getInspectedParticleIndex() const;
+    void setInspectedParticleIndex( int index );
+
 private:
     boost::shared_ptr<EnvireVisualization> envViz;
     boost::shared_ptr<AsguardVisualization> robotViz;

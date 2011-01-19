@@ -26,6 +26,16 @@ EslamWidget::~EslamWidget()
     removeDataHandler( particleViz.get() );
 }
 
+int EslamWidget::getInspectedParticleIndex() const
+{
+    return particleViz->getInspectedParticle();
+}
+
+void EslamWidget::setInspectedParticleIndex( int index )
+{
+    particleViz->inspectParticle( index );
+}
+
 void EslamWidget::setPoseDistribution( const eslam::PoseDistribution& dist )
 {
     particleViz->updateData( dist );
