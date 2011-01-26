@@ -37,6 +37,8 @@ envire::MultiLevelSurfaceGrid* EmbodiedSlamFilter::getMapTemplate( envire::Envir
 	}
     }
 
+    gridTemplate->setHorizontalPatchThickness( 0.05 );
+    gridTemplate->setGapSize( 1.50 );
     return gridTemplate;
 }
 
@@ -91,7 +93,6 @@ void EmbodiedSlamFilter::init( envire::Environment* env, const base::Pose& pose,
     smOp->addOutput( pcNode );
 
     mlsOp = new envire::MLSProjection();
-    mlsOp->setHorizontalPatchThickness( 0.50 );
     env->attachItem( mlsOp );
     mlsOp->addInput( pcNode );
 }
