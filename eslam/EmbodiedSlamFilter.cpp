@@ -97,6 +97,7 @@ void EmbodiedSlamFilter::init( envire::Environment* env, const base::Pose& pose,
     mlsOp->addInput( pcNode );
 }
 
+
 bool EmbodiedSlamFilter::update( const asguard::BodyState& bs, const Eigen::Quaterniond& orientation, const base::samples::LaserScan& scan )
 {
     bool result = update( bs, orientation );
@@ -125,6 +126,21 @@ bool EmbodiedSlamFilter::update( const asguard::BodyState& bs, const Eigen::Quat
 	    Eigen::Matrix<double,6,1> lcov;
 	    lcov << scanAngleSigma,0,0, 0,0,0;
 	    envire::TransformWithUncertainty laser2Body( trans.laser2Body, lcov.cwise().square().asDiagonal());
+	    
+	    // the covariance for the body to world transform comes from
+	    // a 1 deg error for pitch and roll
+	    // TODO: actually the errors should be in global frame, and not in body
+	    // frame... fix later
+	    const double pitchRollSigma = 1.0/180.0*M_PI;
+	    Eigen::Matrix<double,6,1> pcov;
+	    pcov << pitchRollSigma,pitchRollSigma,0, 0,0,p.zSigma;
+	    envire::TransformWithUncertainty body2World( Transform::Identity(), pcov.cwise().square().asDiagonal());
+
+	    scanFrame->setTransform( body2World * laser2Body );
+	    mlsOp->removeOutputs();
+	    mlsOp->useUncertainty( true );
+	    mlsOp->addOutput( p.grid.get() );
+	    mlsOp->updateAll();
 
 	    std::vector<eslam::PoseEstimator::Particle> &particles( getParticles() );
 	    for( size_t i=0; i< particles.size(); i++ )
