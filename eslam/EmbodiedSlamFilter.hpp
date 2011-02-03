@@ -41,10 +41,12 @@ class EmbodiedSlamFilter
 
     // store pointers to processing pipeline
     envire::FrameNode *scanFrame;
+    envire::FrameNode *scannerFrame;
     envire::LaserScan *scanNode;
     envire::TriMesh *pcNode;
     envire::ScanMeshing *smOp;
     envire::MLSProjection *mlsOp;
+    envire::MultiLevelSurfaceGrid* scanMap;
 
 public:
     EmbodiedSlamFilter(

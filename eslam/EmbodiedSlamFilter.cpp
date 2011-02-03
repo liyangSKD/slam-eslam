@@ -1,9 +1,12 @@
 #include "EmbodiedSlamFilter.hpp"
 
+#include <envire/maps/MultiLevelSurfaceGrid.hpp>
 #include <envire/operators/MLSProjection.hpp>
 #include <envire/operators/ScanMeshing.hpp>
 
 using namespace eslam;
+
+template <class T> inline T sq( T a ) { return a * a; }
 
 EmbodiedSlamFilter::EmbodiedSlamFilter(
 	const asguard::Configuration& asguardConfig,
@@ -79,13 +82,17 @@ void EmbodiedSlamFilter::init( envire::Environment* env, const base::Pose& pose,
 	filter.setEnvironment( env, getMapTemplate( env ), useSharedMap );
 
     // setup environment for converting scans
+    scanMap = getMapTemplate( env );
     scanFrame = new envire::FrameNode();
+    scannerFrame = new envire::FrameNode();
     env->addChild( env->getRootNode(), scanFrame );
+    env->addChild( scanFrame, scanMap->getFrameNode() );
+    env->addChild( scanFrame, scannerFrame );
 
     scanNode = new envire::LaserScan();
-    env->setFrameNode( scanNode, scanFrame );
+    env->setFrameNode( scanNode, scannerFrame );
     pcNode = new envire::TriMesh();
-    env->setFrameNode( pcNode, scanFrame );
+    env->setFrameNode( pcNode, scannerFrame );
 
     smOp = new envire::ScanMeshing();
     env->attachItem( smOp );
@@ -95,6 +102,8 @@ void EmbodiedSlamFilter::init( envire::Environment* env, const base::Pose& pose,
     mlsOp = new envire::MLSProjection();
     env->attachItem( mlsOp );
     mlsOp->addInput( pcNode );
+    mlsOp->addOutput( scanMap );
+    mlsOp->useUncertainty( true );
 }
 
 
@@ -133,34 +142,50 @@ bool EmbodiedSlamFilter::update( const asguard::BodyState& bs, const Eigen::Quat
 	    // frame... fix later
 	    const double pitchRollSigma = 1.0/180.0*M_PI;
 	    Eigen::Matrix<double,6,1> pcov;
-	    pcov << pitchRollSigma,pitchRollSigma,0, 0,0,p.zSigma;
-	    envire::TransformWithUncertainty body2World( Transform::Identity(), pcov.cwise().square().asDiagonal());
+	    pcov << pitchRollSigma,pitchRollSigma,0, 0,0,0;
+	    envire::TransformWithUncertainty body2World( 
+		    Eigen::Transform3d( base::removeYaw(orientation) ), pcov.cwise().square().asDiagonal());
 
-	    scanFrame->setTransform( body2World * laser2Body );
-	    mlsOp->removeOutputs();
-	    mlsOp->useUncertainty( true );
-	    mlsOp->addOutput( p.grid.get() );
+	    scannerFrame->setTransform( body2World * laser2Body );
+	    scanMap->clear();
 	    mlsOp->updateAll();
 
 	    std::vector<eslam::PoseEstimator::Particle> &particles( getParticles() );
 	    for( size_t i=0; i< particles.size(); i++ )
 	    {
 		eslam::PoseEstimator::Particle &p( particles[i] );
+		envire::MultiLevelSurfaceGrid *pmap = p.grid.get();
 
-		// the covariance for the body to world transform comes from
-		// a 1 deg error for pitch and roll
-		// TODO: actually the errors should be in global frame, and not in body
-		// frame... fix later
-		const double pitchRollSigma = 1.0/180.0*M_PI;
-		Eigen::Matrix<double,6,1> pcov;
-		pcov << pitchRollSigma,pitchRollSigma,0, 0,0,p.zSigma;
-		envire::TransformWithUncertainty body2World( p.getPose( orientation ), pcov.cwise().square().asDiagonal());
+		scanFrame->setTransform( envire::Transform( 
+			    Eigen::Translation3d( p.position.x(), p.position.y(), 0 ) *
+			    Eigen::AngleAxisd( p.orientation, Eigen::Vector3d::UnitZ() )
+			    ) );
 
-		scanFrame->setTransform( body2World * laser2Body );
-		mlsOp->removeOutputs();
-		mlsOp->useUncertainty( true );
-		mlsOp->addOutput( p.grid.get() );
-		mlsOp->updateAll();
+		Eigen::Transform3d C_s2p = scanMap->getEnvironment()->relativeTransform( scanMap->getFrameNode(), pmap->getFrameNode() );
+
+		typedef envire::MultiLevelSurfaceGrid::SetExtents::Position position;
+		std::set<position> &cells = scanMap->getExtents<envire::MultiLevelSurfaceGrid::SetExtents>()->cells;
+
+		// go through all the cells that have been touched
+		for(std::set<position>::iterator it = cells.begin(); it != cells.end(); it++)
+		{
+		    // get center of cell
+		    Eigen::Vector3d pos( Eigen::Vector3d::Zero() );
+		    scanMap->fromGrid( it->m, it->n, pos.x(), pos.y() );
+		    pos = C_s2p * pos;
+
+		    size_t m, n;
+		    if( pmap->toGrid( pos.x(), pos.y(), m, n ) )
+		    {
+			for(envire::MultiLevelSurfaceGrid::iterator cit = scanMap->beginCell(it->m,it->n); cit != scanMap->endCell(); cit++ )
+			{
+			    envire::MultiLevelSurfaceGrid::SurfacePatch patch( *cit );
+			    patch.mean += p.zPos;
+			    patch.stdev = sqrt( sq( patch.stdev ) + sq( p.zSigma ) );
+			    pmap->updateCell( m, n, patch );
+			}
+		    }
+		}
 	    }
 	}
 
