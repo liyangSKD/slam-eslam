@@ -4,9 +4,9 @@
 #include <envire/operators/MLSProjection.hpp>
 #include <envire/operators/ScanMeshing.hpp>
 
-using namespace eslam;
+#include <envire/tools/Numeric.hpp>
 
-template <class T> inline T sq( T a ) { return a * a; }
+using namespace eslam;
 
 EmbodiedSlamFilter::EmbodiedSlamFilter(
 	const asguard::Configuration& asguardConfig,
@@ -163,10 +163,19 @@ bool EmbodiedSlamFilter::update( const asguard::BodyState& bs, const Eigen::Quat
 
 		Eigen::Transform3d C_s2p = scanMap->getEnvironment()->relativeTransform( scanMap->getFrameNode(), pmap->getFrameNode() );
 
-		typedef envire::MultiLevelSurfaceGrid::SetExtents::Position position;
+		typedef envire::MultiLevelSurfaceGrid::Position position;
+		typedef envire::MultiLevelSurfaceGrid::SurfacePatch patch;
 		std::set<position> &cells = scanMap->getExtents<envire::MultiLevelSurfaceGrid::SetExtents>()->cells;
 
-		// go through all the cells that have been touched
+		// this is a two step process.  first perform the measurement
+		// and then merge the (possibly updated measurement) into the
+		// map. 
+		typedef std::pair<position, patch> pos_patch;
+		std::vector<pos_patch> patches;
+
+		double d1=0, d2=0;
+
+		// index the patches 
 		for(std::set<position>::iterator it = cells.begin(); it != cells.end(); it++)
 		{
 		    // get center of cell
@@ -177,14 +186,46 @@ bool EmbodiedSlamFilter::update( const asguard::BodyState& bs, const Eigen::Quat
 		    size_t m, n;
 		    if( pmap->toGrid( pos.x(), pos.y(), m, n ) )
 		    {
+			position pos(m, n);
 			for(envire::MultiLevelSurfaceGrid::iterator cit = scanMap->beginCell(it->m,it->n); cit != scanMap->endCell(); cit++ )
 			{
-			    envire::MultiLevelSurfaceGrid::SurfacePatch patch( *cit );
-			    patch.mean += p.zPos;
-			    patch.stdev = sqrt( sq( patch.stdev ) + sq( p.zSigma ) );
-			    pmap->updateCell( m, n, patch );
+			    patch meas_patch( *cit );
+			    meas_patch.mean += p.zPos;
+			    meas_patch.stdev = sqrt( sq( meas_patch.stdev ) + sq( p.zSigma ) );
+			    patches.push_back( std::make_pair( pos, meas_patch ) );
+
+			    // find a patch in the target map and see if its relevant for measurement
+			    patch *tar_patch = pmap->get( pos, meas_patch ); 
+			    if( tar_patch && tar_patch->horizontal && meas_patch.horizontal )
+			    {
+				const double diff = meas_patch.mean - tar_patch->mean;
+				const double var = sq( tar_patch->stdev ) + sq( meas_patch.stdev );
+				d1 += diff / var;
+				d2 += 1.0 / var;
+			    }
 			}
 		    }
+		}
+		const double mean = d1 / d2;
+		const double var = 1.0 / d2;
+
+		if( i==0 )
+		    std::cout << p.zPos+mean << std::endl;
+		//double delta = p.zPos;
+		//kalman_update( p.zPos, p.zSigma, p.zPos+mean, var );
+		//delta = p.zPos - delta;
+
+		// merge the measurement
+		for( std::vector<pos_patch>::iterator it = patches.begin();
+			it != patches.end(); it++)
+		{
+		    const position &pos( it->first );
+		    patch &pa( it->second );
+
+		    // apply the measurement difference
+		    //pa.mean += delta;
+
+		    pmap->updateCell( pos.m, pos.n, pa );
 		}
 	    }
 	}
