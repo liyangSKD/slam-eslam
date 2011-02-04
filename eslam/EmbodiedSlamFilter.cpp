@@ -116,6 +116,8 @@ bool EmbodiedSlamFilter::update( const asguard::BodyState& bs, const Eigen::Quat
     const double max_dist = eslamConfig.mappingThreshold.distance;
     if( Eigen::AngleAxisd( pdelta.rotation() ).angle() > max_angle || pdelta.translation().norm() > max_dist )
     {
+	static size_t update_idx = 0;
+
 	// convert scan object to pointcloud
 	scanNode->lines.clear();
 	scanNode->addScanLine( 0, scan );
@@ -192,11 +194,12 @@ bool EmbodiedSlamFilter::update( const asguard::BodyState& bs, const Eigen::Quat
 			    patch meas_patch( *cit );
 			    meas_patch.mean += p.zPos;
 			    meas_patch.stdev = sqrt( sq( meas_patch.stdev ) + sq( p.zSigma ) );
+			    meas_patch.update_idx = update_idx;
 			    patches.push_back( std::make_pair( pos, meas_patch ) );
 
 			    // find a patch in the target map and see if its relevant for measurement
 			    patch *tar_patch = pmap->get( pos, meas_patch ); 
-			    if( tar_patch && tar_patch->horizontal && meas_patch.horizontal )
+			    if( tar_patch && tar_patch->horizontal && meas_patch.horizontal && (tar_patch->update_idx + 5 < meas_patch.update_idx ) )
 			    {
 				const double diff = meas_patch.mean - tar_patch->mean;
 				const double var = sq( tar_patch->stdev ) + sq( meas_patch.stdev );
@@ -206,14 +209,15 @@ bool EmbodiedSlamFilter::update( const asguard::BodyState& bs, const Eigen::Quat
 			}
 		    }
 		}
-		const double mean = d1 / d2;
-		const double var = 1.0 / d2;
+		double delta = p.zPos;
+		if( d2 > 0 )
+		{
+		    const double mean = d1 / d2;
+		    const double var = 1.0 / d2;
 
-		if( i==0 )
-		    std::cout << p.zPos+mean << std::endl;
-		//double delta = p.zPos;
-		//kalman_update( p.zPos, p.zSigma, p.zPos+mean, var );
-		//delta = p.zPos - delta;
+		    //kalman_update( p.zPos, p.zSigma, p.zPos+mean, var );
+		}
+		delta = p.zPos - delta;
 
 		// merge the measurement
 		for( std::vector<pos_patch>::iterator it = patches.begin();
@@ -223,7 +227,7 @@ bool EmbodiedSlamFilter::update( const asguard::BodyState& bs, const Eigen::Quat
 		    patch &pa( it->second );
 
 		    // apply the measurement difference
-		    //pa.mean += delta;
+		    pa.mean += delta;
 
 		    pmap->updateCell( pos.m, pos.n, pa );
 		}
