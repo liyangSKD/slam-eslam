@@ -45,8 +45,6 @@ class EmbodiedSlamFilter
     envire::TriMesh *pcNode;
     envire::ScanMeshing *smOp;
     envire::MLSProjection *mlsOp;
-    envire::MultiLevelSurfaceGrid *measMLS;
-    envire::FrameNode *measNode;
 
 public:
     EmbodiedSlamFilter(

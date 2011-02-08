@@ -2,7 +2,6 @@
 
 #include <envire/operators/MLSProjection.hpp>
 #include <envire/operators/ScanMeshing.hpp>
-#include <envire/operators/MergeMLS.hpp>
 
 using namespace eslam;
 
@@ -96,13 +95,6 @@ void EmbodiedSlamFilter::init( envire::Environment* env, const base::Pose& pose,
     mlsOp = new envire::MLSProjection();
     env->attachItem( mlsOp );
     mlsOp->addInput( pcNode );
-
-    // create a temporary mls map for internal use
-    measMLS = getMapTemplate( env );
-    measNode = scanFrame->clone();
-    env->attachItem( measNode );
-    scanFrame->getParent()->addChild( measNode );
-    measMLS->setFrameNode( measNode );
 }
 
 bool EmbodiedSlamFilter::update( const asguard::BodyState& bs, const Eigen::Quaterniond& orientation, const base::samples::LaserScan& scan )
@@ -148,30 +140,11 @@ bool EmbodiedSlamFilter::update( const asguard::BodyState& bs, const Eigen::Quat
 		pcov << pitchRollSigma,pitchRollSigma,0, 0,0,p.zSigma;
 		envire::TransformWithUncertainty body2World( p.getPose( orientation ), pcov.cwise().square().asDiagonal());
 
-		// write into temporary map first
-		measMLS->clear();
-
 		scanFrame->setTransform( body2World * laser2Body );
 		mlsOp->removeOutputs();
 		mlsOp->useUncertainty( true );
-		//mlsOp->addOutput( p.grid.get() );
-		mlsOp->addOutput( measMLS );
+		mlsOp->addOutput( p.grid.get() );
 		mlsOp->updateAll();
-
-		// match that temporary map with the current map and look
-		// at the height difference
-		std::pair<double, double> res = measMLS->matchHeight( *p.grid.get() );
-		Eigen::Transform3d t = measNode->getTransform();
-		t.translation()(2) = res.first;
-		measNode->setTransform( t );
-
-		// merge measurement with map
-		envire::MergeMLS *merge = new envire::MergeMLS();
-		measMLS->getEnvironment()->attachItem( merge );
-		merge->addInput( measMLS );
-		merge->addOutput( p.grid.get() );
-		merge->updateAll();
-		measMLS->getEnvironment()->detachItem( merge );
 	    }
 	}
 
