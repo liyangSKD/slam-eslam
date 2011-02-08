@@ -40,7 +40,7 @@ envire::MultiLevelSurfaceGrid* EmbodiedSlamFilter::getMapTemplate( envire::Envir
 	}
     }
 
-    gridTemplate->setHorizontalPatchThickness( 0.05 );
+    gridTemplate->setHorizontalPatchThickness( 0.1 );
     gridTemplate->setGapSize( 1.50 );
     return gridTemplate;
 }
@@ -133,7 +133,7 @@ bool EmbodiedSlamFilter::update( const asguard::BodyState& bs, const Eigen::Quat
 	else
 	{
 	    // assume a 2 deg rotation error for the laser2Body transform
-	    const double scanAngleSigma = 2.0/180.0*M_PI;
+	    const double scanAngleSigma = 5.0/180.0*M_PI;
 	    Eigen::Matrix<double,6,1> lcov;
 	    lcov << scanAngleSigma,0,0, 0,0,0;
 	    envire::TransformWithUncertainty laser2Body( trans.laser2Body, lcov.cwise().square().asDiagonal());
@@ -142,7 +142,7 @@ bool EmbodiedSlamFilter::update( const asguard::BodyState& bs, const Eigen::Quat
 	    // a 1 deg error for pitch and roll
 	    // TODO: actually the errors should be in global frame, and not in body
 	    // frame... fix later
-	    const double pitchRollSigma = 1.0/180.0*M_PI;
+	    const double pitchRollSigma = 3.0/180.0*M_PI;
 	    Eigen::Matrix<double,6,1> pcov;
 	    pcov << pitchRollSigma,pitchRollSigma,0, 0,0,0;
 	    envire::TransformWithUncertainty body2World( 
@@ -198,8 +198,8 @@ bool EmbodiedSlamFilter::update( const asguard::BodyState& bs, const Eigen::Quat
 			    patches.push_back( std::make_pair( pos, meas_patch ) );
 
 			    // find a patch in the target map and see if its relevant for measurement
-			    patch *tar_patch = pmap->get( pos, meas_patch ); 
-			    if( tar_patch && tar_patch->horizontal && meas_patch.horizontal && (tar_patch->update_idx + 5 < meas_patch.update_idx ) )
+			    patch *tar_patch = pmap->get( pos, meas_patch, 0.5 ); 
+			    if( tar_patch && tar_patch->horizontal && meas_patch.horizontal && (tar_patch->update_idx + 0 < meas_patch.update_idx ) && false )
 			    {
 				const double diff = meas_patch.mean - tar_patch->mean;
 				const double var = sq( tar_patch->stdev ) + sq( meas_patch.stdev );
@@ -215,7 +215,7 @@ bool EmbodiedSlamFilter::update( const asguard::BodyState& bs, const Eigen::Quat
 		    const double mean = d1 / d2;
 		    const double var = 1.0 / d2;
 
-		    //kalman_update( p.zPos, p.zSigma, p.zPos+mean, var );
+		    kalman_update( p.zPos, p.zSigma, p.zPos+mean, var );
 		}
 		delta = p.zPos - delta;
 
@@ -234,6 +234,7 @@ bool EmbodiedSlamFilter::update( const asguard::BodyState& bs, const Eigen::Quat
 	    }
 	}
 
+	update_idx++;
 	mapPose = odPose;
     }
     return result;

@@ -77,7 +77,7 @@ void PoseEstimator::project(const asguard::BodyState& state, const Eigen::Quater
     Eigen::Transform3d dtrans = orientation * odometry.getPoseDelta().toTransform();
     const double z_delta = dtrans.translation().z();
     //const double z_var = 1e-3;
-    const double z_var = odometry.getPositionError()(2,2);
+    const double z_var = odometry.getPositionError()(2,2) * 2.0;
 
     for(size_t i=0;i<xi_k.size();i++)
     {
