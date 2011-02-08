@@ -8,6 +8,7 @@ namespace eslam
 
 struct UpdateThreshold
 {
+    UpdateThreshold() {};
     UpdateThreshold( double distance, double angle )
 	: distance( distance ), angle( angle ) {};
 
