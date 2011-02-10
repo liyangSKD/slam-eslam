@@ -22,30 +22,28 @@ void PoseEstimator::cloneMaps()
 {
     // this function will make sure that no two particles will point to the same map
     // this works by cloning maps if they are referenced more than once
-    std::set<envire::MultiLevelSurfaceGrid*> used;
+    std::set<envire::EnvironmentItem*> used;
 
     for( std::vector<Particle>::iterator it = xi_k.begin(); it != xi_k.end(); it++ )
     {
-	envire::MultiLevelSurfaceGrid* grid = it->grid.get();
+	envire::EnvironmentItem* grid = it->grid.getMap();
 	if( !used.insert( grid ).second )
 	{
-	    envire::MultiLevelSurfaceGrid* gridClone = grid->clone(); 
-	    grid->getEnvironment()->setFrameNode( gridClone, grid->getFrameNode() );
-	    it->grid.setGrid( gridClone ); 	
+	    it->grid.copy( it->grid ); 	
 	}
     }
 }
 
-void PoseEstimator::setEnvironment(envire::Environment *env, envire::MultiLevelSurfaceGrid* grid, bool useShared )
+void PoseEstimator::setEnvironment(envire::Environment *env, envire::MLSMap::Ptr map, bool useShared )
 {
     assert(env);
-    assert(grid);
+    assert(map);
 
     this->env = env;
     this->useShared = useShared;
 
     for( std::vector<Particle>::iterator it = xi_k.begin(); it != xi_k.end(); it++ )
-	it->grid.setGrid( grid );
+	it->grid.setMap( map );
 
     if( !useShared )
 	cloneMaps();

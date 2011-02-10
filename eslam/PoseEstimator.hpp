@@ -16,7 +16,7 @@
 #include <asguard/Odometry.hpp>
 
 #include <envire/Core.hpp>
-#include <envire/maps/MultiLevelSurfaceGrid.hpp>
+#include <envire/maps/MLSMap.hpp>
 
 #include <limits>
 
@@ -25,32 +25,50 @@ namespace eslam
 
 class GridAccess
 {
+    // caching the transform for faster access
     Eigen::Transform3d C_global2local;
-    boost::intrusive_ptr<envire::MultiLevelSurfaceGrid> mlsGrid;
+    envire::MLSMap::Ptr map;
 
 public:
-    void setGrid( boost::intrusive_ptr<envire::MultiLevelSurfaceGrid> mlsGrid ) 
+    void setMap( envire::MLSMap::Ptr _map ) 
     {
-	envire::Environment *env = mlsGrid->getEnvironment();
+	envire::Environment *env = _map->getEnvironment();
 	C_global2local =
 	    env->relativeTransform( 
 		    env->getRootNode(),
-		    mlsGrid->getFrameNode() );
+		    _map->getFrameNode() );
 
-	this->mlsGrid = mlsGrid;
+	this->map = _map;
     }
 
-    envire::MultiLevelSurfaceGrid* get()
+    envire::MLSMap* getMap()
     {
-	return mlsGrid.get();
-    };
+	return map.get();
+    }
+
+    void copy( const GridAccess& other )
+    {
+	envire::MLSMap::Ptr new_map = other.map->clone();
+	envire::Environment *env = other.map->getEnvironment();
+	env->setFrameNode( new_map.get(), other.map->getFrameNode() );
+	setMap( new_map );
+    }
 
     bool get(const Eigen::Vector3d& position, double& zpos, double& zstdev)
     {
-	if( mlsGrid )
-	    return mlsGrid->get( C_global2local * position, zpos, zstdev );
-	else
-	    return false;
+	if( map )
+	{
+	    typedef envire::MultiLevelSurfaceGrid::SurfacePatch Patch;
+	    Patch p( zpos, zstdev );
+	    Patch* res = map->getPatch( C_global2local * position, p, 3.0 );
+	    if( res )
+	    {
+		zpos = res->mean;
+		zstdev = res->stdev;
+		return true;
+	    }
+	}
+	return false;
     }
 };
 
@@ -74,7 +92,7 @@ public:
     void project(const asguard::BodyState& state, const Eigen::Quaterniond& orientation);
     void update(const asguard::BodyState& state, const Eigen::Quaterniond& orientation);
 
-    void setEnvironment(envire::Environment *env, envire::MultiLevelSurfaceGrid* grid, bool useShared );
+    void setEnvironment(envire::Environment *env, envire::MLSMap::Ptr map, bool useShared );
     void cloneMaps();
 
     base::Pose getCentroid();

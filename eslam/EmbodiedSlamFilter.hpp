@@ -37,7 +37,7 @@ class EmbodiedSlamFilter
     /** pose of last mapping step */
     base::Pose mapPose;
 
-    envire::MultiLevelSurfaceGrid* sharedMap;
+    envire::MLSMap* sharedMap;
 
     // store pointers to processing pipeline
     envire::FrameNode *scanFrame;
@@ -54,7 +54,8 @@ public:
 	const asguard::odometry::Configuration& odometryConfig, 
 	const eslam::Configuration& eslamConfig );
 
-    envire::MultiLevelSurfaceGrid* getMapTemplate( envire::Environment* env );
+    envire::MLSMap* createMapTemplate( envire::Environment* env );
+    envire::MultiLevelSurfaceGrid* createGridTemplate( envire::Environment* env );
     void init( envire::Environment* env, const base::Pose& pose, bool useSharedMap = true );
     void updateMap( const Eigen::Transform3d& pose, const base::samples::LaserScan& scan, envire::MultiLevelSurfaceGrid* mlsGrid );
     bool update( const asguard::BodyState& bs, const Eigen::Quaterniond& orientation, const base::samples::LaserScan& scan );

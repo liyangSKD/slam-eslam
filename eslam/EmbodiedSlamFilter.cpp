@@ -7,6 +7,7 @@
 #include <envire/tools/Numeric.hpp>
 
 using namespace eslam;
+using namespace envire;
 
 EmbodiedSlamFilter::EmbodiedSlamFilter(
 	const asguard::Configuration& asguardConfig,
@@ -21,7 +22,7 @@ EmbodiedSlamFilter::EmbodiedSlamFilter(
     sharedMap(NULL) 
 {};
 
-envire::MultiLevelSurfaceGrid* EmbodiedSlamFilter::getMapTemplate( envire::Environment* env )
+MultiLevelSurfaceGrid* EmbodiedSlamFilter::createGridTemplate( envire::Environment* env )
 {
     const double size = 20;
     const double resolution = 0.05;
@@ -31,18 +32,35 @@ envire::MultiLevelSurfaceGrid* EmbodiedSlamFilter::getMapTemplate( envire::Envir
     env->addChild( env->getRootNode(), gridNode );
     env->setFrameNode( gridTemplate, gridNode );
 
+    gridTemplate->setHorizontalPatchThickness( 0.1 );
+    gridTemplate->setGapSize( 1.50 );
+
+    return gridTemplate;
+}
+
+MLSMap* EmbodiedSlamFilter::createMapTemplate( envire::Environment* env )
+{
+    envire::MultiLevelSurfaceGrid* gridTemplate = 
+	createGridTemplate( env );
+
     envire::MultiLevelSurfaceGrid::SurfacePatch p( 0, 1.0, 0, true );
+    const size_t cx = gridTemplate->getWidth() / 2.0;
+    const size_t cy = gridTemplate->getHeight() / 2.0;
     for( int x=-20; x<20; x++ )
     {
 	for( int y=-20; y<20; y++ )
 	{
-	    gridTemplate->insertTail( size/resolution/2.0 + x, size/resolution/2.0 + y, p );
+	    gridTemplate->insertTail( cx + x, cy + y, p );
 	}
     }
 
-    gridTemplate->setHorizontalPatchThickness( 0.1 );
-    gridTemplate->setGapSize( 1.50 );
-    return gridTemplate;
+    MLSMap* mapTemplate = new MLSMap();
+    FrameNode *mapNode = new envire::FrameNode(); 
+    env->addChild( env->getRootNode(), mapNode );
+    env->setFrameNode( mapTemplate, mapNode );
+    mapTemplate->addGrid( gridTemplate );
+
+    return mapTemplate;
 }
 
 void EmbodiedSlamFilter::init( envire::Environment* env, const base::Pose& pose, bool useSharedMap )
@@ -69,20 +87,21 @@ void EmbodiedSlamFilter::init( envire::Environment* env, const base::Pose& pose,
 	if( !grids.empty() )
 	{
 	    // for now use the first grid found...
-	    sharedMap = grids.front();
+	    //sharedMap = grids.front();
+	    throw std::runtime_error("feature broken");
 	}
 	else
-	    sharedMap = getMapTemplate( env );
+	    sharedMap = createMapTemplate( env );
     }
 
     // either use the shared map to init, or create a grid template for the per particle maps
     if( sharedMap )
 	filter.setEnvironment( env, sharedMap, useSharedMap );
     else
-	filter.setEnvironment( env, getMapTemplate( env ), useSharedMap );
+	filter.setEnvironment( env, createMapTemplate( env ), useSharedMap );
 
     // setup environment for converting scans
-    scanMap = getMapTemplate( env );
+    scanMap = createGridTemplate( env ); 
     scanFrame = new envire::FrameNode();
     scannerFrame = new envire::FrameNode();
     env->addChild( env->getRootNode(), scanFrame );
@@ -127,7 +146,7 @@ bool EmbodiedSlamFilter::update( const asguard::BodyState& bs, const Eigen::Quat
 	{
 	    scanFrame->setTransform( getCentroid().toTransform() * trans.laser2Body );
 	    mlsOp->removeOutputs();
-	    mlsOp->addOutput( sharedMap );
+	    mlsOp->addOutput( sharedMap->getActiveGrid().get() );
 	    mlsOp->updateAll();
 	}
 	else
@@ -156,7 +175,7 @@ bool EmbodiedSlamFilter::update( const asguard::BodyState& bs, const Eigen::Quat
 	    for( size_t i=0; i< particles.size(); i++ )
 	    {
 		eslam::PoseEstimator::Particle &p( particles[i] );
-		envire::MultiLevelSurfaceGrid *pmap = p.grid.get();
+		envire::MultiLevelSurfaceGrid *pmap = p.grid.getMap()->getActiveGrid().get();
 
 		scanFrame->setTransform( envire::Transform( 
 			    Eigen::Translation3d( p.position.x(), p.position.y(), 0 ) *

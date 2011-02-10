@@ -6,6 +6,7 @@
 #include <Eigen/Geometry>
 
 #include <base/eigen.h>
+#include <base/pose.h>
 #include <base/time.h>
 #include <asguard/BodyState.hpp>
 
@@ -39,15 +40,11 @@ struct PoseParticle
 
     Eigen::Transform3d getPose( const Eigen::Quaterniond& _orientation )
     {
-	// get the orientation first and remove any rotation around the z axis
-	Eigen::Vector3d projy = _orientation * Eigen::Vector3d::UnitY(); 
-	Eigen::Quaterniond ocomp = Eigen::AngleAxisd( -atan2( -projy.x(), projy.y() ), Eigen::Vector3d::UnitZ()) * _orientation;
-
 	Eigen::Vector3d pos( position.x(), position.y(), zPos );
 	Eigen::Transform3d t = 
 	    Eigen::Translation3d( pos ) 
 	    * Eigen::AngleAxisd( orientation, Eigen::Vector3d::UnitZ() )
-	    * ocomp;
+	    * base::removeYaw( _orientation );
 	
 	return t;
     }
