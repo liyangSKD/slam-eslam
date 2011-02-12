@@ -15,7 +15,7 @@ int main( int argc, char **argv )
 	// load environment from arg1
 	envire::Serialization so;
 	env = boost::shared_ptr<envire::Environment>(so.unserialize( argv[1] ));
-	app.widget->setEnvironment(env.get());
+	app.getWidget()->setEnvironment(env.get());
     }
 
     for(int i=0;i<500 && app.isRunning();i++)
@@ -27,7 +27,7 @@ int main( int argc, char **argv )
 	for(int j=0;j<4;j++)
 	    bs.wheelPos[j] = r;
 
-	app.widget->setReferencePose( base::Pose(), bs );
+	app.getWidget()->setReferencePose( base::Pose(), bs );
 
 	usleep(50*1000);
     }
