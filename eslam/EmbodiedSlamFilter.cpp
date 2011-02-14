@@ -167,7 +167,7 @@ bool EmbodiedSlamFilter::update( const asguard::BodyState& bs, const Eigen::Quat
 
 		typedef envire::MultiLevelSurfaceGrid::Position position;
 		typedef envire::MultiLevelSurfaceGrid::SurfacePatch patch;
-		std::set<position> &cells = scanMap->getExtents<envire::MultiLevelSurfaceGrid::SetExtents>()->cells;
+		std::set<position> &cells = scanMap->getIndex()->cells;
 
 		// this is a two step process.  first perform the measurement
 		// and then merge the (possibly updated measurement) into the
