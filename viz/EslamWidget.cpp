@@ -17,6 +17,9 @@ EslamWidget::EslamWidget( QWidget* parent, Qt::WindowFlags f )
     addDataHandler( envViz.get() );
     addDataHandler( robotViz.get() );
     addDataHandler( particleViz.get() );
+
+    // switch to manual dirty handling
+    envViz->handleDirty( false );
 }
 
 EslamWidget::~EslamWidget()
@@ -54,4 +57,15 @@ void EslamWidget::setReferencePose( const base::Pose& pose, const asguard::BodyS
 void EslamWidget::setEnvironment( envire::Environment *env )
 {
     envViz->updateData( env );
+}
+
+void EslamWidget::setDirty() 
+{
+    envViz->setDirty();
+}
+
+bool EslamWidget::isDirty() const
+{
+    return envViz->isDirty();
+    envViz->setDirty();
 }

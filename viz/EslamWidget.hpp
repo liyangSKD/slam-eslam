@@ -31,6 +31,9 @@ public:
     int getInspectedParticleIndex() const;
     void setInspectedParticleIndex( int index );
 
+    void setDirty(); 
+    bool isDirty() const;
+
 private:
     boost::shared_ptr<EnvireVisualization> envViz;
     boost::shared_ptr<AsguardVisualization> robotViz;
