@@ -185,9 +185,8 @@ bool EmbodiedSlamFilter::update( const asguard::BodyState& bs, const Eigen::Quat
 			    ) );
 
 		// create a new map every n-steps (needs better criteria)
-		if( (update_idx % 50) == 0 )
+		if( ((update_idx+1) % 50) == 0 )
 		{
-		    std::cout << "create new map" << std::endl;
 		    // we are looking for the transform between the active map,
 		    // and the current particle
 		    Transform tf = scanFrame->relativeTransform( pgrid->getFrameNode() );
