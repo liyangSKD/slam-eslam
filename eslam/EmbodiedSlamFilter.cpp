@@ -57,6 +57,7 @@ MLSMap* EmbodiedSlamFilter::createMapTemplate( envire::Environment* env )
     MLSMap* mapTemplate = new MLSMap();
     FrameNode *mapNode = new envire::FrameNode(); 
     env->addChild( env->getRootNode(), mapNode );
+    env->addChild( mapNode, gridTemplate->getFrameNode() );
     env->setFrameNode( mapTemplate, mapNode );
     mapTemplate->addGrid( gridTemplate );
 
@@ -175,14 +176,27 @@ bool EmbodiedSlamFilter::update( const asguard::BodyState& bs, const Eigen::Quat
 	    for( size_t i=0; i< particles.size(); i++ )
 	    {
 		eslam::PoseEstimator::Particle &p( particles[i] );
-		envire::MultiLevelSurfaceGrid *pmap = p.grid.getMap()->getActiveGrid().get();
+		envire::MLSMap *pmap = p.grid.getMap();
+		envire::MultiLevelSurfaceGrid *pgrid = pmap->getActiveGrid().get();
 
 		scanFrame->setTransform( envire::Transform( 
 			    Eigen::Translation3d( p.position.x(), p.position.y(), 0 ) *
 			    Eigen::AngleAxisd( p.orientation, Eigen::Vector3d::UnitZ() )
 			    ) );
 
-		Eigen::Transform3d C_s2p = scanMap->getEnvironment()->relativeTransform( scanMap->getFrameNode(), pmap->getFrameNode() );
+		// create a new map every n-steps (needs better criteria)
+		if( (update_idx % 50) == 0 )
+		{
+		    std::cout << "create new map" << std::endl;
+		    // we are looking for the transform between the active map,
+		    // and the current particle
+		    Transform tf = scanFrame->relativeTransform( pgrid->getFrameNode() );
+		    envire::MultiLevelSurfaceGrid::Point2D cp = pgrid->getCenterPoint();
+		    pmap->createGrid( tf * Eigen::Translation3d( -cp.x(), -cp.y(), 0 ) );
+		    pgrid = pmap->getActiveGrid().get();
+		}
+
+		Eigen::Transform3d C_s2p = scanMap->getEnvironment()->relativeTransform( scanMap->getFrameNode(), pgrid->getFrameNode() );
 
 		typedef envire::MultiLevelSurfaceGrid::Position position;
 		typedef envire::MultiLevelSurfaceGrid::SurfacePatch patch;
@@ -205,7 +219,7 @@ bool EmbodiedSlamFilter::update( const asguard::BodyState& bs, const Eigen::Quat
 		    pos = C_s2p * pos;
 
 		    size_t m, n;
-		    if( pmap->toGrid( pos.x(), pos.y(), m, n ) )
+		    if( pgrid->toGrid( pos.x(), pos.y(), m, n ) )
 		    {
 			position pos(m, n);
 			for(envire::MultiLevelSurfaceGrid::iterator cit = scanMap->beginCell(it->m,it->n); cit != scanMap->endCell(); cit++ )
@@ -217,7 +231,7 @@ bool EmbodiedSlamFilter::update( const asguard::BodyState& bs, const Eigen::Quat
 			    patches.push_back( std::make_pair( pos, meas_patch ) );
 
 			    // find a patch in the target map and see if its relevant for measurement
-			    patch *tar_patch = pmap->get( pos, meas_patch, 0.5 ); 
+			    patch *tar_patch = pgrid->get( pos, meas_patch, 0.5 ); 
 			    if( tar_patch && tar_patch->horizontal && meas_patch.horizontal && (tar_patch->update_idx + 0 < meas_patch.update_idx ) && false )
 			    {
 				const double diff = meas_patch.mean - tar_patch->mean;
@@ -248,7 +262,7 @@ bool EmbodiedSlamFilter::update( const asguard::BodyState& bs, const Eigen::Quat
 		    // apply the measurement difference
 		    pa.mean += delta;
 
-		    pmap->updateCell( pos.m, pos.n, pa );
+		    pgrid->updateCell( pos.m, pos.n, pa );
 		}
 	    }
 	}
