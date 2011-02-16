@@ -27,10 +27,19 @@ class GridAccess
 {
     // caching the transform for faster access
     Eigen::Transform3d C_global2local;
-    envire::MLSMap::Ptr map;
+    typedef boost::shared_ptr<envire::MLSMap> MapPtr;
+    MapPtr map;
 
 public:
-    void setMap( envire::MLSMap::Ptr _map ) 
+    static void detachItem( envire::MLSMap* item )
+    {
+	if(item && item->isAttached() ) 
+	{
+	    item->detach();
+	}
+    }
+
+    void setMap( MapPtr _map ) 
     {
 	envire::Environment *env = _map->getEnvironment();
 	C_global2local =
@@ -48,10 +57,10 @@ public:
 
     void copy( const GridAccess& other )
     {
-	envire::MLSMap::Ptr new_map = other.map->clone();
+	envire::MLSMap::Ptr new_map = other.map->cloneDeep();
 	envire::Environment *env = other.map->getEnvironment();
 	env->setFrameNode( new_map.get(), other.map->getFrameNode() );
-	setMap( new_map );
+	setMap( MapPtr(new_map.get(), &GridAccess::detachItem) );
     }
 
     bool get(const Eigen::Vector3d& position, double& zpos, double& zstdev)

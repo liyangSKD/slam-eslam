@@ -42,8 +42,10 @@ void PoseEstimator::setEnvironment(envire::Environment *env, envire::MLSMap::Ptr
     this->env = env;
     this->useShared = useShared;
 
+    boost::shared_ptr<envire::MLSMap> pMap( map.get(), &GridAccess::detachItem );
+
     for( std::vector<Particle>::iterator it = xi_k.begin(); it != xi_k.end(); it++ )
-	it->grid.setMap( map );
+	it->grid.setMap( pMap );
 
     if( !useShared )
 	cloneMaps();
