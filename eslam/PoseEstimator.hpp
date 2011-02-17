@@ -35,7 +35,31 @@ public:
     {
 	if(item && item->isAttached() ) 
 	{
+	    envire::Environment* env = item->getEnvironment();
+	    std::list<envire::Layer*> grids = env->getChildren(item);
 	    item->detach();
+
+	    // look at all the grids in the map, and see if they 
+	    // have other maps that they are attached to.
+	    // detach them if this is not the case. Also remove any unused
+	    // FrameNodes
+	    for( std::list<envire::Layer*>::iterator it = grids.begin(); 
+		    it != grids.end(); it++ )
+	    {
+		envire::Layer* grid = *it;
+		if( grid->getParents().empty() )
+		{
+		    envire::FrameNode* fn = 
+			dynamic_cast<envire::MultiLevelSurfaceGrid*>(grid)->getFrameNode();
+		    grid->detach();
+		    while( fn && fn->getMaps().empty() )
+		    {
+			envire::FrameNode* parent = fn->getParent();
+			fn->detach();
+			fn = parent;
+		    }
+		}
+	    }
 	}
     }
 
