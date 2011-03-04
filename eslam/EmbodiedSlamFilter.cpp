@@ -187,6 +187,21 @@ bool EmbodiedSlamFilter::update( const asguard::BodyState& bs, const Eigen::Quat
 		// create a new map every n-steps (needs better criteria)
 		if( ((update_idx+1) % 50) == 0 )
 		{
+		    // experimental: try to match the currently active grid
+		    // with any of the previous grids
+		    /*
+		    std::vector<envire::MultiLevelSurfaceGrid::Ptr>& grids = pmap->getGrids();
+		    if( grids.size() > 1 )
+		    {
+			// match against previous
+			std::pair<double,double> res = pgrid->matchHeight( *grids[grids.size()-2] );
+			p.zPos -= res.first;
+			pgrid->getFrameNode()->setTransform( Eigen::Translation3d( 0,0, -res.first ) *
+				pgrid->getFrameNode()->getTransform() );
+			//std::cout << "height diff: " << res.first << std::endl;
+		    }
+		    */
+
 		    // we are looking for the transform between the active map,
 		    // and the current particle
 		    Transform tf = scanFrame->relativeTransform( pgrid->getFrameNode() );
