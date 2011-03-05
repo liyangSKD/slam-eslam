@@ -139,18 +139,14 @@ void PoseEstimator::updateWeights(const asguard::BodyState& state, const Eigen::
     std::vector<vec3array> cpoints(4);
 
     // get the orientation first and remove any rotation around the z axis
-    Eigen::Vector3d projy = orientation * Eigen::Vector3d::UnitY(); 
-    Eigen::Quaterniond ocomp = Eigen::AngleAxisd( -atan2( -projy.x(), projy.y() ), Eigen::Vector3d::UnitZ()) * orientation;
-
-    // store ocomp for calculation of median
-    zCompensatedOrientation = ocomp;
+    zCompensatedOrientation = base::removeYaw( orientation );
 
     for(int i=0;i<4;i++)
     {
 	for(int j=0;j<5;j++) 
 	{
 	    Eigen::Vector3d f = asguardConfig.getFootPosition( state, static_cast<asguard::wheelIdx>(i), j );
-	    cpoints[i].push_back( ocomp * f );	
+	    cpoints[i].push_back( zCompensatedOrientation * f );	
 	}
 	// remove the two wheels with the highest z value
 	std::sort( cpoints[i].begin(), cpoints[i].end(), compareElement<Eigen::Vector3d,2> );

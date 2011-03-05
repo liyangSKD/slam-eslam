@@ -126,15 +126,11 @@ void ParticleVisualization::operatorIntern ( osg::Node* node, osg::NodeVisitor* 
 	asguard::BodyState &bodyState( dist.bodyState );
 	eslam::PoseParticle &pose( v[i] );
 
-	// get the right body transform for the particle
-	Eigen::Vector3d projy = dist.orientation * Eigen::Vector3d::UnitY(); 
-	Eigen::Quaterniond ocomp = Eigen::AngleAxisd( -atan2( -projy.x(), projy.y() ), Eigen::Vector3d::UnitZ()) * dist.orientation;
-
 	Eigen::Transform3d t = 
 	    Eigen::Translation3d( pose.meas_pos ) 
 	    * Eigen::AngleAxisd( pose.meas_theta, Eigen::Vector3d::UnitZ() );
 
-	Eigen::Transform3d transform( t * ocomp );
+	Eigen::Transform3d transform( t * base::removeYaw( dist.orientation ) );
 
 
 	// add asguard robot
