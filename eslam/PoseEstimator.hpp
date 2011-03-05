@@ -93,11 +93,10 @@ public:
 	{
 	    typedef envire::MultiLevelSurfaceGrid::SurfacePatch Patch;
 	    Patch p( position.z(), zstdev );
-	    Patch* res = map->getPatch( C_global2local * position, p, 3.0 );
-	    if( res )
+	    if( map->getPatch( C_global2local * position, p, 3.0 ) )
 	    {
-		zpos = res->mean;
-		zstdev = res->stdev;
+		zpos = p.mean;
+		zstdev = p.stdev;
 		return true;
 	    }
 	}
