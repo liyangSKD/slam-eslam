@@ -27,7 +27,9 @@ int main( int argc, char **argv )
 	for(int j=0;j<4;j++)
 	    bs.wheelPos[j] = r;
 
-	app.getWidget()->setReferencePose( base::Pose(), bs );
+	app.getWidget()->setBodyState( bs );
+	app.getWidget()->setReferencePose( base::Pose( Eigen::Vector3d( 0, r * 0.1, 0 ), Eigen::Quaterniond::Identity() ) );
+	app.getWidget()->setCentroidPose( base::Pose( Eigen::Vector3d( r * 0.02, r * 0.1, 0 ), Eigen::Quaterniond::Identity() ) );
 
 	usleep(50*1000);
     }
