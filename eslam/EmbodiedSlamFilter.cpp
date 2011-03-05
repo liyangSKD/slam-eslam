@@ -87,9 +87,17 @@ void EmbodiedSlamFilter::init( envire::Environment* env, const base::Pose& pose,
 	std::vector<envire::MultiLevelSurfaceGrid*> grids = env->getItems<envire::MultiLevelSurfaceGrid>();
 	if( !grids.empty() )
 	{
+	    MultiLevelSurfaceGrid *gridTemplate = grids.front();
+
 	    // for now use the first grid found...
-	    //sharedMap = grids.front();
-	    throw std::runtime_error("feature broken");
+	    MLSMap* mapTemplate = new MLSMap();
+	    FrameNode *mapNode = new envire::FrameNode(); 
+	    env->addChild( env->getRootNode(), mapNode );
+	    env->addChild( mapNode, gridTemplate->getFrameNode() );
+	    env->setFrameNode( mapTemplate, mapNode );
+	    mapTemplate->addGrid( gridTemplate );
+
+	    sharedMap = mapTemplate;
 	}
 	else
 	    sharedMap = createMapTemplate( env );
