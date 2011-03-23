@@ -25,13 +25,25 @@ public:
     GaussianMixtureSampling<GMM::Scalar, GMM::Dimension> sampling;
     ExpectationMaximization<GMM::Scalar, GMM::Dimension> em;
     std::vector<GMM::Vector> particles;
+    std::vector<GMM::Scalar> weights;
 
     Particles( GMM& gmm ) : gmm( gmm ), sampling( gmm ) 
     {
+	/*
 	for( int i=0; i<500; i++ )
 	    particles.push_back( sampling.sample() );
+	*/
+	for( double x=-2.0; x<2.0; x+=0.1 )
+	{
+	    for( double y=-2.0; y<2.0; y+=0.1 )
+	    {
+		GMM::Vector v( x, y );
+		particles.push_back( v );
+		weights.push_back( gmm.eval(v) );
+	    }
+	}
 
-	em.initialize( particles, 3 );
+	em.initialize( 2, particles, weights );
 	update();
     }
 
@@ -153,11 +165,7 @@ BOOST_AUTO_TEST_CASE( eval )
     for( int i=0; i<500; i++ )
     {
 	GMM::Vector s = sampling.sample();
-	GMM::Scalar v = 0;
-	for( size_t j=0; j<gmm.params.size(); j++ )
-	{
-	    v += gmm.params[j].eval( s );
-	}
+	GMM::Scalar v = gmm.eval( s );
 	//std::cout << s.transpose() << " " << v << std::endl;
     }
 }

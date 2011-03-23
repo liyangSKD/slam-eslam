@@ -138,6 +138,7 @@ public:
 
     GMM gmm;
     std::vector<Vector> samples;
+    std::vector<Scalar> weights;
 
     void run( Scalar delta, size_t max_iter )
     {
@@ -176,6 +177,8 @@ public:
 	    {
 		typename GMM::Parameter &param( gmm.params[j] );
 		Scalar val = param.weight * param.eval( samples[i] );
+		//if( weights.size() )
+		//    val = pow( val, weights[i] );
 		gamma(i,j) = val;
 		sum += val;
 	    }
@@ -208,10 +211,17 @@ public:
 	return loglhood;
     }
 
-    void initialize( const std::vector<Vector>& s, size_t numClasses )
+    void initialize( size_t numClasses, const std::vector<Vector>& s, const std::vector<Scalar>& w = std::vector<Scalar>() )
     {
+	// copy samples and weights
 	samples.resize( s.size() );
 	std::copy( s.begin(), s.end(), samples.begin() );
+
+	weights.resize( w.size() );
+	std::copy( w.begin(), w.end(), weights.begin() );
+
+	// if weights are given, they need to be the same size as the samples
+	assert( !w.size() || w.size() == s.size() );
 
 	Matrix Sxx = Matrix::Zero();
 	Vector Sx = Vector::Zero();
