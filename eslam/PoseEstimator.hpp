@@ -131,7 +131,10 @@ public:
 
 private:
     void updateWeights(const asguard::BodyState& state, const Eigen::Quaterniond& orientation);
-    double weightingFunction( double stdev );
+
+    boost::variate_generator<boost::minstd_rand&, boost::normal_distribution<> > rand_norm;
+    boost::variate_generator<boost::minstd_rand&, boost::uniform_real<> > rand_uni;
+    base::Pose2D samplePose2D( const base::Pose2D& mu, const base::Pose2D& sigma );
 
     eslam::Configuration config;
     asguard::Configuration asguardConfig;
@@ -141,6 +144,7 @@ private:
     bool useShared;
 
     Eigen::Quaterniond zCompensatedOrientation;
+    double max_weight;
 };
 
 }

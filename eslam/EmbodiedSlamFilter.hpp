@@ -54,7 +54,7 @@ public:
 	const asguard::odometry::Configuration& odometryConfig, 
 	const eslam::Configuration& eslamConfig );
 
-    envire::MLSMap* createMapTemplate( envire::Environment* env );
+    envire::MLSMap* createMapTemplate( envire::Environment* env, const base::Pose& origin = base::Pose() );
     envire::MultiLevelSurfaceGrid* createGridTemplate( envire::Environment* env );
     void init( envire::Environment* env, const base::Pose& pose, bool useSharedMap = true );
     void updateMap( const Eigen::Transform3d& pose, const base::samples::LaserScan& scan, envire::MultiLevelSurfaceGrid* mlsGrid );

@@ -10,7 +10,14 @@
 using namespace eslam;
 
 PoseEstimator::PoseEstimator(asguard::odometry::Wheel& odometry, const eslam::Configuration &config, const asguard::Configuration& asguardConfig )
-    : ParticleFilter<Particle>(config.seed), config(config), asguardConfig(asguardConfig),  odometry(odometry), env(NULL)
+    : ParticleFilter<Particle>(config.seed), 
+    rand_norm(rand_gen, boost::normal_distribution<>(0,1.0) ),
+    rand_uni(rand_gen, boost::uniform_real<>(0,1.0) ),
+    config(config), 
+    asguardConfig(asguardConfig),  
+    odometry(odometry), 
+    env(NULL), 
+    max_weight(0)
 {
 }
 
@@ -51,51 +58,35 @@ void PoseEstimator::setEnvironment(envire::Environment *env, envire::MLSMap::Ptr
 	cloneMaps();
 }
 
+base::Pose2D PoseEstimator::samplePose2D( const base::Pose2D& mu, const base::Pose2D& sigma )
+{
+    double x = rand_norm(), y = rand_norm(), theta = rand_norm();
+
+    return base::Pose2D( 
+	    Eigen::Vector2d( 
+		x * sigma.position.x() + mu.position.x(),
+		y * sigma.position.y() + mu.position.y() ),
+	    theta * sigma.orientation + mu.orientation );
+}
+
 void PoseEstimator::init(int numParticles, const base::Pose2D& mu, const base::Pose2D& sigma, double zpos, double zsigma) 
 {
-    boost::variate_generator<boost::minstd_rand&, boost::normal_distribution<> > 
-	rand_x(rand_gen, boost::normal_distribution<>(mu.position.x(),sigma.position.x()) );
-    boost::variate_generator<boost::minstd_rand&, boost::normal_distribution<> > 
-	rand_y(rand_gen, boost::normal_distribution<>(mu.position.y(),sigma.position.y()) );
-    boost::variate_generator<boost::minstd_rand&, boost::normal_distribution<> > 
-	rand_theta(rand_gen, boost::normal_distribution<>(mu.orientation,sigma.orientation) );
-
     for(int i=0;i<numParticles;i++)
     {
+	base::Pose2D sample = samplePose2D( mu, sigma );
+
 	xi_k.push_back( 
 		Particle( 
-		    Eigen::Vector2d(rand_x(), rand_y()), 
-		    rand_theta(),
+		    sample.position, 
+		    sample.orientation,
 		    zpos,
 		    zsigma
 		    ));
     }
 }
 
-void PoseEstimator::project(const asguard::BodyState& state, const Eigen::Quaterniond& orientation)
+double weightingFunction( double x, double alpha = 0.1, double beta = 0.9, double gamma = 0.05 )
 {
-    Eigen::Transform3d dtrans = orientation * odometry.getPoseDelta().toTransform();
-    const double z_delta = dtrans.translation().z();
-    //const double z_var = 1e-3;
-    const double z_var = odometry.getPositionError()(2,2) * 2.0;
-
-    for(size_t i=0;i<xi_k.size();i++)
-    {
-	base::Pose2D delta = odometry.getPoseDeltaSample2D();
-
-	Particle &p( xi_k[i] );
-	p.position += Eigen::Rotation2D<double>(p.orientation) * delta.position;
-	p.orientation += delta.orientation;
-
-	p.zPos += z_delta;
-	p.zSigma = sqrt( p.zSigma*p.zSigma + z_var );
-    }
-}
-
-double PoseEstimator::weightingFunction( double stdev )
-{
-    double x = stdev;
-    const double alpha = config.weightingFactor, beta = 1.0, gamma = 0.05;
     if( x < alpha )
 	return 1.0;
     if( x < beta )
@@ -108,6 +99,45 @@ double PoseEstimator::weightingFunction( double stdev )
 	return gamma;
 
     return 0.0;
+}
+
+void PoseEstimator::project(const asguard::BodyState& state, const Eigen::Quaterniond& orientation)
+{
+    Eigen::Transform3d dtrans = orientation * odometry.getPoseDelta().toTransform();
+    const double z_delta = dtrans.translation().z();
+    
+    //const double z_var = 1e-3;
+    const double z_var = odometry.getPositionError()(2,2) * 2.0;
+
+    double spread = weightingFunction( max_weight, 0.1, config.spreadThreshold, 0.0 );
+
+    for(size_t i=0;i<xi_k.size();i++)
+    {
+	base::Pose2D delta = odometry.getPoseDeltaSample2D();
+	if( rand_uni() < config.slipFactor )
+	{
+	    delta.position.y() *= rand_uni();
+	}
+
+	Particle &p( xi_k[i] );
+	p.position += Eigen::Rotation2D<double>(p.orientation) * delta.position;
+	p.orientation += delta.orientation;
+
+	p.zPos += z_delta;
+	p.zSigma = sqrt( p.zSigma*p.zSigma + z_var );
+
+	if( spread > 0 ) 
+	{
+	    const double trans_fac = config.spreadTranslationFactor * spread;
+	    const double rot_fac = config.spreadRotationFactor * spread;
+	    base::Pose2D sample = samplePose2D( 
+		    base::Pose2D(), 
+		    base::Pose2D( Eigen::Vector2d( trans_fac, trans_fac ), rot_fac ) );
+
+	    p.position += sample.position;
+	    p.orientation += sample.orientation;
+	}
+    }
 }
 
 void PoseEstimator::update(const asguard::BodyState& state, const Eigen::Quaterniond& orientation)
@@ -156,6 +186,9 @@ void PoseEstimator::updateWeights(const asguard::BodyState& state, const Eigen::
     size_t total_points = 0;
     size_t data_particles = 0;
     double sum_data_weights = 0.0;
+
+    double last_max_weight = max_weight;
+    max_weight = 0;
 
     // now update the weights of the particles by calculating the variance of the contact points 
 #ifdef USE_OPENMP
@@ -259,6 +292,9 @@ void PoseEstimator::updateWeights(const asguard::BodyState& state, const Eigen::
 	    xi_k[i].weight *= pz;
 	    xi_k[i].mprob = pz;
 	    xi_k[i].floating = false;
+
+	    // store the current maximum weight
+	    max_weight = std::max( max_weight, pz );
 	    
 	    data_particles ++;
 	    sum_data_weights += pow(pz,1/found_points);
@@ -288,6 +324,9 @@ void PoseEstimator::updateWeights(const asguard::BodyState& state, const Eigen::
 	(*it).weight *= factor;
 	//}
     }
+
+    if( total_points == 0 )
+	max_weight = last_max_weight * config.discountFactor;
 
     static int iter = 0;
     std::cerr << "iteration: " << iter++ << "\tfound: " << total_points << "\tmax: " << xi_k.size() << "       \r";

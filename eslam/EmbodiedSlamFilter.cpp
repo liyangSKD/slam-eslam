@@ -38,7 +38,7 @@ MultiLevelSurfaceGrid* EmbodiedSlamFilter::createGridTemplate( envire::Environme
     return gridTemplate;
 }
 
-MLSMap* EmbodiedSlamFilter::createMapTemplate( envire::Environment* env )
+MLSMap* EmbodiedSlamFilter::createMapTemplate( envire::Environment* env, const base::Pose& origin )
 {
     envire::MultiLevelSurfaceGrid* gridTemplate = 
 	createGridTemplate( env );
@@ -61,6 +61,14 @@ MLSMap* EmbodiedSlamFilter::createMapTemplate( envire::Environment* env )
     env->setFrameNode( mapTemplate, mapNode );
     mapTemplate->addGrid( gridTemplate );
 
+    {
+	const double angle = origin.orientation.toRotationMatrix().eulerAngles(2,1,0)[0];
+	FrameNode *gridFrame = gridTemplate->getFrameNode();
+	gridFrame->setTransform( Eigen::Translation3d( origin.position ) *
+		Eigen::AngleAxisd( angle, Eigen::Vector3d::UnitZ() ) *
+		gridFrame->getTransform() );
+    }
+
     return mapTemplate;
 }
 
@@ -70,11 +78,11 @@ void EmbodiedSlamFilter::init( envire::Environment* env, const base::Pose& pose,
     filter.init(
 	    eslamConfig.particleCount, 
 	    base::Pose2D(Eigen::Vector2d(pose.position.x(),pose.position.y()),angle), 
-	    //base::Pose2D(Eigen::Vector2d(config.filter.initialError,config.filter.initialError),config.filter.initialError),
-	    base::Pose2D(Eigen::Vector2d(1e-3,1e-3),1e-3),
+	    base::Pose2D(Eigen::Vector2d(eslamConfig.initialError,eslamConfig.initialError),eslamConfig.initialError),
+	    //base::Pose2D(Eigen::Vector2d(1e-3,1e-3),1e-3),
 	    pose.position.z(),
-	    //1.0 // sigma_z
-	    1e-3
+	    1.0 // sigma_z
+	    //1e-3
 	    );
 
     odPose = pose;
@@ -142,7 +150,7 @@ bool EmbodiedSlamFilter::update( const asguard::BodyState& bs, const Eigen::Quat
     Eigen::Transform3d pdelta( mapPose.toTransform().inverse() * odPose.toTransform() );
     const double max_angle = eslamConfig.mappingThreshold.angle;
     const double max_dist = eslamConfig.mappingThreshold.distance;
-    if( Eigen::AngleAxisd( pdelta.rotation() ).angle() > max_angle || pdelta.translation().norm() > max_dist )
+    if( Eigen::AngleAxisd( pdelta.linear() ).angle() > max_angle || pdelta.translation().norm() > max_dist )
     {
 	static size_t update_idx = 0;
 
@@ -305,7 +313,7 @@ bool EmbodiedSlamFilter::update( const asguard::BodyState& bs, const Eigen::Quat
     Eigen::Transform3d pdelta( udPose.toTransform().inverse() * odPose.toTransform() );
     const double max_angle = eslamConfig.measurementThreshold.angle;
     const double max_dist = eslamConfig.measurementThreshold.distance;
-    if( Eigen::AngleAxisd( pdelta.rotation() ).angle() > max_angle || pdelta.translation().norm() > max_dist )
+    if( Eigen::AngleAxisd( pdelta.linear() ).angle() > max_angle || pdelta.translation().norm() > max_dist )
     {
 	filter.update( bs, orientation );
 	udPose = odPose;

@@ -23,8 +23,8 @@ EslamWidget::EslamWidget( QWidget* parent, Qt::WindowFlags f )
     addDataHandler( referenceViz.get() );
     addDataHandler( centroidViz.get() );
 
-    referenceViz->setColor( 1.0, 0, 0, 1.0 );
-    centroidViz->setColor( 0.0, 1.0, 0.0, 1.0 );
+    referenceViz->setColor( 0, 0, 0, 1.0 );
+    centroidViz->setColor( 0.0, 0.0, 1.0, 1.0 );
 
     // switch to manual dirty handling
     envViz->handleDirty( false );
