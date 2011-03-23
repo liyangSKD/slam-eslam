@@ -35,7 +35,7 @@ public:
 	Parameter( Scalar weight, const Vector& mean, const Matrix& cov )
 	    : weight( weight ), mean( mean ), cov( cov ) {}
 
-	Scalar eval( const Vector& x )
+	Scalar eval( const Vector& x ) const
 	{
 	    Vector d = x - mean;
 	    Eigen::Matrix<Scalar,1,1> e = d.transpose() * cov.inverse() * d;
@@ -70,6 +70,15 @@ public:
 	    else
 		params[n].weight = 1.0 / params.size();
 	}
+    }
+
+    Scalar eval( const Vector& s ) const
+    {
+	Scalar v = 0;
+	for( size_t j=0; j<params.size(); j++ )
+	    v += params[j].eval( s );
+
+	return v;
     }
 };
 
