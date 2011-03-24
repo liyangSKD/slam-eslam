@@ -32,6 +32,7 @@ public:
 	/*
 	for( int i=0; i<500; i++ )
 	    particles.push_back( sampling.sample() );
+	em.initialize( 2, particles );
 	*/
 	for( double x=-2.0; x<2.0; x+=0.1 )
 	{
@@ -42,8 +43,8 @@ public:
 		weights.push_back( gmm.eval(v) );
 	    }
 	}
-
 	em.initialize( 2, particles, weights );
+
 	update();
     }
 
@@ -166,6 +167,7 @@ BOOST_AUTO_TEST_CASE( eval )
     {
 	GMM::Vector s = sampling.sample();
 	GMM::Scalar v = gmm.eval( s );
-	//std::cout << s.transpose() << " " << v << std::endl;
+	if( false )
+	    std::cout << s.transpose() << " " << v << std::endl;
     }
 }
