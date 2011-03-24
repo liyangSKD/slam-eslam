@@ -346,6 +346,8 @@ public:
 	}
 	loglhood /= n;
 
+	const Scalar remove_threshold = 1e-4;
+	std::vector<size_t> remove;
 	// update the parameters of the gaussians
 	Scalar sum_weights = weighted ? std::accumulate( weights.begin(), weights.end(), 0.0 ) : n;
 	for( size_t j = 0; j < k; j++ )
@@ -353,6 +355,8 @@ public:
 	    Scalar n_j = gamma.col(j).sum();
 	    typename GMM::Parameter &param( gmm.params[j] );
 	    param.weight = n_j / sum_weights;
+	    if( n_j < remove_threshold )
+		remove.push_back( j );
 
 	    Vector mean = Vector::Zero();
 	    for( size_t i = 0; i < n; i++ )
@@ -366,6 +370,13 @@ public:
 		cov += gamma(i,j) * c * c.transpose();
 	    }
 	    param.cov = 1.0/n_j * cov;
+	}
+
+	std::sort( remove.begin(), remove.end() );
+	for( std::vector<size_t>::reverse_iterator it = remove.rbegin(); it != remove.rend(); it++ )
+	{
+	    std::cout << "removing gmm " << *it << std::endl;
+	    gmm.params.erase( gmm.params.begin() + *it );
 	}
 
 	return loglhood;

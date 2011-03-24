@@ -29,11 +29,10 @@ public:
 
     Particles( GMM& gmm ) : gmm( gmm ), sampling( gmm ) 
     {
-	/*
 	for( int i=0; i<500; i++ )
 	    particles.push_back( sampling.sample() );
-	em.initialize( 2, particles );
-	*/
+	em.initialize( 3, particles );
+	/*
 	for( double x=-2.0; x<2.0; x+=0.1 )
 	{
 	    for( double y=-2.0; y<2.0; y+=0.1 )
@@ -44,6 +43,7 @@ public:
 	    }
 	}
 	em.initialize( 2, particles, weights );
+	*/
 
 	update();
     }
@@ -110,13 +110,17 @@ BOOST_AUTO_TEST_CASE( qt_vis )
     mu << 0.5, 0.1;
     sigma << 0.01, 0.01,
 	     0.01,  .05;
-    gmm.params.push_back( GMM::Parameter( 0.3, mu, sigma ) ); 
+    gmm.params.push_back( GMM::Parameter( 0.2, mu, sigma ) ); 
 
     mu << -0.3, 0.2;
     sigma << 0.01, -0.005,
 	     -.0005, 0.0425;
-    gmm.params.push_back( GMM::Parameter( 0.7, mu, sigma ) ); 
+    gmm.params.push_back( GMM::Parameter( 0.5, mu, sigma ) ); 
 
+    mu << -0.1, 0.0;
+    sigma << 0.08, -0.001,
+	     -.0001, 0.0025;
+    gmm.params.push_back( GMM::Parameter( 0.3, mu, sigma ) ); 
 
     int argc = 0;
     char* argv[0];
@@ -159,6 +163,11 @@ BOOST_AUTO_TEST_CASE( eval )
 
     mu << -0.3, 0.2;
     sigma << 0.01, -0.005,
+	     -.0005, 0.0425;
+    gmm.params.push_back( GMM::Parameter( 0.7, mu, sigma ) ); 
+
+    mu << -0.1, 0.0;
+    sigma << 0.08, -0.005,
 	     -.0005, 0.0425;
     gmm.params.push_back( GMM::Parameter( 0.7, mu, sigma ) ); 
 
