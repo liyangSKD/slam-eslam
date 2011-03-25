@@ -197,16 +197,17 @@ public:
     typedef typename Eigen::Matrix<Scalar, Dimension, 1> Vector;
     typedef typename Eigen::Matrix<Scalar, Dimension, Dimension> Matrix;
 
-    struct Parameter : public Gaussian< _Scalar, _Dimension>
+    struct Parameter 
     {
 	EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 
 	Parameter() {}
 	Parameter( Scalar weight, const Vector& mean, const Matrix& cov )
-	    : Gaussian<_Scalar, _Dimension>( mean, cov ), weight( weight ) {}
+	    : dist( mean, cov ), weight( weight ) {}
 	Parameter( Scalar weight, const Gaussian<Scalar, Dimension>& g )
-	    : Gaussian<_Scalar, _Dimension>( g ), weight( weight ) {}
+	    : dist( g ), weight( weight ) {}
 
+	Gaussian< _Scalar, _Dimension> dist;
 	Scalar weight;
     };
 
@@ -234,7 +235,7 @@ public:
     {
 	Scalar v = 0;
 	for( size_t j=0; j<params.size(); j++ )
-	    v += params[j].eval( s );
+	    v += params[j].dist.eval( s );
 
 	return v;
     }
@@ -275,7 +276,7 @@ public:
 	    typename GMM::Parameter &param( gmm.params[j] );
 	    s += param.weight;
 	    if( s >= r )
-		return param.mean + param.cov.llt().matrixL() * sample;
+		return param.dist.mean + param.dist.cov.llt().matrixL() * sample;
 	}
 
 	throw std::runtime_error("distribution not normalized.");
@@ -337,7 +338,7 @@ public:
 	    for( size_t j = 0; j < k; j++ )
 	    {
 		typename GMM::Parameter &param( gmm.params[j] );
-		Scalar val = param.weight * param.eval( samples[i] );
+		Scalar val = param.weight * param.dist.eval( samples[i] );
 		gamma(i,j) = val;
 		sum += val;
 	    }
@@ -361,15 +362,15 @@ public:
 	    Vector mean = Vector::Zero();
 	    for( size_t i = 0; i < n; i++ )
 		mean += gamma(i,j) * samples[i];
-	    param.mean = 1.0/n_j * mean;
+	    param.dist.mean = 1.0/n_j * mean;
 
 	    Matrix cov = Matrix::Zero();
 	    for( size_t i = 0; i < n; i++ )
 	    {
-		Vector c = samples[i] - param.mean;
+		Vector c = samples[i] - param.dist.mean;
 		cov += gamma(i,j) * c * c.transpose();
 	    }
-	    param.cov = 1.0/n_j * cov;
+	    param.dist.cov = 1.0/n_j * cov;
 	}
 
 	std::sort( remove.begin(), remove.end() );

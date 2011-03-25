@@ -74,14 +74,14 @@ public:
 	    {
 		GMM::Parameter &param( em.gmm.params[j] );
 
-		Eigen::SelfAdjointEigenSolver<GMM::Matrix> e( param.cov, true );
+		Eigen::SelfAdjointEigenSolver<GMM::Matrix> e( param.dist.cov, true );
 		for( int n=0; n<2; n++ )
 		{
 		    painter->save();
 		    painter->setPen(Qt::red);
 		    painter->setBrush(Qt::NoBrush);
 
-		    painter->translate( param.mean.x() * 100, param.mean.y() * 100 );
+		    painter->translate( param.dist.mean.x() * 100, param.dist.mean.y() * 100 );
 		    Eigen::Rotation2D<GMM::Scalar> rm(0);
 		    rm.fromRotationMatrix( e.eigenvectors() );
 		    painter->rotate( rm.angle() * 180.0 / M_PI );
