@@ -12,8 +12,6 @@
 
 #include <vector>
 
-#include <eslam/GaussianMixture.hpp>
-
 namespace eslam
 {
 
@@ -71,28 +69,8 @@ struct PoseParticle
 
 struct PoseDistribution
 {
-    // we need to force the GMM model to use the base types
-    // here instead of the generic eigen types
-    struct BaseAdapter
-    {
-	enum { Dimension = 2 };
-	typedef double Scalar;
-	typedef base::Vector2d Vector;
-	typedef base::Matrix2d Matrix;
-    };
-
-    typedef GaussianMixture<double, 2, BaseAdapter> GMM;
-    // Force instanciation of some of the templated code. This is needed for
-    // gccxml (and therefore orogen)
-    //
-    // It is harmless outside these contexts
-    struct gccxml_workaround {
-	GMM::Parameter field;
-    };
-
     base::Time time;
     std::vector<PoseParticle> particles;
-    GMM gmm;
     base::Quaterniond orientation;
     asguard::BodyState bodyState;
 };
