@@ -3,6 +3,8 @@ set(FILTER_HDRS
     PoseEstimator.hpp
     PoseParticle.hpp
     EmbodiedSlamFilter.hpp
+    GaussianMixture.hpp
+    ExpectationMaximization.hpp
     Configuration.hpp
     )
 
