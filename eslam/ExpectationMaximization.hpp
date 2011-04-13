@@ -197,11 +197,12 @@ public:
 	Scalar ll_diff = 1e5;
 	Scalar last_ll = 0; 
 
-	while( iter <  max_iter && ll_diff > delta )
+	while( iter < max_iter && ll_diff > delta )
 	{
 	    Scalar ll = step();
 	    ll_diff = abs( ll - last_ll );
 	    last_ll = ll;
+	    iter++;
 	}
     }
 
@@ -217,6 +218,9 @@ public:
 
 	const size_t k = gmm.params.size();
 	const size_t n = samples.size();
+	if( k == 0 || n < k )
+	    return 0;
+
 	Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> gamma((int)n, (int)k);
 
 	// true if the samples are weighted
@@ -248,7 +252,7 @@ public:
 	    Scalar n_j = gamma.col(j).sum();
 	    typename GMM::Parameter &param( gmm.params[j] );
 	    param.weight = n_j / sum_weights;
-	    if( n_j < remove_threshold )
+	    if( n_j < remove_threshold || n_j != n_j )
 		remove.push_back( j );
 
 	    Vector mean = Vector::Zero();
