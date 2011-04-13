@@ -90,6 +90,16 @@ void ParticleVisualization::operatorIntern ( osg::Node* node, osg::NodeVisitor* 
        }
        */
 
+    // take the gaussian mixture model and display the uncertainty ellipses
+    eslam::PoseDistribution::GMM &gmm( dist.gmm );
+    for( size_t i=0; i<gmm.params.size(); i++ )
+    {
+	vizkit::Uncertainty *u = new vizkit::Uncertainty();
+	u->setMean( static_cast<Eigen::Vector2d>( gmm.params[i].dist.mean ) );
+	u->setCovariance( static_cast<Eigen::Matrix2d>( gmm.params[i].dist.cov ) );
+	offsetNode->asGroup()->addChild( u );
+    }
+
     std::vector<eslam::PoseParticle> &v(dist.particles);
 
     for(size_t i=0;i<v.size();i++)
