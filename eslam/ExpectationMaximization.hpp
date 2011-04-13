@@ -18,14 +18,14 @@
 namespace eslam
 {
 
-template <class _Scalar, int _Dimension>
+template <class GMM>
     class KMeans
 {
 public:
-    enum { Dimension = _Dimension };
-    typedef _Scalar Scalar;
-    typedef typename Eigen::Matrix<Scalar, Dimension, 1, Eigen::DontAlign> Vector;
-    typedef typename Eigen::Matrix<Scalar, Dimension, Dimension, Eigen::DontAlign> Matrix;
+    enum { Dimension = GMM::Dimension };
+    typedef typename GMM::Scalar Scalar;
+    typedef typename GMM::Adapter::Vector Vector;
+    typedef typename GMM::Adapter::Matrix Matrix;
 
 protected:
     struct Sample : public Vector
@@ -119,29 +119,28 @@ public:
 	    calcMeans();
     }
 
-    std::vector<Gaussian<Scalar, Dimension> > getClusters() 
+    std::vector<Gaussian<Scalar, Dimension, typename GMM::Adapter> > getClusters() 
     {
 	// sum up the individual samples
 	bool hasWeights = weights.size();
-	std::vector<typename Gaussian<Scalar, Dimension>::Stats > stats( means.size() );
+	std::vector<typename Gaussian<Scalar, Dimension, typename GMM::Adapter>::Stats > stats( means.size() );
 	for( size_t i=0; i<samples.size(); i++ )
 	    stats[index[i]].insert( samples[i], hasWeights ? weights[i] : 1.0 );
 
 	// and calc mean and covariance
-	std::vector<Gaussian<Scalar, Dimension> > res( means.size() );
+	std::vector<Gaussian<Scalar, Dimension, typename GMM::Adapter> > res( means.size() );
 	for( size_t j=0; j<means.size(); j++ )
 	    res[j] = stats[j].update();
 	return res;
     }
 };
 
-template <class _Scalar, int _Dimension>
+template <class GMM>
 class GaussianMixtureSampling
 {
 public:
-    enum { Dimension = _Dimension };
-    typedef _Scalar Scalar;
-    typedef GaussianMixture<_Scalar, _Dimension> GMM;
+    enum { Dimension = GMM::Dimension };
+    typedef typename GMM::Scalar Scalar; 
     typedef typename GMM::Matrix Matrix;
     typedef typename GMM::Vector Vector;
     GMM& gmm;
@@ -177,15 +176,14 @@ public:
     }
 };
 
-template <class _Scalar, int _Dimension>
+template <class GMM>
 class ExpectationMaximization
 {
 public:
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 
-    enum { Dimension = _Dimension };
-    typedef _Scalar Scalar;
-    typedef GaussianMixture<_Scalar, _Dimension> GMM;
+    enum { Dimension = GMM::Dimension };
+    typedef typename GMM::Scalar Scalar;
     typedef typename GMM::Matrix Matrix;
     typedef typename GMM::Vector Vector;
 
@@ -270,7 +268,6 @@ public:
 	std::sort( remove.begin(), remove.end() );
 	for( std::vector<size_t>::reverse_iterator it = remove.rbegin(); it != remove.rend(); it++ )
 	{
-	    std::cout << "removing gmm " << *it << std::endl;
 	    gmm.params.erase( gmm.params.begin() + *it );
 	}
 
@@ -290,11 +287,11 @@ public:
 	assert( !w.size() || w.size() == s.size() );
 
 	// perform a k-means clustering for finding the initial values
-	KMeans<Scalar, Dimension> km;
+	KMeans<GMM> km;
 	km.initialize( numClasses, s, w );
 	km.run();
 
-	std::vector<Gaussian<Scalar, Dimension> > 
+	std::vector<Gaussian<Scalar, Dimension, typename GMM::Adapter> > 
 	    cluster = km.getClusters();
 	
 	gmm.params.clear();

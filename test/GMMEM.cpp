@@ -22,8 +22,8 @@ class Particles : public QGraphicsItem
 {
 public:
     GMM &gmm;
-    GaussianMixtureSampling<GMM::Scalar, GMM::Dimension> sampling;
-    ExpectationMaximization<GMM::Scalar, GMM::Dimension> em;
+    GaussianMixtureSampling<GMM> sampling;
+    ExpectationMaximization<GMM> em;
     std::vector<GMM::Vector> particles;
     std::vector<GMM::Scalar> weights;
 
@@ -171,7 +171,7 @@ BOOST_AUTO_TEST_CASE( eval )
 	     -.0005, 0.0425;
     gmm.params.push_back( GMM::Parameter( 0.7, mu, sigma ) ); 
 
-    GaussianMixtureSampling<GMM::Scalar, GMM::Dimension> sampling(gmm);
+    GaussianMixtureSampling<GMM> sampling(gmm);
     for( int i=0; i<500; i++ )
     {
 	GMM::Vector s = sampling.sample();

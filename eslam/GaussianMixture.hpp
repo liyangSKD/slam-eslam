@@ -15,9 +15,10 @@ struct EigenAdapter
     typedef typename Eigen::Matrix<Scalar, Dimension, Dimension, Eigen::DontAlign> Matrix;
 };
 
-template <class _Scalar, int _Dimension, class Adapter = EigenAdapter<_Scalar, _Dimension> >
+template <class _Scalar, int _Dimension, class _Adapter = EigenAdapter<_Scalar, _Dimension> >
     struct Gaussian
 {
+    typedef _Adapter Adapter;
     enum { Dimension = Adapter::Dimension };
     typedef typename Adapter::Scalar Scalar;
     typedef typename Adapter::Vector Vector;
@@ -40,11 +41,11 @@ template <class _Scalar, int _Dimension, class Adapter = EigenAdapter<_Scalar, _
 	    sum += weight;
 	}
 
-	Gaussian<_Scalar, _Dimension> update()
+	Gaussian<_Scalar, _Dimension, Adapter> update()
 	{
 	    Vector mean = Sx / sum;
 	    Matrix cov = Sxx / sum - mean*mean.transpose(); 
-	    return Gaussian<_Scalar, _Dimension>( mean, cov );
+	    return Gaussian<_Scalar, _Dimension, Adapter>( mean, cov );
 	}
     };
 
@@ -65,11 +66,12 @@ template <class _Scalar, int _Dimension, class Adapter = EigenAdapter<_Scalar, _
     }
 };
 
-template <class _Scalar, int _Dimension, class Adapter = EigenAdapter<_Scalar, _Dimension> >
+template <class _Scalar, int _Dimension, class _Adapter = EigenAdapter<_Scalar, _Dimension> >
     class GaussianMixture
 {
     
 public:
+    typedef _Adapter Adapter;
     enum { Dimension = Adapter::Dimension };
     typedef typename Adapter::Scalar Scalar;
     typedef typename Adapter::Vector Vector;
@@ -85,7 +87,7 @@ public:
 	Parameter() {}
 	Parameter( Scalar weight, const Vector& mean, const Matrix& cov )
 	    : dist( mean, cov ), weight( weight ) {}
-	Parameter( Scalar weight, const Gaussian<Scalar, Dimension>& g )
+	Parameter( Scalar weight, const Gaussian<Scalar, Dimension, Adapter>& g )
 	    : dist( g ), weight( weight ) {}
 
 	Gaussian< _Scalar, _Dimension, Adapter> dist;
