@@ -103,7 +103,7 @@ double weightingFunction( double x, double alpha = 0.1, double beta = 0.9, doubl
 
 void PoseEstimator::project(const asguard::BodyState& state, const Eigen::Quaterniond& orientation)
 {
-    Eigen::Transform3d dtrans = orientation * odometry.getPoseDelta().toTransform();
+    Eigen::Affine3d dtrans = orientation * odometry.getPoseDelta().toTransform();
     const double z_delta = dtrans.translation().z();
     
     //const double z_var = 1e-3;
@@ -199,7 +199,7 @@ void PoseEstimator::updateWeights(const asguard::BodyState& state, const Eigen::
     {
 	Particle &pose(xi_k[i]);
 	Eigen::Vector3d pos( pose.position.x(), pose.position.y(), pose.zPos );
-	Eigen::Transform3d t = 
+	Eigen::Affine3d t = 
 	    Eigen::Translation3d( pos ) 
 	    * Eigen::AngleAxisd( pose.orientation, Eigen::Vector3d::UnitZ() );
 

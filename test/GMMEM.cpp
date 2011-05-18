@@ -10,6 +10,7 @@
 
 #include <Eigen/QR>
 #include <Eigen/Geometry>
+#include <Eigen/Eigenvalues>
 
 using namespace std;
 using namespace eslam;
@@ -74,7 +75,7 @@ public:
 	    {
 		GMM::Parameter &param( em.gmm.params[j] );
 
-		Eigen::SelfAdjointEigenSolver<GMM::Matrix> e( param.dist.cov, true );
+		Eigen::SelfAdjointEigenSolver<GMM::Matrix> e( param.dist.cov );
 		for( int n=0; n<2; n++ )
 		{
 		    painter->save();

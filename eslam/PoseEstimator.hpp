@@ -26,7 +26,7 @@ namespace eslam
 class GridAccess
 {
     // caching the transform for faster access
-    Eigen::Transform3d C_global2local;
+    Eigen::Affine3d C_global2local;
     typedef boost::shared_ptr<envire::MLSMap> MapPtr;
     MapPtr map;
 

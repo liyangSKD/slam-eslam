@@ -57,7 +57,7 @@ public:
     envire::MLSMap* createMapTemplate( envire::Environment* env, const base::Pose& origin = base::Pose() );
     envire::MultiLevelSurfaceGrid* createGridTemplate( envire::Environment* env );
     void init( envire::Environment* env, const base::Pose& pose, bool useSharedMap = true );
-    void updateMap( const Eigen::Transform3d& pose, const base::samples::LaserScan& scan, envire::MultiLevelSurfaceGrid* mlsGrid );
+    void updateMap( const Eigen::Affine3d& pose, const base::samples::LaserScan& scan, envire::MultiLevelSurfaceGrid* mlsGrid );
     bool update( const asguard::BodyState& bs, const Eigen::Quaterniond& orientation, const base::samples::LaserScan& scan );
     bool update( const asguard::BodyState& bs, const Eigen::Quaterniond& orientation );
 

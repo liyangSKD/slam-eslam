@@ -28,7 +28,7 @@ MultiLevelSurfaceGrid* EmbodiedSlamFilter::createGridTemplate( envire::Environme
     const double resolution = 0.05;
     envire::MultiLevelSurfaceGrid* gridTemplate = 
 	    new envire::MultiLevelSurfaceGrid( size/resolution, size/resolution, resolution, resolution );
-    envire::FrameNode *gridNode = new envire::FrameNode( Eigen::Transform3d( Eigen::Translation3d( -size/2.0, -size/2.0, 0 ) ) ); 
+    envire::FrameNode *gridNode = new envire::FrameNode( Eigen::Affine3d( Eigen::Translation3d( -size/2.0, -size/2.0, 0 ) ) ); 
     env->addChild( env->getRootNode(), gridNode );
     env->setFrameNode( gridTemplate, gridNode );
 
@@ -147,7 +147,7 @@ bool EmbodiedSlamFilter::update( const asguard::BodyState& bs, const Eigen::Quat
 {
     bool result = update( bs, orientation );
 
-    Eigen::Transform3d pdelta( mapPose.toTransform().inverse() * odPose.toTransform() );
+    Eigen::Affine3d pdelta( mapPose.toTransform().inverse() * odPose.toTransform() );
     const double max_angle = eslamConfig.mappingThreshold.angle;
     const double max_dist = eslamConfig.mappingThreshold.distance;
     if( Eigen::AngleAxisd( pdelta.linear() ).angle() > max_angle || pdelta.translation().norm() > max_dist )
@@ -172,7 +172,7 @@ bool EmbodiedSlamFilter::update( const asguard::BodyState& bs, const Eigen::Quat
 	    const double scanAngleSigma = 5.0/180.0*M_PI;
 	    Eigen::Matrix<double,6,1> lcov;
 	    lcov << scanAngleSigma,0,0, 0,0,0;
-	    envire::TransformWithUncertainty laser2Body( trans.laser2Body, lcov.cwise().square().asDiagonal());
+	    envire::TransformWithUncertainty laser2Body( trans.laser2Body, lcov.array().square().matrix().asDiagonal());
 	    
 	    // the covariance for the body to world transform comes from
 	    // a 1 deg error for pitch and roll
@@ -182,7 +182,7 @@ bool EmbodiedSlamFilter::update( const asguard::BodyState& bs, const Eigen::Quat
 	    Eigen::Matrix<double,6,1> pcov;
 	    pcov << pitchRollSigma,pitchRollSigma,0, 0,0,0;
 	    envire::TransformWithUncertainty body2World( 
-		    Eigen::Transform3d( base::removeYaw(orientation) ), pcov.cwise().square().asDiagonal());
+		    Eigen::Affine3d( base::removeYaw(orientation) ), pcov.array().square().matrix().asDiagonal());
 
 	    scannerFrame->setTransform( body2World * laser2Body );
 	    scanMap->clear();
@@ -226,7 +226,7 @@ bool EmbodiedSlamFilter::update( const asguard::BodyState& bs, const Eigen::Quat
 		    pgrid = pmap->getActiveGrid().get();
 		}
 
-		Eigen::Transform3d C_s2p = scanMap->getEnvironment()->relativeTransform( scanMap->getFrameNode(), pgrid->getFrameNode() );
+		Eigen::Affine3d C_s2p = scanMap->getEnvironment()->relativeTransform( scanMap->getFrameNode(), pgrid->getFrameNode() );
 
 		typedef envire::MultiLevelSurfaceGrid::Position position;
 		typedef envire::MultiLevelSurfaceGrid::SurfacePatch patch;
@@ -310,7 +310,7 @@ bool EmbodiedSlamFilter::update( const asguard::BodyState& bs, const Eigen::Quat
     odometry.update( bs, orientation );
     filter.project( bs, orientation );
 
-    Eigen::Transform3d pdelta( udPose.toTransform().inverse() * odPose.toTransform() );
+    Eigen::Affine3d pdelta( udPose.toTransform().inverse() * odPose.toTransform() );
     const double max_angle = eslamConfig.measurementThreshold.angle;
     const double max_dist = eslamConfig.measurementThreshold.distance;
     if( Eigen::AngleAxisd( pdelta.linear() ).angle() > max_angle || pdelta.translation().norm() > max_dist )

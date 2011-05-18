@@ -23,9 +23,6 @@ pkg_check_modules(VIZKIT "vizkit")
 include_directories(${VIZKIT_INCLUDE_DIRS})
 link_directories(${VIZKIT_LIBRARY_DIRS})
 
-find_package(Eigen2 REQUIRED)
-include_directories(${EIGEN2_INCLUDE_DIR})
-
 find_package(Boost REQUIRED)
 include_directories(${Boost_INCLUDE_DIRS})
 link_directories(${Boost_LIBRARY_DIRS})

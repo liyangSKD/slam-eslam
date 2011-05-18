@@ -40,10 +40,10 @@ struct PoseParticle
     PoseParticle( const Eigen::Vector2d& position, double orientation, double zpos = 0, double zsigma = 0, bool floating = true )
 	: position(position), orientation(orientation), zPos(zpos), zSigma(zsigma), floating(floating), weight(0) {};
 
-    Eigen::Transform3d getPose( const Eigen::Quaterniond& _orientation )
+    Eigen::Affine3d getPose( const Eigen::Quaterniond& _orientation )
     {
 	Eigen::Vector3d pos( position.x(), position.y(), zPos );
-	Eigen::Transform3d t = 
+	Eigen::Affine3d t = 
 	    Eigen::Translation3d( pos ) 
 	    * Eigen::AngleAxisd( orientation, Eigen::Vector3d::UnitZ() )
 	    * base::removeYaw( _orientation );
