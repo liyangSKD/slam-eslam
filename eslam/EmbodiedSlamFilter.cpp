@@ -1,6 +1,6 @@
 #include "EmbodiedSlamFilter.hpp"
 
-#include <envire/maps/MultiLevelSurfaceGrid.hpp>
+#include <envire/maps/MLSGrid.hpp>
 #include <envire/operators/MLSProjection.hpp>
 #include <envire/operators/ScanMeshing.hpp>
 
@@ -15,7 +15,6 @@ EmbodiedSlamFilter::EmbodiedSlamFilter(
 	const eslam::Configuration& eslamConfig )
 :   eslamConfig( eslamConfig ),
     asguardConfig( asguardConfig ),
-    trans( asguardConfig ),
     odometryConfig( odometryConfig ),
     odometry( odometryConfig, asguardConfig ), 
     filter( odometry, eslamConfig, asguardConfig ), 
@@ -85,8 +84,7 @@ void EmbodiedSlamFilter::init( envire::Environment* env, const base::Pose& pose,
 	    //1e-3
 	    );
 
-    odPose = pose;
-    udPose = mapPose = base::Pose( Eigen::Vector3d(1000,0,0), Eigen::Quaterniond::Identity() ); 
+    udPose = mapPose = Eigen::Translation3d(1000,0,0) * Eigen::Affine3d::Identity();
 
     if( useSharedMap )
     {
@@ -142,16 +140,11 @@ void EmbodiedSlamFilter::init( envire::Environment* env, const base::Pose& pose,
     mlsOp->useUncertainty( true );
 }
 
-
-bool EmbodiedSlamFilter::update( const asguard::BodyState& bs, const Eigen::Quaterniond& orientation, const base::samples::LaserScan& scan )
+bool EmbodiedSlamFilter::update( const Eigen::Affine3d& body2odometry, const base::samples::LaserScan& scan, const Eigen::Affine3d& laser2body )
 {
-    bool result = update( bs, orientation );
-
-    Eigen::Affine3d pdelta( mapPose.toTransform().inverse() * odPose.toTransform() );
-    const double max_angle = eslamConfig.mappingThreshold.angle;
-    const double max_dist = eslamConfig.mappingThreshold.distance;
-    if( Eigen::AngleAxisd( pdelta.linear() ).angle() > max_angle || pdelta.translation().norm() > max_dist )
+    if( eslamConfig.mappingThreshold.test( mapPose.inverse() * body2odometry ) )
     {
+	Eigen::Quaterniond orientation( body2odometry.linear() );
 	static size_t update_idx = 0;
 
 	// convert scan object to pointcloud
@@ -161,7 +154,7 @@ bool EmbodiedSlamFilter::update( const asguard::BodyState& bs, const Eigen::Quat
 
 	if( sharedMap )
 	{
-	    scanFrame->setTransform( getCentroid().toTransform() * trans.laser2Body );
+	    scanFrame->setTransform( getCentroid() * laser2body );
 	    mlsOp->removeOutputs();
 	    mlsOp->addOutput( sharedMap->getActiveGrid().get() );
 	    mlsOp->updateAll();
@@ -172,7 +165,7 @@ bool EmbodiedSlamFilter::update( const asguard::BodyState& bs, const Eigen::Quat
 	    const double scanAngleSigma = 5.0/180.0*M_PI;
 	    Eigen::Matrix<double,6,1> lcov;
 	    lcov << scanAngleSigma,0,0, 0,0,0;
-	    envire::TransformWithUncertainty laser2Body( trans.laser2Body, lcov.array().square().matrix().asDiagonal());
+	    envire::TransformWithUncertainty laser2bodyU( laser2body, lcov.array().square().matrix().asDiagonal());
 	    
 	    // the covariance for the body to world transform comes from
 	    // a 1 deg error for pitch and roll
@@ -184,7 +177,7 @@ bool EmbodiedSlamFilter::update( const asguard::BodyState& bs, const Eigen::Quat
 	    envire::TransformWithUncertainty body2World( 
 		    Eigen::Affine3d( base::removeYaw(orientation) ), pcov.array().square().matrix().asDiagonal());
 
-	    scannerFrame->setTransform( body2World * laser2Body );
+	    scannerFrame->setTransform( body2World * laser2bodyU );
 	    scanMap->clear();
 	    mlsOp->updateAll();
 
@@ -298,25 +291,24 @@ bool EmbodiedSlamFilter::update( const asguard::BodyState& bs, const Eigen::Quat
 	}
 
 	update_idx++;
-	mapPose = odPose;
+	mapPose = body2odometry;
+
+	return true;
     }
-    return result;
+    return false;
 }
 
-bool EmbodiedSlamFilter::update( const asguard::BodyState& bs, const Eigen::Quaterniond& orientation )
+bool EmbodiedSlamFilter::update( const Eigen::Affine3d& body2odometry, const asguard::BodyState& bs )
 {
-    odPose = base::Pose( odPose.toTransform() * odometry.getPoseDelta().toTransform() );
+    Eigen::Quaterniond orientation( body2odometry.linear() );
 
     odometry.update( bs, orientation );
     filter.project( bs, orientation );
 
-    Eigen::Affine3d pdelta( udPose.toTransform().inverse() * odPose.toTransform() );
-    const double max_angle = eslamConfig.measurementThreshold.angle;
-    const double max_dist = eslamConfig.measurementThreshold.distance;
-    if( Eigen::AngleAxisd( pdelta.linear() ).angle() > max_angle || pdelta.translation().norm() > max_dist )
+    if( eslamConfig.measurementThreshold.test( udPose.inverse() * body2odometry ) )
     {
 	filter.update( bs, orientation );
-	udPose = odPose;
+	udPose = body2odometry;
 
 	return true;
     }
@@ -329,13 +321,8 @@ std::vector<eslam::PoseEstimator::Particle>& EmbodiedSlamFilter::getParticles()
     return filter.getParticles();
 }
 
-base::Pose EmbodiedSlamFilter::getCentroid()
+base::Affine3d EmbodiedSlamFilter::getCentroid()
 {
-    return filter.getCentroid();
-}
-
-base::Pose EmbodiedSlamFilter::getOdometryPose()
-{
-    return odPose;
+    return filter.getCentroid().toTransform();
 }
 

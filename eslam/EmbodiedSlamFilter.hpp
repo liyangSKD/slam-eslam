@@ -5,10 +5,9 @@
 #include "Configuration.hpp"
 
 #include <asguard/Odometry.hpp>
-#include <asguard/Transformation.hpp>
 
 #include <envire/Core.hpp>
-#include <envire/maps/MultiLevelSurfaceGrid.hpp>
+#include <envire/maps/MLSGrid.hpp>
 #include <envire/operators/MLSProjection.hpp>
 #include <envire/operators/ScanMeshing.hpp>
 
@@ -21,21 +20,13 @@ class EmbodiedSlamFilter
 {
     eslam::Configuration eslamConfig;
     asguard::Configuration asguardConfig;
-    // TODO: replace this with the proper frame stack
-    asguard::Transformation trans;
     asguard::odometry::Configuration odometryConfig;
 
     asguard::odometry::Wheel odometry;
     eslam::PoseEstimator filter;
 
-    /** current odometry pose */
-    base::Pose odPose;
-
-    /** pose of last update step */
-    base::Pose udPose;
-
-    /** pose of last mapping step */
-    base::Pose mapPose;
+    /** pose of last update an mapping step */
+    base::Affine3d udPose, mapPose;
 
     envire::MLSMap* sharedMap;
 
@@ -58,12 +49,12 @@ public:
     envire::MultiLevelSurfaceGrid* createGridTemplate( envire::Environment* env );
     void init( envire::Environment* env, const base::Pose& pose, bool useSharedMap = true );
     void updateMap( const Eigen::Affine3d& pose, const base::samples::LaserScan& scan, envire::MultiLevelSurfaceGrid* mlsGrid );
-    bool update( const asguard::BodyState& bs, const Eigen::Quaterniond& orientation, const base::samples::LaserScan& scan );
-    bool update( const asguard::BodyState& bs, const Eigen::Quaterniond& orientation );
+
+    bool update( const Eigen::Affine3d& body2odometry, const base::samples::LaserScan& scan, const Eigen::Affine3d& laser2body );
+    bool update( const Eigen::Affine3d& body2odometry, const asguard::BodyState& bs );
 
     std::vector<eslam::PoseEstimator::Particle>& getParticles();
-    base::Pose getCentroid();
-    base::Pose getOdometryPose();
+    base::Affine3d getCentroid();
 };
 
 }

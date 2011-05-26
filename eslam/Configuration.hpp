@@ -2,6 +2,8 @@
 #define __ESLAM_CONFIGURATION_HPP__
 
 #include <cmath>
+#include <Eigen/Core>
+#include <Eigen/Geometry>
 
 namespace eslam 
 {
@@ -11,6 +13,16 @@ struct UpdateThreshold
     UpdateThreshold() {};
     UpdateThreshold( double distance, double angle )
 	: distance( distance ), angle( angle ) {};
+
+    bool test( double distance, double angle )
+    {
+	return distance > this->distance || angle > this->angle;
+    }
+
+    bool test( const Eigen::Affine3d& pdelta )
+    {
+	return test( Eigen::AngleAxisd( pdelta.linear() ).angle(), pdelta.translation().norm() );
+    }
 
     double distance;
     double angle;
