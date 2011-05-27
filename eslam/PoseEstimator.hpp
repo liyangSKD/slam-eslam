@@ -18,6 +18,8 @@
 #include <envire/Core.hpp>
 #include <envire/maps/MLSMap.hpp>
 
+#include <eslam/ContactModel.hpp>
+
 #include <limits>
 
 namespace eslam
@@ -26,7 +28,7 @@ namespace eslam
 class GridAccess
 {
     // caching the transform for faster access
-    Eigen::Affine3d C_global2local;
+    base::Affine3d C_global2local;
     typedef boost::shared_ptr<envire::MLSMap> MapPtr;
     MapPtr map;
 
@@ -87,16 +89,16 @@ public:
 	setMap( MapPtr(new_map.get(), &GridAccess::detachItem) );
     }
 
-    bool get(const Eigen::Vector3d& position, double& zpos, double& zstdev)
+    bool get(const base::Vector3d& position, double& zpos, double& zvar)
     {
 	if( map )
 	{
 	    typedef envire::MultiLevelSurfaceGrid::SurfacePatch Patch;
-	    Patch p( position.z(), zstdev );
+	    Patch p( position.z(), sqrt(zvar) );
 	    if( map->getPatch( C_global2local * position, p, 3.0 ) )
 	    {
 		zpos = p.mean;
-		zstdev = p.stdev;
+		zvar = pow(p.stdev,2);
 		return true;
 	    }
 	}
@@ -107,7 +109,7 @@ public:
 class PoseParticleGA : public PoseParticle
 {
 public:
-    PoseParticleGA( const Eigen::Vector2d& position, double orientation, double zpos = 0, double zsigma = 0, bool floating = true )
+    PoseParticleGA( const base::Vector2d& position, double orientation, double zpos = 0, double zsigma = 0, bool floating = true )
 	: PoseParticle( position, orientation, zpos, zsigma, floating ) {} 
 
     GridAccess grid;
@@ -121,8 +123,8 @@ public:
     ~PoseEstimator();
 
     void init(int numParticles, const base::Pose2D& mu, const base::Pose2D& sigma, double zpos = 0, double zsigma = 0);
-    void project(const asguard::BodyState& state, const Eigen::Quaterniond& orientation);
-    void update(const asguard::BodyState& state, const Eigen::Quaterniond& orientation);
+    void project(const asguard::BodyState& state, const base::Quaterniond& orientation);
+    void update(const asguard::BodyState& state, const base::Quaterniond& orientation);
 
     void setEnvironment(envire::Environment *env, envire::MLSMap::Ptr map, bool useShared );
     void cloneMaps();
@@ -130,20 +132,20 @@ public:
     base::Pose getCentroid();
 
 private:
-    void updateWeights(const asguard::BodyState& state, const Eigen::Quaterniond& orientation);
+    void updateWeights(const asguard::BodyState& state, const base::Quaterniond& orientation);
 
     boost::variate_generator<boost::minstd_rand&, boost::normal_distribution<> > rand_norm;
     boost::variate_generator<boost::minstd_rand&, boost::uniform_real<> > rand_uni;
     base::Pose2D samplePose2D( const base::Pose2D& mu, const base::Pose2D& sigma );
 
     eslam::Configuration config;
-    asguard::Configuration asguardConfig;
+    ContactModel contactModel;
     asguard::odometry::Wheel &odometry;
     
     envire::Environment *env;
     bool useShared;
 
-    Eigen::Quaterniond zCompensatedOrientation;
+    base::Quaterniond zCompensatedOrientation;
     double max_weight;
 };
 

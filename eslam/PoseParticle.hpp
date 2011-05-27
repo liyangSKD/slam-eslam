@@ -23,7 +23,7 @@ struct ContactPoint
 	point( Eigen::Vector3d(0,0,0)), 
 	zdiff(std::numeric_limits<double>::infinity()) {}
 
-    ContactPoint(const Eigen::Vector3d& point, double zdiff, double zvar) :
+    ContactPoint(const base::Vector3d& point, double zdiff, double zvar) :
 	point(point),
 	zdiff(zdiff),
 	zvar(zvar) 
@@ -37,13 +37,13 @@ struct ContactPoint
 struct PoseParticle
 {
     PoseParticle() {};
-    PoseParticle( const Eigen::Vector2d& position, double orientation, double zpos = 0, double zsigma = 0, bool floating = true )
+    PoseParticle( const base::Vector2d& position, double orientation, double zpos = 0, double zsigma = 0, bool floating = true )
 	: position(position), orientation(orientation), zPos(zpos), zSigma(zsigma), floating(floating), weight(0) {};
 
-    Eigen::Affine3d getPose( const Eigen::Quaterniond& _orientation )
+    base::Affine3d getPose( const base::Quaterniond& _orientation )
     {
-	Eigen::Vector3d pos( position.x(), position.y(), zPos );
-	Eigen::Affine3d t = 
+	base::Vector3d pos( position.x(), position.y(), zPos );
+	base::Affine3d t = 
 	    Eigen::Translation3d( pos ) 
 	    * Eigen::AngleAxisd( orientation, Eigen::Vector3d::UnitZ() )
 	    * base::removeYaw( _orientation );

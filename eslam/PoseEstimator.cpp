@@ -6,6 +6,7 @@
 #include <set>
 
 #include <omp.h>
+#include <boost/bind.hpp>
 
 using namespace eslam;
 
@@ -14,7 +15,7 @@ PoseEstimator::PoseEstimator(asguard::odometry::Wheel& odometry, const eslam::Co
     rand_norm(rand_gen, boost::normal_distribution<>(0,1.0) ),
     rand_uni(rand_gen, boost::uniform_real<>(0,1.0) ),
     config(config), 
-    asguardConfig(asguardConfig),  
+    contactModel(asguardConfig),  
     odometry(odometry), 
     env(NULL), 
     max_weight(0)
@@ -63,7 +64,7 @@ base::Pose2D PoseEstimator::samplePose2D( const base::Pose2D& mu, const base::Po
     double x = rand_norm(), y = rand_norm(), theta = rand_norm();
 
     return base::Pose2D( 
-	    Eigen::Vector2d( 
+	    base::Vector2d( 
 		x * sigma.position.x() + mu.position.x(),
 		y * sigma.position.y() + mu.position.y() ),
 	    theta * sigma.orientation + mu.orientation );
@@ -101,7 +102,7 @@ double weightingFunction( double x, double alpha = 0.1, double beta = 0.9, doubl
     return 0.0;
 }
 
-void PoseEstimator::project(const asguard::BodyState& state, const Eigen::Quaterniond& orientation)
+void PoseEstimator::project(const asguard::BodyState& state, const base::Quaterniond& orientation)
 {
     Eigen::Affine3d dtrans = orientation * odometry.getPoseDelta().toTransform();
     const double z_delta = dtrans.translation().z();
@@ -132,7 +133,7 @@ void PoseEstimator::project(const asguard::BodyState& state, const Eigen::Quater
 	    const double rot_fac = config.spreadRotationFactor * spread;
 	    base::Pose2D sample = samplePose2D( 
 		    base::Pose2D(), 
-		    base::Pose2D( Eigen::Vector2d( trans_fac, trans_fac ), rot_fac ) );
+		    base::Pose2D( base::Vector2d( trans_fac, trans_fac ), rot_fac ) );
 
 	    p.position += sample.position;
 	    p.orientation += sample.orientation;
@@ -140,7 +141,7 @@ void PoseEstimator::project(const asguard::BodyState& state, const Eigen::Quater
     }
 }
 
-void PoseEstimator::update(const asguard::BodyState& state, const Eigen::Quaterniond& orientation)
+void PoseEstimator::update(const asguard::BodyState& state, const base::Quaterniond& orientation)
 {
     updateWeights(state, orientation);
     double eff = normalizeWeights();
@@ -152,36 +153,12 @@ void PoseEstimator::update(const asguard::BodyState& state, const Eigen::Quatern
     }
 }
 
-template <class T, int N> 
-    bool compareElement(const T& a, const T& b)
-{
-    return a[N] < b[N];
-}
-
-void PoseEstimator::updateWeights(const asguard::BodyState& state, const Eigen::Quaterniond& orientation)
+void PoseEstimator::updateWeights(const asguard::BodyState& state, const base::Quaterniond& orientation)
 {
     if( !env )
 	throw std::runtime_error("No environment attached.");
 
-    
-    // calculate foot positions and rotate them using pitch/roll
-    typedef std::vector<Eigen::Vector3d> vec3array;
-    std::vector<vec3array> cpoints(4);
-
-    // get the orientation first and remove any rotation around the z axis
-    zCompensatedOrientation = base::removeYaw( orientation );
-
-    for(int i=0;i<4;i++)
-    {
-	for(int j=0;j<5;j++) 
-	{
-	    Eigen::Vector3d f = asguardConfig.getFootPosition( state, static_cast<asguard::wheelIdx>(i), j );
-	    cpoints[i].push_back( zCompensatedOrientation * f );	
-	}
-	// remove the two wheels with the highest z value
-	std::sort( cpoints[i].begin(), cpoints[i].end(), compareElement<Eigen::Vector3d,2> );
-	cpoints[i].resize( 3 );
-    }
+    contactModel.generateCandidatePoints( state, orientation );
 
     size_t total_points = 0;
     size_t data_particles = 0;
@@ -198,106 +175,37 @@ void PoseEstimator::updateWeights(const asguard::BodyState& state, const Eigen::
     for(size_t i=0;i<xi_k.size();i++)
     {
 	Particle &pose(xi_k[i]);
-	Eigen::Vector3d pos( pose.position.x(), pose.position.y(), pose.zPos );
-	Eigen::Affine3d t = 
+	base::Vector3d pos( pose.position.x(), pose.position.y(), pose.zPos );
+	base::Affine3d t = 
 	    Eigen::Translation3d( pos ) 
 	    * Eigen::AngleAxisd( pose.orientation, Eigen::Vector3d::UnitZ() );
 
-	pose.cpoints.clear();
 	// store some debug information in the particle
 	pose.meas_pos = pos; 
 	pose.meas_theta = pose.orientation;
-	size_t found_points = 0;
 
-	for(int wi=0;wi<4;wi++)
+	if( contactModel.evaluatePose( 
+		t, 
+		pow(pose.zSigma,2), 
+		pow(config.measurementError,2), 
+		boost::bind( &GridAccess::get, pose.grid, _1, _2, _3 ) ) )
 	{
-	    // find the contact points with the lowest zdiff per wheel
-	    ContactPoint p;
-	    bool contact = true;
-	    for(std::vector<Eigen::Vector3d>::iterator it=cpoints[wi].begin();it!=cpoints[wi].end();it++)
-	    {
-		const Eigen::Vector3d &cpoint(*it);
-
-		Eigen::Vector3d gp = t*cpoint;
-		const double cp_stdev = config.measurementError;
-		double zpos, zstdev = sqrt(pose.zSigma*pose.zSigma + cp_stdev*cp_stdev);
-		if( !pose.grid.get( gp, zpos, zstdev ) )
-		{
-		    contact = false;
-		    break;
-		}
-
-		const double zdiff = gp.z() - zpos;
-
-		if( zdiff < p.zdiff )
-		{
-		    const double zvar = pose.zSigma * pose.zSigma + zstdev * zstdev + cp_stdev * cp_stdev;
-		    p = ContactPoint( gp-Eigen::Vector3d::UnitZ()*zdiff, zdiff, zvar );
-		}
-	    }
-
-	    if( contact )
-	    {
-		found_points++;
-		pose.cpoints.push_back( p );
-	    }
-	}
-
-	if( found_points > 0 ) 
-	{
-	    // calculate the z-delta with the highest combined probability
-	    // of the individual contact points
-	    double d1=0, d2=0; 
-	    for(std::vector<ContactPoint>::iterator it=pose.cpoints.begin();it!=pose.cpoints.end();it++)
-	    {
-		ContactPoint &p(*it);
-		d1 += p.zdiff/p.zvar;
-		d2 += 1.0/p.zvar;
-		//std::cout << "p.zdiff: " << p.zdiff << " p.zvar: " << p.zvar << " stdev: " << sqrt(p.zvar) << std::endl;
-	    }
-	    const double delta = d1 / d2;
-
-	    // calculate the joint probability of the individual foot contact points using the
-	    // most likely z-height from the previous calculation of delta
-	    double pz = 1.0;
-	    for(std::vector<ContactPoint>::iterator it=pose.cpoints.begin();it!=pose.cpoints.end();it++)
-	    {
-		ContactPoint &p(*it);
-		const double odiff = (p.zdiff - delta)/sqrt(p.zvar);
-
-		const double zk = exp(-(odiff*odiff)/(2.0));
-		pz *= zk;
-	    }
-	    const double cp_stdev = config.measurementError;
-	    const double zd = delta/sqrt(pose.zSigma*pose.zSigma + cp_stdev*cp_stdev);
-	    pz *= exp( -(zd*zd)/2.0 );
-	    //pz = 1.0;
-
-	    if(false)
-	    {
-		std::cout 
-		    << "points: " << found_points
-		    << "\tzPos:" << pose.zPos
-		    << "\tzSigma:" << pose.zSigma
-		    << "\tdelta:" << delta 
-		    << "\td1: " << d1
-		    << "\td2: " << d2
-		    << "\tpz: " << pz 
-		    << std::endl;
-	    }	
-	    pose.zPos += -delta;
-	    pose.zSigma = 1.0/sqrt(d2);
+	    pose.zPos += contactModel.getZDelta();
+	    pose.zSigma = sqrt(contactModel.getZVar());
 
 	    // use some measurement of the variance as the weight 
-	    xi_k[i].weight *= pz;
-	    xi_k[i].mprob = pz;
+	    const double weight = contactModel.getWeight();
+	    xi_k[i].weight *= weight;
+	    xi_k[i].mprob = weight;
 	    xi_k[i].floating = false;
 
 	    // store the current maximum weight
-	    max_weight = std::max( max_weight, pz );
+	    max_weight = std::max( max_weight, weight );
 	    
 	    data_particles ++;
-	    sum_data_weights += pow(pz,1/found_points);
+	    const size_t found_points = contactModel.getContactPoints().size();
+	    sum_data_weights += pow( weight, 1.0/found_points );
+	    total_points += found_points;
 	}
 	else
 	{
@@ -307,7 +215,8 @@ void PoseEstimator::updateWeights(const asguard::BodyState& state, const Eigen::
 	    xi_k[i].mprob = 1.0;
 	    //xi_k[i].w *= 0.99;
 	}
-	total_points += found_points;
+
+	pose.cpoints.swap( contactModel.getContactPoints() );
     }
 
     const double floating_weight = data_particles>0 ? sum_data_weights/data_particles : 1.0;
@@ -350,7 +259,7 @@ base::Pose PoseEstimator::getCentroid()
 
     // and convert into a 3d position
     base::Pose result( 
-	    Eigen::Vector3d( mean.position.x(), mean.position.y(), zMean ), 
+	    base::Vector3d( mean.position.x(), mean.position.y(), zMean ), 
 	    Eigen::AngleAxisd( mean.orientation, Eigen::Vector3d::UnitZ() ) * zCompensatedOrientation );
 
     return result;

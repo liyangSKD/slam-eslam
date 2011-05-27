@@ -2,6 +2,7 @@ set(FILTER_HDRS
     ParticleFilter.hpp
     PoseEstimator.hpp
     PoseParticle.hpp
+    ContactModel.hpp
     EmbodiedSlamFilter.hpp
     GaussianMixture.hpp
     ExpectationMaximization.hpp
