@@ -14,6 +14,24 @@ template <class T, int N>
     return a[N] < b[N];
 }
 
+/** 
+ * Contactmodel class that relates the kinematic configuration of a robot with
+ * an environment model. As it is, the class implements the asguard model, but
+ * could be generalized for other models as well.
+ *
+ * The class works in two steps.
+ *
+ * 1. canditate contact points are generated based on an orientation reading
+ * from an IMU. This includes all possible contact points and uses a heuristic
+ * to remove completely unlikely points.
+ *
+ * 2. evaluatePose is used to see how a given robot pose aligns with the given
+ * environment model (e.g. map). This will also calculate the delta for the up
+ * axis between the system and environment model.
+ *
+ * All calculations are done probabilistically. If you don't use a probabilistic
+ * model, it should be possible to just supply fixed values.
+ */
 class ContactModel
 {
     typedef std::vector<base::Vector3d> vec3array;
@@ -30,12 +48,19 @@ class ContactModel
 public:
     static const int GROUP_SIZE = 4;
 
+    /** Constructor that takes a @param asguardConfig configuration model as the
+     * basis.
+     */
     ContactModel( const asguard::Configuration& asguardConfig ) 
 	: candidate_group( GROUP_SIZE ),
 	  asguardConfig( asguardConfig )
     {
     }
 
+    /** given a @param state configuration state of the system and an @param
+     * orientation, candidate contact points are calculated in the yaw
+     * compensated body frame. 
+     */
     void generateCandidatePoints( const asguard::BodyState& state, const base::Quaterniond& orientation )
     {
 	// get the orientation first and remove any rotation around the z axis
@@ -55,6 +80,26 @@ public:
 	}
     }
 
+    /** needs to have a prior call generateCandidatePoints. Those candidate
+     * points will be evaluated for the given pose and variances on the map
+     * callback.
+     *
+     * The signature of the map callback needs to be
+     *
+     * bool map( base::Vector3d const& p, double& zpos, double& zvar ),
+     *
+     * where p is the 3d map point to be evaluated, zpos and zvar are the return
+     * values from the map, with zpos the actual z position of the map at that
+     * point and zvar it's variance. map needs to return true if a map cell was
+     * found and false otherwise.
+     *
+     * @param pose - yaw compensated body to world pose of the robot
+     * @param zVarPose - variance of the pose along the up (z) axis
+     * @param measVar - measurement variance of the contact model alogn z-axis 
+     * @param map - map callback
+     *
+     * @result true if any contact points have been found.
+     */
     bool evaluatePose( const base::Affine3d& pose, double zVarPose, double measVar, boost::function<bool (base::Vector3d const&, double&, double&)> map )
     {
 	contact_points.clear();
@@ -138,19 +183,6 @@ public:
 		    << "\tpz: " << pz 
 		    << std::endl;
 	    }	
-	    pose.zPos += -delta;
-	    pose.zSigma = 1.0/sqrt(d2);
-
-	    // use some measurement of the variance as the weight 
-	    xi_k[i].weight *= pz;
-	    xi_k[i].mprob = pz;
-	    xi_k[i].floating = false;
-
-	    // store the current maximum weight
-	    max_weight = std::max( max_weight, pz );
-	    
-	    data_particles ++;
-	    sum_data_weights += pow(pz,1/found_points);
 	    */
 
 	    return true;
@@ -159,21 +191,30 @@ public:
 	return false;
     }
 
+    /** relative weight of the last evaluated pose
+     */
     double getWeight() const
     {
 	return m_weight;
     }
 
+    /** height difference of the last evaluated pose compared to the map.
+     */
     double getZDelta() const
     {
 	return m_zDelta;
     }
 
+    /** variance in height with respect to the map for the last evaluated pose.
+     */
     double getZVar() const
     {
 	return m_zVar;
     }
 
+    /** return a reference to the vector of contact points, which store the
+     * contact points of the system and the found z values of the map.
+     */
     std::vector<ContactPoint>& getContactPoints()
     {
 	return contact_points;
