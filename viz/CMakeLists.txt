@@ -1,27 +1,8 @@
-pkg_check_modules(ASGUARD-VIZ REQUIRED "asguard-viz")
-include_directories(${ASGUARD-VIZ_INCLUDE_DIRS})
-link_directories(${ASGUARD-VIZ_LIBRARY_DIRS})
+rock_export_includedir(${PROJECT_SOURCE_DIR}/viz vizkit)
 
-pkg_check_modules(ENVIRE-VIZ REQUIRED "envire-viz")
-include_directories(${ENVIRE-VIZ_INCLUDE_DIRS})
-link_directories(${ENVIRE-VIZ_LIBRARY_DIRS})
-
-set(TARGET_SRC 
+rock_vizkit_plugin(eslam-viz
     EslamWidget.cpp
     ParticleVisualization.cpp
+    DEPS eslam
+    DEPS_PKGCONFIG asguard-viz envire-viz
     )
-
-add_library(eslam-viz SHARED ${TARGET_SRC})
-target_link_libraries(eslam-viz eslam
-    ${ASGUARD-VIZ_LIBRARIES}
-    ${ENVIRE-VIZ_LIBRARIES}
-    ${VIZKIT_LIBRARIES}
-    )
-
-install(DIRECTORY . DESTINATION include/vizkit FILES_MATCHING PATTERN "*.hpp")
-install(TARGETS eslam-viz
-    DESTINATION lib)
-
-configure_file(eslam-viz.pc.in eslam-viz.pc @ONLY)
-install(FILES ${CMAKE_CURRENT_BINARY_DIR}/eslam-viz.pc
-    DESTINATION lib/pkgconfig)

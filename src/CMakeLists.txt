@@ -14,6 +14,11 @@ set(FILTER_SRCS
     EmbodiedSlamFilter.cpp
     )
 
+rock_library(eslam
+    SOURCES ${FILTER_SRCS}
+    HEADERS ${FILTER_HDRS}
+    DEPS_PKGCONFIG base-types envire asguard)
+    
 option( USE_OPENMP "Switch on OpenMP for this library." )
 if( USE_OPENMP )
     find_package( OpenMP )
@@ -21,13 +26,4 @@ if( USE_OPENMP )
     set(OpenMP_LIBRARIES gomp)
 endif( USE_OPENMP )
 
-add_library(eslam SHARED ${FILTER_SRCS})
-target_link_libraries(eslam 
-    ${OpenMP_LIBRARIES}
-    ${ASGUARD_LIBRARIES}
-    ${ENVIRE_LIBRARIES} )
-install(TARGETS eslam
-    RUNTIME DESTINATION bin
-    LIBRARY DESTINATION lib)
-
-install(FILES ${FILTER_HDRS} DESTINATION include/eslam)
+target_link_libraries(eslam ${OpenMP_LIBRARIES})

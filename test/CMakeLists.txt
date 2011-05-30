@@ -1,16 +1,11 @@
-add_executable(unit_test UnitTest.cpp)
+rock_testsuite(unit_test UnitTest.cpp 
+    DEPS eslam)
 
+if( vizkit_FOUND )
+    rock_testsuite(testWidget testWidget.cpp
+	DEPS eslam-viz 
+	DEPS_PKGCONFIG asguard envire vizkit)
 
-if( VIZKIT_FOUND )
-    add_executable(testWidget testWidget.cpp)
-    target_link_libraries(testWidget eslam-viz eslam
-	${ASGUARD_LIBRARIES}
-	${ENVIRE_LIBRARIES}
-	${VIZKIT_LIBRARIES}
-	)
-    
-    add_executable(test_gmm GMMEM.cpp)
-    target_link_libraries(test_gmm 
-	${VIZKIT_LIBRARIES}
-	)
-endif( VIZKIT_FOUND )
+    rock_testsuite(test_gmm GMMEM.cpp
+	DEPS_PKGCONFIG vizkit)
+endif( vizkit_FOUND )
