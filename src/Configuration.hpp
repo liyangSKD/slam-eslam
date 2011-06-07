@@ -43,7 +43,8 @@ struct Configuration
 	spreadRotationFactor( 0.05 ),
 	slipFactor( 0.05 ),
 	measurementThreshold( 0.1, 10*M_PI/180.0 ),
-	mappingThreshold( 0.02, 5*M_PI/180.0 )
+	mappingThreshold( 0.02, 5*M_PI/180.0 ),
+	mappingCameraThreshold( 1.0, 30*M_PI/180.0 )
     {};
 
     unsigned long seed;
@@ -59,6 +60,7 @@ struct Configuration
     double slipFactor;
     UpdateThreshold measurementThreshold;
     UpdateThreshold mappingThreshold;
+    UpdateThreshold mappingCameraThreshold;
 };
 
 }
