@@ -14,12 +14,18 @@ namespace eslam
     class PoseDistribution;
 }
 
+namespace envire
+{
+    class MLSMap;
+}
+
 namespace vizkit
 {
 class EnvireVisualization;
 class AsguardVisualization;
 class ParticleVisualization;
 class TrajectoryVisualization;
+class MapVizEventFilter;
 
 class EslamWidget : public QVizkitWidget
 {
@@ -35,6 +41,8 @@ public:
     int getInspectedParticleIndex() const;
     void setInspectedParticleIndex( int index );
 
+    void viewMap( envire::MLSMap* map );
+
     void setDirty(); 
     bool isDirty() const;
 
@@ -47,6 +55,9 @@ private:
     boost::shared_ptr<TrajectoryVisualization> centroidViz;
 
     vizkit::AsguardState asguardState;
+
+    boost::shared_ptr<MapVizEventFilter> filter;
+
 };
 
 }
