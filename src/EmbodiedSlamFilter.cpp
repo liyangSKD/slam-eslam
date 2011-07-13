@@ -268,6 +268,8 @@ void EmbodiedSlamFilter::updateMap( MLSGrid* scanMap )
 
 	    pgrid->updateCell( pos.m, pos.n, pa );
 	}
+
+	pgrid->itemModified();
     }
 
     update_idx++;
