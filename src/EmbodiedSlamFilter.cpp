@@ -146,6 +146,7 @@ void EmbodiedSlamFilter::init( envire::Environment* env, const base::Pose& pose,
     distPc = new envire::TriMesh();
     env->setFrameNode( distPc, distFrame );
     distOp = new envire::DistanceGridToPointcloud();
+    distOp->setMaxDistance( 3.0 );
     env->attachItem( distOp );
     distOp->addOutput( distPc );
 
