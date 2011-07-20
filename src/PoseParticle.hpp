@@ -29,6 +29,11 @@ struct ContactPoint
 	zvar(zvar) 
     {}
 
+    bool operator<( const ContactPoint& other ) const 
+    {
+	return zdiff < other.zdiff;
+    }
+
     base::Vector3d point;
     double zdiff;
     double zvar;

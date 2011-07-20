@@ -34,6 +34,7 @@ template <class T, int N>
  */
 class ContactModel
 {
+protected:
     typedef std::vector<base::Vector3d> vec3array;
     std::vector<vec3array> candidate_group;
 
@@ -137,57 +138,61 @@ public:
 
 	if( contact_points.size() > 0 ) 
 	{
-	    // calculate the z-delta with the highest combined probability
-	    // of the individual contact points
-	    double d1=0, d2=0; 
-	    for(std::vector<ContactPoint>::iterator it=contact_points.begin(); it!=contact_points.end(); it++)
-	    {
-		ContactPoint &p(*it);
-		d1 += p.zdiff/p.zvar;
-		d2 += 1.0/p.zvar;
-		//std::cout << "p.zdiff: " << p.zdiff << " p.zvar: " << p.zvar << " stdev: " << sqrt(p.zvar) << std::endl;
-	    }
-	    const double delta = d1 / d2;
-
-	    // calculate the joint probability of the individual foot contact points using the
-	    // most likely z-height from the previous calculation of delta
-	    double pz = 1.0;
-	    for(std::vector<ContactPoint>::iterator it=contact_points.begin(); it!=contact_points.end(); it++)
-	    {
-		ContactPoint &p(*it);
-		const double odiff = (p.zdiff - delta)/sqrt(p.zvar);
-
-		const double zk = exp(-(odiff*odiff)/(2.0));
-		pz *= zk;
-	    }
-
-	    const double zd = delta/sqrt( measVar );
-	    pz *= exp( -(zd*zd)/2.0 );
-	    //pz = 1.0;
-
-	    m_weight = pz;
-	    m_zDelta = -delta;
-	    m_zVar = 1.0/d2;
-
-	    /*
-	    if(false)
-	    {
-		std::cout 
-		    << "points: " << found_points
-		    << "\tzPos:" << pose.zPos
-		    << "\tzSigma:" << pose.zSigma
-		    << "\tdelta:" << delta 
-		    << "\td1: " << d1
-		    << "\td2: " << d2
-		    << "\tpz: " << pz 
-		    << std::endl;
-	    }	
-	    */
-
+	    evaluateWeight( measVar );
 	    return true;
 	}
 
 	return false;
+    }
+
+    virtual void evaluateWeight( double measVar )
+    {
+	// calculate the z-delta with the highest combined probability
+	// of the individual contact points
+	double d1=0, d2=0; 
+	for(std::vector<ContactPoint>::iterator it=contact_points.begin(); it!=contact_points.end(); it++)
+	{
+	    ContactPoint &p(*it);
+	    d1 += p.zdiff/p.zvar;
+	    d2 += 1.0/p.zvar;
+	    //std::cout << "p.zdiff: " << p.zdiff << " p.zvar: " << p.zvar << " stdev: " << sqrt(p.zvar) << std::endl;
+	}
+	const double delta = d1 / d2;
+
+	// calculate the joint probability of the individual foot contact points using the
+	// most likely z-height from the previous calculation of delta
+	double pz = 1.0;
+	for(std::vector<ContactPoint>::iterator it=contact_points.begin(); it!=contact_points.end(); it++)
+	{
+	    ContactPoint &p(*it);
+	    const double odiff = (p.zdiff - delta)/sqrt(p.zvar);
+
+	    const double zk = exp(-(odiff*odiff)/(2.0));
+	    pz *= zk;
+	}
+
+	const double zd = delta/sqrt( measVar );
+	pz *= exp( -(zd*zd)/2.0 );
+	//pz = 1.0;
+
+	m_weight = pz;
+	m_zDelta = -delta;
+	m_zVar = 1.0/d2;
+
+	/*
+	   if(false)
+	   {
+	   std::cout 
+	   << "points: " << found_points
+	   << "\tzPos:" << pose.zPos
+	   << "\tzSigma:" << pose.zSigma
+	   << "\tdelta:" << delta 
+	   << "\td1: " << d1
+	   << "\td2: " << d2
+	   << "\tpz: " << pz 
+	   << std::endl;
+	   }	
+	   */
     }
 
     /** relative weight of the last evaluated pose
@@ -217,6 +222,38 @@ public:
     std::vector<ContactPoint>& getContactPoints()
     {
 	return contact_points;
+    }
+};
+
+/** 
+ * Contact model base on: 
+ * Chitta S, Vernaza P, Geykhman R, Lee DD. Proprioceptive localization for a
+ * quadrupedal robot on known terrain. In: The IEEE International Conference
+ * on Robotics and Automation.; 2007. 
+ */
+class ChittaContactModel : public ContactModel
+{
+public:
+    ChittaContactModel( const asguard::Configuration& asguardConfig ) 
+	:  ContactModel( asguardConfig )
+    {
+    }
+
+    virtual void evaluateWeight( double measVar )
+    {
+	std::sort( contact_points.begin(), contact_points.end() );
+
+	m_zDelta = -contact_points[0].zdiff;
+	m_zVar = measVar;
+	double z_t = 0.0;
+
+	for( size_t i=1; i<contact_points.size(); i++ )
+	{
+	    z_t += pow( contact_points[i].zdiff + m_zDelta, 2 );
+	}
+
+	// no scaling factor needed here
+	m_weight = exp( -z_t / (2.0*measVar) );
     }
 };
 
