@@ -110,7 +110,7 @@ void PoseEstimator::project(const asguard::BodyState& state, const base::Quatern
     //const double z_var = 1e-3;
     const double z_var = odometry.getPositionError()(2,2) * 2.0;
 
-    double spread = weightingFunction( max_weight, 0.1, config.spreadThreshold, 0.0 );
+    double spread = weightingFunction( max_weight, 0.0, config.spreadThreshold, 0.0 );
 
     for(size_t i=0;i<xi_k.size();i++)
     {
