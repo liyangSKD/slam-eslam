@@ -186,8 +186,7 @@ void PoseEstimator::updateWeights(const asguard::BodyState& state, const base::Q
 
 	if( contactModel.evaluatePose( 
 		t, 
-		pow(pose.zSigma,2), 
-		pow(config.measurementError,2), 
+		pow(pose.zSigma,2) + pow(config.measurementError,2), 
 		boost::bind( &GridAccess::get, pose.grid, _1, _2, _3 ) ) )
 	{
 	    pose.zPos += contactModel.getZDelta();

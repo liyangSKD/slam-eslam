@@ -94,13 +94,12 @@ public:
      * found and false otherwise.
      *
      * @param pose - yaw compensated body to world pose of the robot
-     * @param zVarPose - variance of the pose along the up (z) axis
      * @param measVar - measurement variance of the contact model alogn z-axis 
      * @param map - map callback
      *
      * @result true if any contact points have been found.
      */
-    bool evaluatePose( const base::Affine3d& pose, double zVarPose, double measVar, boost::function<bool (base::Vector3d const&, double&, double&)> map )
+    bool evaluatePose( const base::Affine3d& pose, double measVar, boost::function<bool (base::Vector3d const&, double&, double&)> map )
     {
 	contact_points.clear();
 
@@ -114,7 +113,7 @@ public:
 		const base::Vector3d &cpoint(*it);
 
 		base::Vector3d gp = pose * cpoint;
-		double zPos, zVar = zVarPose + measVar;
+		double zPos, zVar = measVar;
 		if( !map( gp, zPos, zVar ) )
 		{
 		    contact = false;
@@ -125,7 +124,7 @@ public:
 
 		if( zdiff < p.zdiff )
 		{
-		    const double zvar = zVar + zVarPose + measVar;
+		    const double zvar = zVar + measVar;
 		    p = ContactPoint( gp-base::Vector3d::UnitZ()*zdiff, zdiff, zvar );
 		}
 	    }
@@ -162,7 +161,7 @@ public:
 		pz *= zk;
 	    }
 
-	    const double zd = delta/sqrt( zVarPose + measVar );
+	    const double zd = delta/sqrt( measVar );
 	    pz *= exp( -(zd*zd)/2.0 );
 	    //pz = 1.0;
 
