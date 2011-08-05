@@ -120,7 +120,7 @@ protected:
 }
 
 EslamWidget::EslamWidget( QWidget* parent, Qt::WindowFlags f )
-    : QVizkitWidget( parent, f ),
+    : Vizkit3DWidget( parent, f ),
     envViz( new EnvireVisualization() ),
     robotViz( new AsguardVisualization() ),
     particleViz( new ParticleVisualization() ),

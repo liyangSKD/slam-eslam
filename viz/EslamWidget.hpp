@@ -6,7 +6,7 @@
 #include <envire/Core.hpp>
 #include <base/pose.h>
 
-#include <vizkit/QVizkitWidget.hpp>
+#include <vizkit/Vizkit3DWidget.hpp>
 #include <vizkit/AsguardVisualization.hpp>
 
 namespace eslam
@@ -27,7 +27,7 @@ class ParticleVisualization;
 class TrajectoryVisualization;
 class MapVizEventFilter;
 
-class EslamWidget : public QVizkitWidget
+class EslamWidget : public Vizkit3DWidget
 {
 public:
     EslamWidget( QWidget* parent = 0, Qt::WindowFlags f = 0 );
