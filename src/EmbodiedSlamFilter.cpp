@@ -275,18 +275,22 @@ void EmbodiedSlamFilter::updateMap( MLSGrid* scanMap )
     update_idx++;
 }
 
-bool EmbodiedSlamFilter::update( const Eigen::Affine3d& body2odometry, const dense_stereo::distance_image& dimage, const Eigen::Affine3d& camera2body )
+bool EmbodiedSlamFilter::update( const Eigen::Affine3d& body2odometry, const base::samples::DistanceImage& dimage, const Eigen::Affine3d& camera2body )
 {
     if( eslamConfig.mappingCameraThreshold.test( stereoPose.inverse() * body2odometry ) )
     {
 	Eigen::Quaterniond orientation( body2odometry.linear() );
 
-	if( dimage.updateDistanceGrid( distGrid ) )
+	if( !distGrid )
 	{
+	    // create new grid using the parameters from the distance image
+	    distGrid = new envire::DistanceGrid( dimage );
+
 	    // distGrid has just been created and needs to be attached
 	    distOp->addInput( distGrid );
 	    distGrid->setFrameNode( distPc->getFrameNode() );
 	}
+	distGrid->copyFromDistanceImage( dimage );
 	distOp->updateAll();
 
 	// assume a 2 deg rotation error for the laser2Body transform

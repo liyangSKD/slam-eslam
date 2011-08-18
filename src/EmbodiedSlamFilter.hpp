@@ -14,7 +14,7 @@
 #include <envire/operators/DistanceGridToPointcloud.hpp>
 
 #include <base/samples/laser_scan.h>
-#include <dense_stereo/dense_stereo_types.h>
+#include <base/samples/distance_image.h>
 
 namespace eslam 
 {
@@ -60,7 +60,7 @@ public:
 
     void updateMap( envire::MLSGrid* scanMap );
     bool update( const Eigen::Affine3d& body2odometry, const base::samples::LaserScan& scan, const Eigen::Affine3d& laser2body );
-    bool update( const Eigen::Affine3d& body2odometry, const dense_stereo::distance_image& dimage, const Eigen::Affine3d& camera2body );
+    bool update( const Eigen::Affine3d& body2odometry, const base::samples::DistanceImage& dimage, const Eigen::Affine3d& camera2body );
     bool update( const Eigen::Affine3d& body2odometry, const asguard::BodyState& bs );
 
     std::vector<eslam::PoseEstimator::Particle>& getParticles();
