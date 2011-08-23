@@ -9,6 +9,5 @@
 
     <depend package="asguard/asguard" />
     <depend package="slam/envire" />
-    <depend package="image_processing/dense_stereo" />
     <depend package="gui/vizkit" optional="1" />
 </package>
