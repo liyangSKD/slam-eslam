@@ -174,7 +174,7 @@ void EslamWidget::setBodyState( const asguard::BodyState& body_state )
 
 void EslamWidget::setCentroidPose( const base::Pose& pose )
 {
-    centroidViz->updateData( Eigen::Vector3d( pose.position ) );
+    centroidViz->updateData( base::Vector3d( pose.position ) );
 }
     
 void EslamWidget::setReferencePose( const base::Pose& pose )
@@ -183,7 +183,7 @@ void EslamWidget::setReferencePose( const base::Pose& pose )
     asguardState.rigidBodyState.orientation = pose.orientation;
     
     robotViz->updateData( asguardState );
-    referenceViz->updateData( Eigen::Vector3d( pose.position ) );
+    referenceViz->updateData( base::Vector3d( pose.position ) );
 }
 
 void EslamWidget::setEnvironment( envire::Environment *env )
