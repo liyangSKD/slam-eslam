@@ -5,6 +5,8 @@
 
 #include <eslam/ParticleFilter.hpp>
 
+#include <eslam/SurfaceHash.hpp>
+
 using namespace std;
 using namespace eslam;
 
@@ -113,4 +115,29 @@ BOOST_AUTO_TEST_CASE( tracking_filter )
 	filter.resample();
     }
 }
+
+BOOST_AUTO_TEST_CASE( surface_param )
+{
+    std::vector<base::Vector3d> points;
+    points.push_back( Eigen::Vector3d( 0, 0, 1.0 ) );
+    points.push_back( Eigen::Vector3d( 1.0, 0, 1.0 ) );
+    points.push_back( Eigen::Vector3d( 1.0, 1.0, 1.0 ) );
+    points.push_back( Eigen::Vector3d( 0, 1.0, 1.5 ) );
+
+    SurfaceParam params;
+    params.fromPoints( points );
+
+    std::cout << params.slope << " " << params.roughness << std::endl;
+
+    points.clear();
+    points.push_back( Eigen::Vector3d( 0, 0, 1.0 ) );
+    points.push_back( Eigen::Vector3d( 1.0, 0, 1.0 ) );
+    points.push_back( Eigen::Vector3d( 1.0, 1.0, 1.0 ) );
+    points.push_back( Eigen::Vector3d( 0, 1.0, 1.0 ) );
+
+    params.fromPoints( points );
+
+    std::cout << params.slope << " " << params.roughness << std::endl;
+}
+
 

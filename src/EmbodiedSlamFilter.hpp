@@ -14,7 +14,10 @@
 #include <envire/operators/DistanceGridToPointcloud.hpp>
 
 #include <base/samples/laser_scan.h>
+
 #include <base/samples/distance_image.h>
+
+#include "SurfaceHash.hpp"
 
 namespace eslam 
 {
@@ -32,6 +35,7 @@ class EmbodiedSlamFilter
     base::Affine3d udPose, mapPose, stereoPose;
 
     envire::MLSMap* sharedMap;
+    SurfaceHash hash;
 
     // store pointers to processing pipeline
     envire::FrameNode *scanFrame;
@@ -56,7 +60,7 @@ public:
 
     envire::MLSMap* createMapTemplate( envire::Environment* env, const base::Pose& origin = base::Pose() );
     envire::MultiLevelSurfaceGrid* createGridTemplate( envire::Environment* env );
-    void init( envire::Environment* env, const base::Pose& pose, bool useSharedMap = true );
+    void init( envire::Environment* env, const base::Pose& pose, bool useSharedMap = true, bool useHash = false );
 
     void updateMap( envire::MLSGrid* scanMap );
     bool update( const Eigen::Affine3d& body2odometry, const base::samples::LaserScan& scan, const Eigen::Affine3d& laser2body );

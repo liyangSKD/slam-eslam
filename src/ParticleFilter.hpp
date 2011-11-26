@@ -24,10 +24,21 @@ public:
     {
     };
 
-    double normalizeWeights()
+    double getWeightsSum() const
     {
 	double sumWeights = 0;
 	for(size_t n=0;n<xi_k.size();sumWeights+=xi_k[n++].weight);
+	return sumWeights;
+    }
+
+    double getWeightAvg() const
+    {
+	return getWeightsSum() / xi_k.size();
+    }
+
+    double normalizeWeights()
+    {
+	double sumWeights = getWeightsSum(); 
 
 	double effective = 0;
 	if( sumWeights <= 0.0 )

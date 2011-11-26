@@ -19,6 +19,7 @@
 #include <envire/maps/MLSMap.hpp>
 
 #include <eslam/ContactModel.hpp>
+#include "SurfaceHash.hpp"
 
 #include <limits>
 
@@ -109,6 +110,8 @@ public:
 class PoseParticleGA : public PoseParticle
 {
 public:
+    PoseParticleGA( const PoseParticle& p )
+	: PoseParticle( p ) {} 
     PoseParticleGA( const base::Vector2d& position, double orientation, double zpos = 0, double zsigma = 0, bool floating = true )
 	: PoseParticle( position, orientation, zpos, zsigma, floating ) {} 
 
@@ -122,6 +125,7 @@ public:
     PoseEstimator(asguard::odometry::Wheel& odometry, const eslam::Configuration &config, const asguard::Configuration& asguardConfig );
     ~PoseEstimator();
 
+    void init( int numParticles, SurfaceHash *hash );
     void init(int numParticles, const base::Pose2D& mu, const base::Pose2D& sigma, double zpos = 0, double zsigma = 0);
     void project(const asguard::BodyState& state, const base::Quaterniond& orientation);
     void update(const asguard::BodyState& state, const base::Quaterniond& orientation);
@@ -137,10 +141,13 @@ private:
     boost::variate_generator<boost::minstd_rand&, boost::normal_distribution<> > rand_norm;
     boost::variate_generator<boost::minstd_rand&, boost::uniform_real<> > rand_uni;
     base::Pose2D samplePose2D( const base::Pose2D& mu, const base::Pose2D& sigma );
+    void sampleFromHash( double replace_percentage, const asguard::BodyState& state, const base::Quaterniond& orientation );
 
     eslam::Configuration config;
     ContactModel contactModel;
     asguard::odometry::Wheel &odometry;
+
+    SurfaceHash *hash;
     
     envire::Environment *env;
     bool useShared;

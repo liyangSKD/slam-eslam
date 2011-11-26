@@ -72,21 +72,9 @@ MLSMap* EmbodiedSlamFilter::createMapTemplate( envire::Environment* env, const b
     return mapTemplate;
 }
 
-void EmbodiedSlamFilter::init( envire::Environment* env, const base::Pose& pose, bool useSharedMap )
+
+void EmbodiedSlamFilter::init( envire::Environment* env, const base::Pose& pose, bool useSharedMap, bool useHash )
 {
-    const double angle = pose.orientation.toRotationMatrix().eulerAngles(2,1,0)[0];
-    filter.init(
-	    eslamConfig.particleCount, 
-	    base::Pose2D(Eigen::Vector2d(pose.position.x(),pose.position.y()),angle), 
-	    base::Pose2D(Eigen::Vector2d(eslamConfig.initialError,eslamConfig.initialError),eslamConfig.initialError),
-	    //base::Pose2D(Eigen::Vector2d(1e-3,1e-3),1e-3),
-	    pose.position.z(),
-	    1.0 // sigma_z
-	    //1e-3
-	    );
-
-    udPose = mapPose = stereoPose = Eigen::Translation3d(1000,0,0) * Eigen::Affine3d::Identity();
-
     if( useSharedMap )
     {
 	// see if there is a MLSGrid in the environment and use that as a sharedmap
@@ -104,11 +92,39 @@ void EmbodiedSlamFilter::init( envire::Environment* env, const base::Pose& pose,
 	    env->setFrameNode( mapTemplate, mapNode );
 	    mapTemplate->addGrid( gridTemplate );
 
+	    if( useHash )
+	    {
+		// create a surfaceHash
+		hash.create( gridTemplate );
+	    }
+
 	    sharedMap = mapTemplate;
 	}
 	else
 	    sharedMap = createMapTemplate( env );
     }
+
+    const double angle = pose.orientation.toRotationMatrix().eulerAngles(2,1,0)[0];
+    if( useHash )
+    {
+	filter.init( 
+		eslamConfig.particleCount, 
+		&hash );
+    }
+    else
+    {
+	filter.init(
+		eslamConfig.particleCount, 
+		base::Pose2D(Eigen::Vector2d(pose.position.x(),pose.position.y()),angle), 
+		base::Pose2D(Eigen::Vector2d(eslamConfig.initialError,eslamConfig.initialError),eslamConfig.initialError),
+		//base::Pose2D(Eigen::Vector2d(1e-3,1e-3),1e-3),
+		pose.position.z(),
+		1.0 // sigma_z
+		//1e-3
+		);
+    }
+
+    udPose = mapPose = stereoPose = Eigen::Translation3d(1000,0,0) * Eigen::Affine3d::Identity();
 
     // either use the shared map to init, or create a grid template for the per particle maps
     if( sharedMap )

@@ -7,6 +7,7 @@ set(FILTER_HDRS
     GaussianMixture.hpp
     ExpectationMaximization.hpp
     Configuration.hpp
+    SurfaceHash.hpp
     )
 
 set(FILTER_SRCS

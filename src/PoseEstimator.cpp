@@ -17,6 +17,7 @@ PoseEstimator::PoseEstimator(asguard::odometry::Wheel& odometry, const eslam::Co
     config(config), 
     contactModel(asguardConfig),  
     odometry(odometry), 
+    hash(NULL),
     env(NULL), 
     max_weight(0)
 {
@@ -70,6 +71,19 @@ base::Pose2D PoseEstimator::samplePose2D( const base::Pose2D& mu, const base::Po
 	    theta * sigma.orientation + mu.orientation );
 }
 
+void PoseEstimator::init( int numParticles, SurfaceHash* hash ) 
+{
+    this->hash = hash;
+    for(int i=0;i<numParticles;i++)
+    {
+	PoseParticle* pp = hash->sample(); 
+	if( pp )
+	    xi_k.push_back( Particle( *pp ) );
+	else
+	    throw std::runtime_error( "could not sample from pose hash." );
+    }
+}
+
 void PoseEstimator::init(int numParticles, const base::Pose2D& mu, const base::Pose2D& sigma, double zpos, double zsigma) 
 {
     for(int i=0;i<numParticles;i++)
@@ -102,6 +116,57 @@ double weightingFunction( double x, double alpha = 0.1, double beta = 0.9, doubl
     return 0.0;
 }
 
+void PoseEstimator::sampleFromHash( double replace_percentage, const asguard::BodyState& state, const base::Quaterniond& orientation )
+{
+    assert( hash );
+    // use the hash function to spawn new particles 
+    // if we have a single map
+
+    // get the lowest wheel points for each wheel
+    contactModel.generateCandidatePoints( state, orientation );
+    std::vector<base::Vector3d> points;
+    typedef std::vector<base::Vector3d> vec3array;
+    const std::vector<vec3array>& cpoints( contactModel.getCandidatePoints() );
+    for( size_t i=0; i<cpoints.size(); i++ )
+	points.push_back( cpoints[i][0] );
+
+    // and generate the surface params based on those
+    SurfaceParam params;
+    params.fromPoints( points );
+
+    // get the particles with the lowest weight
+    typedef std::pair<float, unsigned long> weight_index;
+    std::vector<weight_index> widxs( xi_k.size() );
+    for(size_t i=0;i<xi_k.size();i++)
+    {
+	widxs[i] = weight_index( xi_k[i].weight, i );
+    }
+    std::sort( widxs.begin(), widxs.end() );
+
+    // and replace x percent of them with newly sampled
+    // ones
+    const size_t replace_count = widxs.size() * replace_percentage;
+    double avg_weight = getWeightAvg();
+    std::cerr << "resampling " << replace_count << " particles using hash...";
+    for(size_t i=0;i<replace_count;i++)
+    {
+	PoseParticle* pp = hash->sample( params ); 
+	if( pp )
+	{
+	    Particle &pose(xi_k[i]);
+
+	    pose.position = pp->position;
+	    pose.orientation = pp->orientation;
+	    pose.zPos = pp->zPos;
+	    pose.zSigma = 1.0;
+	    pose.weight = avg_weight; 
+
+	    std::cout << xi_k[i].position << std::endl;
+	}
+    }
+    std::cerr << "done." << std::endl;
+}
+
 void PoseEstimator::project(const asguard::BodyState& state, const base::Quaterniond& orientation)
 {
     Eigen::Affine3d dtrans = orientation * odometry.getPoseDelta().toTransform();
@@ -127,8 +192,13 @@ void PoseEstimator::project(const asguard::BodyState& state, const base::Quatern
 	p.zPos += z_delta;
 	p.zSigma = sqrt( p.zSigma*p.zSigma + z_var );
 
-	if( spread > 0 ) 
+	// the particle with the lowest weight
+	// is below a threshold. depending on what sort
+	// of mode we are in, do different things.
+	if( spread > 0 && !hash ) 
 	{
+	    // otherwise just spread out the particles and see if we can 
+	    // recover this way.
 	    const double trans_fac = config.spreadTranslationFactor * spread;
 	    const double rot_fac = config.spreadRotationFactor * spread;
 	    base::Pose2D sample = samplePose2D( 
@@ -139,6 +209,9 @@ void PoseEstimator::project(const asguard::BodyState& state, const base::Quatern
 	    p.orientation += sample.orientation;
 	}
     }
+
+    if( hash )
+	sampleFromHash( 0.05, state, orientation );
 }
 
 void PoseEstimator::update(const asguard::BodyState& state, const base::Quaterniond& orientation)

@@ -81,6 +81,8 @@ public:
 	}
     }
 
+    const std::vector<vec3array>& getCandidatePoints() const { return candidate_group; }
+
     /** needs to have a prior call generateCandidatePoints. Those candidate
      * points will be evaluated for the given pose and variances on the map
      * callback.
