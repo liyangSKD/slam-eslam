@@ -145,26 +145,32 @@ void PoseEstimator::sampleFromHash( double replace_percentage, const asguard::Bo
 
     // and replace x percent of them with newly sampled
     // ones
-    const size_t replace_count = widxs.size() * replace_percentage;
-    double avg_weight = getWeightAvg();
-    std::cerr << "resampling " << replace_count << " particles using hash...";
+    double relevance_factor = pow(hash->getRelevance( params ),3);
+    size_t replace_count = widxs.size() * replace_percentage * relevance_factor;
+    if( relevance_factor < 0.8 )
+	replace_count = 0;
+
+    std::cout << "replacing : " << replace_count << " relevance: " << relevance_factor << std::endl;
+    double weight = getWeightAvg() * hash->config.avgFactor * relevance_factor;
+    //std::cerr << "resampling " << replace_count << " particles using hash...";
     for(size_t i=0;i<replace_count;i++)
     {
 	PoseParticle* pp = hash->sample( params ); 
 	if( pp )
 	{
-	    Particle &pose(xi_k[i]);
+	    Particle &pose(xi_k[widxs[i].second]);
 
 	    pose.position = pp->position;
 	    pose.orientation = pp->orientation;
 	    pose.zPos = pp->zPos;
-	    pose.zSigma = 1.0;
-	    pose.weight = avg_weight; 
+	    pose.zSigma = 0.5;
+	    pose.floating = true;
+	    pose.weight = weight; 
 
-	    std::cout << xi_k[i].position << std::endl;
+	    //std::cout << xi_k[i].position << std::endl;
 	}
     }
-    std::cerr << "done." << std::endl;
+    //std::cerr << "done." << std::endl;
 }
 
 void PoseEstimator::project(const asguard::BodyState& state, const base::Quaterniond& orientation)
@@ -210,8 +216,9 @@ void PoseEstimator::project(const asguard::BodyState& state, const base::Quatern
 	}
     }
 
-    if( hash )
-	sampleFromHash( 0.05, state, orientation );
+    static int count = 0;
+    if( hash && (((count++) % hash->config.period) == 0) )
+	sampleFromHash( hash->config.percentage, state, orientation );
 }
 
 void PoseEstimator::update(const asguard::BodyState& state, const base::Quaterniond& orientation)

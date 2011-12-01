@@ -60,7 +60,7 @@ public:
 
     envire::MLSMap* createMapTemplate( envire::Environment* env, const base::Pose& origin = base::Pose() );
     envire::MultiLevelSurfaceGrid* createGridTemplate( envire::Environment* env );
-    void init( envire::Environment* env, const base::Pose& pose, bool useSharedMap = true, bool useHash = false );
+    void init( envire::Environment* env, const base::Pose& pose, bool useSharedMap = true, const SurfaceHashConfig& hashConfig = SurfaceHashConfig() );
 
     void updateMap( envire::MLSGrid* scanMap );
     bool update( const Eigen::Affine3d& body2odometry, const base::samples::LaserScan& scan, const Eigen::Affine3d& laser2body );

@@ -28,6 +28,25 @@ struct UpdateThreshold
     double angle;
 };
 
+struct SurfaceHashConfig
+{
+    SurfaceHashConfig() :
+	useHash( false ),
+	period( 10 ),
+	percentage( 0.05 ),
+	avgFactor( 0.1 ),
+	slopeBins( 20 ),
+	angularSteps( 16 )
+    {}
+
+    bool useHash;
+    size_t period; // number of steps between hashing
+    double percentage; // percentage of particles
+    double avgFactor; // weight factor to average particle for newly spawned
+    size_t slopeBins; // number of hash bins for slope 
+    size_t angularSteps; // circle divisions for hashing
+};
+
 struct Configuration
 {
     Configuration() :

@@ -127,7 +127,7 @@ BOOST_AUTO_TEST_CASE( surface_param )
     SurfaceParam params;
     params.fromPoints( points );
 
-    std::cout << params.slope << " " << params.roughness << std::endl;
+    //std::cout << params.slope << " " << params.roughness << std::endl;
 
     points.clear();
     points.push_back( Eigen::Vector3d( 0, 0, 1.0 ) );
@@ -137,7 +137,7 @@ BOOST_AUTO_TEST_CASE( surface_param )
 
     params.fromPoints( points );
 
-    std::cout << params.slope << " " << params.roughness << std::endl;
+    //std::cout << params.slope << " " << params.roughness << std::endl;
 }
 
 

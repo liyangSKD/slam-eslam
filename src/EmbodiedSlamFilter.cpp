@@ -73,8 +73,9 @@ MLSMap* EmbodiedSlamFilter::createMapTemplate( envire::Environment* env, const b
 }
 
 
-void EmbodiedSlamFilter::init( envire::Environment* env, const base::Pose& pose, bool useSharedMap, bool useHash )
+void EmbodiedSlamFilter::init( envire::Environment* env, const base::Pose& pose, bool useSharedMap, const SurfaceHashConfig& hashConfig )
 {
+    bool useHash = hashConfig.useHash;
     if( useSharedMap )
     {
 	// see if there is a MLSGrid in the environment and use that as a sharedmap
@@ -95,6 +96,7 @@ void EmbodiedSlamFilter::init( envire::Environment* env, const base::Pose& pose,
 	    if( useHash )
 	    {
 		// create a surfaceHash
+		hash.setConfiguration( hashConfig );
 		hash.create( gridTemplate );
 	    }
 
