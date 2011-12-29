@@ -48,6 +48,7 @@ class EmbodiedSlamFilter
 
     envire::FrameNode *distFrame;
     envire::DistanceGrid *distGrid;
+    envire::ImageRGB24 *textureGrid;
     envire::DistanceGridToPointcloud *distOp;
     envire::TriMesh *distPc;
     envire::MLSProjection *distMlsOp;
@@ -64,7 +65,7 @@ public:
 
     void updateMap( envire::MLSGrid* scanMap );
     bool update( const Eigen::Affine3d& body2odometry, const base::samples::LaserScan& scan, const Eigen::Affine3d& laser2body );
-    bool update( const Eigen::Affine3d& body2odometry, const base::samples::DistanceImage& dimage, const Eigen::Affine3d& camera2body );
+    bool update( const Eigen::Affine3d& body2odometry, const base::samples::DistanceImage& dimage, const Eigen::Affine3d& camera2body, const base::samples::frame::Frame* timage = NULL );
     bool update( const Eigen::Affine3d& body2odometry, const asguard::BodyState& bs );
 
     std::vector<eslam::PoseEstimator::Particle>& getParticles();

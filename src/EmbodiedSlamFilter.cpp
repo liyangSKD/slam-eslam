@@ -19,7 +19,8 @@ EmbodiedSlamFilter::EmbodiedSlamFilter(
     odometry( odometryConfig, asguardConfig ), 
     filter( odometry, eslamConfig, asguardConfig ), 
     sharedMap(NULL),
-    distGrid(NULL)
+    distGrid(NULL),
+    textureGrid(NULL)
 {};
 
 MLSGrid* EmbodiedSlamFilter::createGridTemplate( envire::Environment* env )
@@ -274,6 +275,15 @@ void EmbodiedSlamFilter::updateMap( MLSGrid* scanMap )
 	}
 	delta = p.zPos - delta;
 
+	// need to handle cell color here for the update
+	// we need to set the pgrid cell color, such that it matches
+	// that of the scanmap for the update. Afterwards, we set it 
+	// to its original value, if it previously had one.
+
+	// if the scanmap has cell color, also use it in the target grid
+	bool hadCellColor = pgrid->getHasCellColor();
+	pgrid->setHasCellColor( scanMap->getHasCellColor() );
+
 	// merge the measurement
 	for( std::vector<pos_patch>::iterator it = patches.begin();
 		it != patches.end(); it++)
@@ -287,13 +297,18 @@ void EmbodiedSlamFilter::updateMap( MLSGrid* scanMap )
 	    pgrid->updateCell( pos.m, pos.n, pa );
 	}
 
+	if( hadCellColor )
+	    pgrid->setHasCellColor( hadCellColor );
+
 	pgrid->itemModified();
     }
 
     update_idx++;
 }
 
-bool EmbodiedSlamFilter::update( const Eigen::Affine3d& body2odometry, const base::samples::DistanceImage& dimage, const Eigen::Affine3d& camera2body )
+bool EmbodiedSlamFilter::update( 
+	const Eigen::Affine3d& body2odometry, const base::samples::DistanceImage& dimage, 
+	const Eigen::Affine3d& camera2body, const base::samples::frame::Frame* timage )
 {
     if( eslamConfig.mappingCameraThreshold.test( stereoPose.inverse() * body2odometry ) )
     {
@@ -309,6 +324,27 @@ bool EmbodiedSlamFilter::update( const Eigen::Affine3d& body2odometry, const bas
 	    distGrid->setFrameNode( distPc->getFrameNode() );
 	}
 	distGrid->copyFromDistanceImage( dimage );
+
+	// if there is a texture image add it to the processing chain
+	if( timage )
+	{
+	    // create new imagegrid object if not available
+	    if( !textureGrid )
+	    {
+		// copy the scaling properties from distanceImage
+		// TODO this is a hack!
+		textureGrid = new envire::ImageRGB24( 
+			dimage.width, dimage.height, 
+			dimage.scale_x, dimage.scale_y, 
+			dimage.center_x, dimage.center_y );
+
+		distOp->addInput( textureGrid );
+		textureGrid->setFrameNode( distPc->getFrameNode() );
+	    }
+	    textureGrid->copyFromFrame( *timage );
+	}
+
+	// run the actual operation
 	distOp->updateAll();
 
 	// assume a 2 deg rotation error for the laser2Body transform
