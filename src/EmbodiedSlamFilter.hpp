@@ -66,7 +66,7 @@ public:
     void updateMap( envire::MLSGrid* scanMap );
     bool update( const Eigen::Affine3d& body2odometry, const base::samples::LaserScan& scan, const Eigen::Affine3d& laser2body );
     bool update( const Eigen::Affine3d& body2odometry, const base::samples::DistanceImage& dimage, const Eigen::Affine3d& camera2body, const base::samples::frame::Frame* timage = NULL );
-    bool update( const Eigen::Affine3d& body2odometry, const asguard::BodyState& bs );
+    bool update( const Eigen::Affine3d& body2odometry, const asguard::BodyState& bs, const std::vector<terrain_estimator::TerrainClassification>& ltc );
 
     std::vector<eslam::PoseEstimator::Particle>& getParticles();
     base::Affine3d getCentroid();

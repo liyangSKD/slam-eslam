@@ -4,6 +4,7 @@
 #include <boost/function.hpp>
 #include <base/eigen.h>
 #include <eslam/PoseParticle.hpp>
+#include <terrain_estimator/TerrainConfiguration.hpp>
 
 namespace eslam
 {
@@ -41,6 +42,8 @@ protected:
     std::vector<ContactPoint> contact_points;
 
     asguard::Configuration asguardConfig;
+
+    std::vector<terrain_estimator::TerrainClassification> terrain_classification;
 
     double m_zDelta;
     double m_zVar;
@@ -81,6 +84,15 @@ public:
 	}
     }
 
+    /** 
+     * Will set the optional terrain classification information, which may be
+     * used additional to the contact point information.
+     */
+    void setTerrainClassification( const std::vector<terrain_estimator::TerrainClassification>& ltc )
+    {
+	terrain_classification = ltc;
+    }
+
     const std::vector<vec3array>& getCandidatePoints() const { return candidate_group; }
 
     /** needs to have a prior call generateCandidatePoints. Those candidate
@@ -102,33 +114,84 @@ public:
      *
      * @result true if any contact points have been found.
      */
-    bool evaluatePose( const base::Affine3d& pose, double measVar, boost::function<bool (base::Vector3d const&, double&, double&)> map )
+    bool evaluatePose( const base::Affine3d& pose, double measVar, boost::function<bool (const base::Vector3d&, envire::MLSGrid::SurfacePatch&)> map )
     {
 	contact_points.clear();
 
-	for( std::vector<vec3array>::iterator gi = candidate_group.begin(); gi != candidate_group.end(); gi++ )
+	for( size_t group_idx = 0; group_idx < candidate_group.size(); group_idx++ )
 	{
 	    // find the contact points with the lowest zdiff per wheel
 	    ContactPoint p;
 	    bool contact = true;
-	    for( std::vector<base::Vector3d>::iterator it=gi->begin(); it!=gi->end(); it++ )
+	    for( std::vector<base::Vector3d>::iterator it = candidate_group[group_idx].begin(); it != candidate_group[group_idx].end(); it++ )
 	    {
-		const base::Vector3d &cpoint(*it);
+		// get contact point candidate and transform it into world
+		// coordinates using the supplied pose transform
+		const base::Vector3d &contact_point(*it);
+		base::Vector3d contact_point_w = pose * contact_point;
 
-		base::Vector3d gp = pose * cpoint;
-		double zPos, zVar = measVar;
-		if( !map( gp, zPos, zVar ) )
+		// get the relevant surface patch based on the grid point
+		typedef envire::MultiLevelSurfaceGrid::SurfacePatch Patch;
+		Patch patch( contact_point_w.z(), sqrt(measVar) );
+		if( !map( contact_point_w, patch ) )
 		{
 		    contact = false;
 		    break;
 		}
 
-		const double zdiff = gp.z() - zPos;
+		// find the zdiff, which is the difference between contact
+		// point z-value and environment z-value
+		const double zdiff = contact_point_w.z() - patch.mean;
 
+		// the point with the lowest zdiff value is assumed to be the
+		// right contact point for the group
 		if( zdiff < p.zdiff )
 		{
-		    const double zvar = zVar + measVar;
-		    p = ContactPoint( gp-base::Vector3d::UnitZ()*zdiff, zdiff, zvar );
+		    const double zvar = pow(patch.stdev, 2) + measVar;
+		    p = ContactPoint( contact_point_w - base::Vector3d::UnitZ() * zdiff, zdiff, zvar );
+
+		    // also include terrain classification information if it exists
+		    if( !terrain_classification.empty() )
+		    {
+			// look for the terrain classification data which
+			// corresponds to the current group_idx (wheel in asguard case)
+			for( size_t i = 0; i < terrain_classification.size(); i++ )
+			{
+			    if( static_cast<size_t>(terrain_classification[i].wheel_idx) == group_idx )
+			    {
+				// since currently the map patches provide a color
+				// information we also convert the
+				// terrain_classification information into a color
+				// information based on the terrain classes.
+				// TODO this is a hack and should be handled in a more generic way
+				//
+				base::Vector3d prop_terrain = base::Vector3d::Zero();
+
+				for( std::vector<terrain_estimator::TerrainProbability>::iterator it = terrain_classification[i].terrain.begin();
+					it != terrain_classification[i].terrain.end(); it++)
+				{
+				    terrain_estimator::TerrainProbability &tp( *it );
+				    switch( tp.type )
+				    {
+					case terrain_estimator::GRASS: prop_terrain[0] = tp.probability; break;
+					case terrain_estimator::PATH: prop_terrain[1] = tp.probability; break;
+					case terrain_estimator::PEBBLES: prop_terrain[2] = tp.probability; break;
+					default: break;
+				    }
+				}
+
+				// get the visual classification from the patch
+				base::Vector3d &visual_terrain( patch.color );
+
+				// for now use the crudest way possible to get the probability
+				// for the measurement
+				double prob = 1.0 - (visual_terrain - prop_terrain).norm() / sqrt( 3.0 );
+
+				// store this information with the contact point
+				p.prob *= prob;
+			    }
+			}
+		    }
 		}
 	    }
 
@@ -171,11 +234,11 @@ public:
 
 	    const double zk = exp(-(odiff*odiff)/(2.0));
 	    pz *= zk;
+	    pz *= p.prob;
 	}
 
 	const double zd = delta/sqrt( measVar );
 	pz *= exp( -(zd*zd)/2.0 );
-	//pz = 1.0;
 
 	m_weight = pz;
 	m_zDelta = -delta;

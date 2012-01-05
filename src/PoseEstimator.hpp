@@ -90,18 +90,12 @@ public:
 	setMap( MapPtr(new_map.get(), &GridAccess::detachItem) );
     }
 
-    bool get(const base::Vector3d& position, double& zpos, double& zvar)
+    bool get( const base::Vector3d& position, envire::MLSGrid::SurfacePatch& patch )
     {
 	if( map )
 	{
-	    typedef envire::MultiLevelSurfaceGrid::SurfacePatch Patch;
-	    Patch p( position.z(), sqrt(zvar) );
-	    if( map->getPatch( C_global2local * position, p, 3.0 ) )
-	    {
-		zpos = p.mean;
-		zvar = pow(p.stdev,2);
+	    if( map->getPatch( C_global2local * position, patch, 3.0 ) )
 		return true;
-	    }
 	}
 	return false;
     }
@@ -128,7 +122,7 @@ public:
     void init( int numParticles, SurfaceHash *hash );
     void init(int numParticles, const base::Pose2D& mu, const base::Pose2D& sigma, double zpos = 0, double zsigma = 0);
     void project(const asguard::BodyState& state, const base::Quaterniond& orientation);
-    void update(const asguard::BodyState& state, const base::Quaterniond& orientation);
+    void update(const asguard::BodyState& state, const base::Quaterniond& orientation, const std::vector<terrain_estimator::TerrainClassification>& ltc );
 
     void setEnvironment(envire::Environment *env, envire::MLSMap::Ptr map, bool useShared );
     void cloneMaps();

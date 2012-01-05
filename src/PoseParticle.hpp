@@ -21,7 +21,8 @@ struct ContactPoint
 {
     ContactPoint() : 
 	point( Eigen::Vector3d(0,0,0)), 
-	zdiff(std::numeric_limits<double>::infinity()) {}
+	zdiff(std::numeric_limits<double>::infinity()),
+	prob(1.0) {}
 
     ContactPoint(const base::Vector3d& point, double zdiff, double zvar) :
 	point(point),
@@ -37,6 +38,7 @@ struct ContactPoint
     base::Vector3d point;
     double zdiff;
     double zvar;
+    double prob;
 };
 
 struct PoseParticle

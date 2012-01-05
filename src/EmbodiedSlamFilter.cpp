@@ -5,6 +5,7 @@
 #include <envire/operators/ScanMeshing.hpp>
 
 #include <envire/tools/Numeric.hpp>
+#include <terrain_estimator/TerrainConfiguration.hpp>
 
 using namespace eslam;
 using namespace envire;
@@ -428,7 +429,7 @@ bool EmbodiedSlamFilter::update( const Eigen::Affine3d& body2odometry, const bas
     return false;
 }
 
-bool EmbodiedSlamFilter::update( const Eigen::Affine3d& body2odometry, const asguard::BodyState& bs )
+bool EmbodiedSlamFilter::update( const Eigen::Affine3d& body2odometry, const asguard::BodyState& bs, const std::vector<terrain_estimator::TerrainClassification>& ltc )
 {
     Eigen::Quaterniond orientation( body2odometry.linear() );
 
@@ -437,7 +438,7 @@ bool EmbodiedSlamFilter::update( const Eigen::Affine3d& body2odometry, const asg
 
     if( eslamConfig.measurementThreshold.test( udPose.inverse() * body2odometry ) )
     {
-	filter.update( bs, orientation );
+	filter.update( bs, orientation, ltc );
 	udPose = body2odometry;
 
 	return true;

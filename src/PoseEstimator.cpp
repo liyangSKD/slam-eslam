@@ -221,8 +221,9 @@ void PoseEstimator::project(const asguard::BodyState& state, const base::Quatern
 	sampleFromHash( hash->config.percentage, state, orientation );
 }
 
-void PoseEstimator::update(const asguard::BodyState& state, const base::Quaterniond& orientation)
+void PoseEstimator::update(const asguard::BodyState& state, const base::Quaterniond& orientation, const std::vector<terrain_estimator::TerrainClassification>& ltc )
 {
+    contactModel.setTerrainClassification( ltc );
     updateWeights(state, orientation);
     double eff = normalizeWeights();
     if( eff < config.minEffective )
@@ -267,7 +268,7 @@ void PoseEstimator::updateWeights(const asguard::BodyState& state, const base::Q
 	if( contactModel.evaluatePose( 
 		t, 
 		pow(pose.zSigma,2) + pow(config.measurementError,2), 
-		boost::bind( &GridAccess::get, pose.grid, _1, _2, _3 ) ) )
+		boost::bind( &GridAccess::get, pose.grid, _1, _2 ) ) )
 	{
 	    pose.zPos += contactModel.getZDelta();
 	    pose.zSigma = sqrt(contactModel.getZVar());
