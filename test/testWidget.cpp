@@ -13,8 +13,7 @@ int main( int argc, char **argv )
     {
 	std::cout << "Loading environment : " << argv[1] << std::endl;
 	// load environment from arg1
-	envire::Serialization so;
-	env = boost::shared_ptr<envire::Environment>(so.unserialize( argv[1] ));
+	env = boost::shared_ptr<envire::Environment>(envire::Environment::unserialize( argv[1] ));
 	app.getWidget()->setEnvironment(env.get());
     }
 
