@@ -2,7 +2,7 @@
 #define PARTICLEVIZUALISATION_H
 #include <Eigen/Geometry>
 #include <vector>
-#include <vizkit/VizPlugin.hpp>
+#include <vizkit/Vizkit3DPlugin.hpp>
 #include <osg/Geometry>
 
 #include <base/pose.h>
