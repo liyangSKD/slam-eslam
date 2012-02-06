@@ -27,7 +27,7 @@ public:
     {
 	if( items.count( event.a.get() ) )
 	{
-	    if( event.type == Event::ITEM && event.operation == Event::REMOVE )
+	    if( event.type == event::ITEM && event.operation == event::REMOVE )
 		items.erase( event.a.get() );
 	    return true;
 	}
@@ -68,46 +68,46 @@ public:
 	for( std::set<envire::EnvironmentItem*>::iterator it = add.begin(); it != add.end(); it++ )
 	{
 	    items.insert( *it );
-	    env->handle( Event( Event::ITEM, Event::ADD, *it ) );
+	    env->handle( Event( event::ITEM, event::ADD, *it ) );
 	}
 
 	for( std::set<envire::EnvironmentItem*>::iterator it = add.begin(); it != add.end(); it++ )
 	{
-	    itemEvents( *it, Event::ADD );
+	    itemEvents( *it, event::ADD );
 	}
 	    
 	// now all the items that are in the erase list need to be removed do a two stage thins
 	// again, where the relations are removed first, and then the items
 	for( std::set<envire::EnvironmentItem*>::iterator it = remove.begin(); it != remove.end(); it++ )
 	{
-	    itemEvents( *it, Event::REMOVE );
+	    itemEvents( *it, event::REMOVE );
 	}
 
 	for( std::set<envire::EnvironmentItem*>::iterator it = remove.begin(); it != remove.end(); it++ )
 	{
-	    env->handle( Event( Event::ITEM, Event::REMOVE, *it ) );
+	    env->handle( Event( event::ITEM, event::REMOVE, *it ) );
 	    items.erase( *it );
 	}
     }
 
 protected:
-    void itemEvents( EnvironmentItem* item, Event::Operation op )
+    void itemEvents( EnvironmentItem* item, event::Operation op )
     {
 	if( dynamic_cast<envire::CartesianMap*>( item ) )
 	{
 	    MLSGrid *grid = dynamic_cast<envire::MLSGrid*>( item );
-	    env->handle( Event( Event::FRAMENODE, op, grid, grid->getFrameNode() ) );
+	    env->handle( Event( event::FRAMENODE, op, grid, grid->getFrameNode() ) );
 	}
 	else if( dynamic_cast<envire::FrameNode*>( item ) )
 	{
 	    FrameNode *fn = dynamic_cast<envire::FrameNode*>( item );
 	    if( env->getRootNode() == fn )
 	    {
-		env->handle( Event( Event::ROOT, op, fn ) );
+		env->handle( Event( event::ROOT, op, fn ) );
 	    }
 	    else
 	    {
-		env->handle( Event( Event::FRAMENODE_TREE, op, fn->getParent(), fn ) );
+		env->handle( Event( event::FRAMENODE_TREE, op, fn->getParent(), fn ) );
 	    }
 	}
 	else
