@@ -238,14 +238,14 @@ void EmbodiedSlamFilter::updateMap( MLSGrid* scanMap )
 	{
 	    // get center of cell
 	    Eigen::Vector3d pos( Eigen::Vector3d::Zero() );
-	    scanMap->fromGrid( it->m, it->n, pos.x(), pos.y() );
+	    scanMap->fromGrid( it->x, it->y, pos.x(), pos.y() );
 	    pos = C_s2p * pos;
 
 	    size_t m, n;
 	    if( pgrid->toGrid( pos.x(), pos.y(), m, n ) )
 	    {
 		position pos(m, n);
-		for(envire::MLSGrid::iterator cit = scanMap->beginCell(it->m,it->n); cit != scanMap->endCell(); cit++ )
+		for(envire::MLSGrid::iterator cit = scanMap->beginCell(it->x,it->y); cit != scanMap->endCell(); cit++ )
 		{
 		    patch meas_patch( *cit );
 		    meas_patch.mean += p.zPos;
@@ -294,7 +294,7 @@ void EmbodiedSlamFilter::updateMap( MLSGrid* scanMap )
 	    // apply the measurement difference
 	    pa.mean += delta;
 
-	    pgrid->updateCell( pos.m, pos.n, pa );
+	    pgrid->updateCell( pos.x, pos.y, pa );
 	}
 
 	if( hadCellColor )
