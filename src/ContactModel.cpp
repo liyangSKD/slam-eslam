@@ -79,33 +79,13 @@ bool ContactModel::evaluatePose( const base::Affine3d& pose, double measVar, boo
 		    {
 			if( static_cast<size_t>(terrain_classification[i].wheel_idx) == group_idx )
 			{
-			    // since currently the map patches provide a color
-			    // information we also convert the
-			    // terrain_classification information into a color
-			    // information based on the terrain classes.
-			    // TODO this is a hack and should be handled in a more generic way
-			    //
-			    base::Vector3d prop_terrain = base::Vector3d::Zero();
+			    // use the RGB value from the terrain patch to get the terrain class
+			    terrain_estimator::TerrainClassification visual_tc =
+				terrain_estimator::TerrainClassification::fromRGB( patch.color );
 
-			    for( std::vector<terrain_estimator::TerrainProbability>::iterator it = terrain_classification[i].terrain.begin();
-				    it != terrain_classification[i].terrain.end(); it++)
-			    {
-				terrain_estimator::TerrainProbability &tp( *it );
-				switch( tp.type )
-				{
-				    case terrain_estimator::GRASS: prop_terrain[0] = tp.probability; break;
-				    case terrain_estimator::PATH: prop_terrain[1] = tp.probability; break;
-				    case terrain_estimator::PEBBLES: prop_terrain[2] = tp.probability; break;
-				    default: break;
-				}
-			    }
-
-			    // get the visual classification from the patch
-			    base::Vector3d &visual_terrain( patch.color );
-
-			    // for now use the crudest way possible to get the probability
-			    // for the measurement
-			    double prob = 1.0 - (visual_terrain - prop_terrain).norm() / sqrt( 3.0 );
+			    // get the joint probability from from visual and proprioceptive 
+			    // classification
+			    double prob = terrain_classification[i].jointProbability( visual_tc );
 
 			    // store this information with the contact point
 			    p.prob *= prob;
