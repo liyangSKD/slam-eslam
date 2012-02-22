@@ -12,6 +12,7 @@ set(FILTER_HDRS
 
 set(FILTER_SRCS
     PoseEstimator.cpp
+    ContactModel.cpp
     EmbodiedSlamFilter.cpp
     )
 
