@@ -11,6 +11,23 @@
 namespace eslam
 {
 
+struct BodyContact
+{
+    /**
+     * candidate groups are used for contact point estimation.  Each of the
+     * groups represent a number of potential contact points. Which of these
+     * points have contact can be resolved using a terrain model.  All points
+     * are provided in body frame coordinates.
+     */
+    std::vector<std::vector<base::Vector3d> > candidate_groups;
+
+    /** 
+     * contact_points represent actual points of contact with the environment.
+     * All points are provided in body frame coordinates.
+     */
+    std::vector<ContactPoint> contact_points;
+};
+
 /** 
  * Contactmodel class that relates the kinematic configuration of a robot with
  * an environment model. As it is, the class implements the asguard model, but
