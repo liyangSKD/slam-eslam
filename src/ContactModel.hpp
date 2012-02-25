@@ -11,22 +11,22 @@
 namespace eslam
 {
 
-struct BodyContact
+struct BodyContactPoint
 {
-    /**
-     * candidate groups are used for contact point estimation.  Each of the
-     * groups represent a number of potential contact points. Which of these
-     * points have contact can be resolved using a terrain model.  All points
-     * are provided in body frame coordinates.
-     */
-    std::vector<std::vector<base::Vector3d> > candidate_groups;
+    /** @brief position in body frame */
+    base::Vector3d position;
 
-    /** 
-     * contact_points represent actual points of contact with the environment.
-     * All points are provided in body frame coordinates.
-     */
-    std::vector<ContactPoint> contact_points;
+    /** @brief contact probability in the interval between 0 and 1.0, or NaN if unknown */
+    double contact;
+
+    /** @brief slip distance of contact point */
+    double slip;
+
+    /** @brief contact group id, or -1 if not part of a group */
+    int groupId;
 };
+
+typedef std::vector<BodyContactPoint> BodyContactPoints;
 
 /** 
  * Contactmodel class that relates the kinematic configuration of a robot with
@@ -49,12 +49,16 @@ struct BodyContact
 class ContactModel
 {
 protected:
-    typedef std::vector<base::Vector3d> vec3array;
-    std::vector<vec3array> candidate_group;
-
+    BodyContactPoints contactPoints;
+    std::vector<base::Vector3d> lowestPointsPerGroup;
     std::vector<ContactPoint> contact_points;
 
+    /*
+    typedef std::vector<base::Vector3d> vec3array;
+    std::vector<vec3array> candidate_group;
     asguard::Configuration asguardConfig;
+    std::vector<BodyContactPoint> contactPoints;
+    */
 
     std::vector<terrain_estimator::TerrainClassification> terrain_classification;
 
@@ -68,13 +72,14 @@ public:
     /** Constructor that takes a @param asguardConfig configuration model as the
      * basis.
      */
-    ContactModel( const asguard::Configuration& asguardConfig );
+    ContactModel(); 
 
     /** given a @param state configuration state of the system and an @param
      * orientation, candidate contact points are calculated in the yaw
      * compensated body frame. 
      */
-    void generateCandidatePoints( const asguard::BodyState& state, const base::Quaterniond& orientation );
+    //void generateCandidatePoints( const BodyContactPoints& state, const base::Quaterniond& orientation );
+    void setContactPoints( const BodyContactPoints& state, const base::Quaterniond& orientation );
 
     /** 
      * Will set the optional terrain classification information, which may be
@@ -85,7 +90,11 @@ public:
 	terrain_classification = ltc;
     }
 
-    const std::vector<vec3array>& getCandidatePoints() const { return candidate_group; }
+    /**
+     * will for each group return the candidate contact point with the lowest z
+     * value or all candidate points if there are no groups.
+     */
+    const std::vector<base::Vector3d>& getLowestPointPerGroup();
 
     /** needs to have a prior call generateCandidatePoints. Those candidate
      * points will be evaluated for the given pose and variances on the map
@@ -149,7 +158,7 @@ public:
 class ChittaContactModel : public ContactModel
 {
 public:
-    ChittaContactModel( const asguard::Configuration& asguardConfig );
+    ChittaContactModel();
 
     virtual void evaluateWeight( double measVar );
 };

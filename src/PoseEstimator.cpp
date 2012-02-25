@@ -15,7 +15,7 @@ PoseEstimator::PoseEstimator(asguard::odometry::Wheel& odometry, const eslam::Co
     rand_norm(rand_gen, boost::normal_distribution<>(0,1.0) ),
     rand_uni(rand_gen, boost::uniform_real<>(0,1.0) ),
     config(config), 
-    contactModel(asguardConfig),  
+    contactModel(),  
     odometry(odometry), 
     hash(NULL),
     env(NULL), 
@@ -116,19 +116,16 @@ double weightingFunction( double x, double alpha = 0.1, double beta = 0.9, doubl
     return 0.0;
 }
 
-void PoseEstimator::sampleFromHash( double replace_percentage, const asguard::BodyState& state, const base::Quaterniond& orientation )
+void PoseEstimator::sampleFromHash( double replace_percentage, const BodyContactPoints& state, const base::Quaterniond& orientation )
 {
     assert( hash );
     // use the hash function to spawn new particles 
     // if we have a single map
 
     // get the lowest wheel points for each wheel
-    contactModel.generateCandidatePoints( state, orientation );
+    contactModel.setContactPoints( state, orientation );
     std::vector<base::Vector3d> points;
-    typedef std::vector<base::Vector3d> vec3array;
-    const std::vector<vec3array>& cpoints( contactModel.getCandidatePoints() );
-    for( size_t i=0; i<cpoints.size(); i++ )
-	points.push_back( cpoints[i][0] );
+    points = contactModel.getLowestPointPerGroup();
 
     // and generate the surface params based on those
     SurfaceParam params;
@@ -173,7 +170,7 @@ void PoseEstimator::sampleFromHash( double replace_percentage, const asguard::Bo
     //std::cerr << "done." << std::endl;
 }
 
-void PoseEstimator::project(const asguard::BodyState& state, const base::Quaterniond& orientation)
+void PoseEstimator::project(const BodyContactPoints& state, const base::Quaterniond& orientation)
 {
     Eigen::Affine3d dtrans = orientation * odometry.getPoseDelta().toTransform();
     const double z_delta = dtrans.translation().z();
@@ -221,7 +218,7 @@ void PoseEstimator::project(const asguard::BodyState& state, const base::Quatern
 	sampleFromHash( hash->config.percentage, state, orientation );
 }
 
-void PoseEstimator::update(const asguard::BodyState& state, const base::Quaterniond& orientation, const std::vector<terrain_estimator::TerrainClassification>& ltc )
+void PoseEstimator::update(const BodyContactPoints& state, const base::Quaterniond& orientation, const std::vector<terrain_estimator::TerrainClassification>& ltc )
 {
     contactModel.setTerrainClassification( ltc );
     updateWeights(state, orientation);
@@ -234,12 +231,12 @@ void PoseEstimator::update(const asguard::BodyState& state, const base::Quaterni
     }
 }
 
-void PoseEstimator::updateWeights(const asguard::BodyState& state, const base::Quaterniond& orientation)
+void PoseEstimator::updateWeights(const BodyContactPoints& state, const base::Quaterniond& orientation)
 {
     if( !env )
 	throw std::runtime_error("No environment attached.");
 
-    contactModel.generateCandidatePoints( state, orientation );
+    contactModel.setContactPoints( state, orientation );
 
     size_t total_points = 0;
     size_t data_particles = 0;
