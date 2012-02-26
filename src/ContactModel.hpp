@@ -26,7 +26,17 @@ struct BodyContactPoint
     int groupId;
 };
 
-typedef std::vector<BodyContactPoint> BodyContactPoints;
+struct BodyContactState
+{
+    /** @brief timestamp */
+    base::Time time;
+    
+    /** @brief vector of all potential contact points of the body and their states.
+     * 
+     * The order of the contact points in the vector should not change over data items.
+     */
+    std::vector<BodyContactPoint> points;
+};
 
 /** 
  * Contactmodel class that relates the kinematic configuration of a robot with
@@ -49,7 +59,7 @@ typedef std::vector<BodyContactPoint> BodyContactPoints;
 class ContactModel
 {
 protected:
-    BodyContactPoints contactPoints;
+    BodyContactState contactState;
     std::vector<base::Vector3d> lowestPointsPerGroup;
     std::vector<ContactPoint> contact_points;
 
@@ -78,8 +88,8 @@ public:
      * orientation, candidate contact points are calculated in the yaw
      * compensated body frame. 
      */
-    //void generateCandidatePoints( const BodyContactPoints& state, const base::Quaterniond& orientation );
-    void setContactPoints( const BodyContactPoints& state, const base::Quaterniond& orientation );
+    //void generateCandidatePoints( const BodyContactState& state, const base::Quaterniond& orientation );
+    void setContactPoints( const BodyContactState& state, const base::Quaterniond& orientation );
 
     /** 
      * Will set the optional terrain classification information, which may be

@@ -3,10 +3,13 @@
 
 #include <eslam/ContactModel.hpp>
 #include <asguard/Configuration.hpp>
+#include <asguard/Odometry.hpp>
 #include <base/odometry.h>
 
 namespace odometry
 {
+typedef Eigen::Matrix<double,6,6> Matrix6d;
+typedef Eigen::Matrix<double,6,1> Vector6d;
 
 class FootContact : 
     public base::odometry::Gaussian3D,
@@ -16,7 +19,7 @@ class FootContact :
 public:
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW
     FootContact(const asguard::odometry::Configuration& config);
-    void update(const eslam::BodyContactPoints& state, const Eigen::Quaterniond& orientation);
+    void update(const eslam::BodyContactState& state, const Eigen::Quaterniond& orientation);
 
     base::Pose getPoseDelta();
     Eigen::Matrix3d getPositionError();
@@ -29,12 +32,12 @@ public:
 
 private:
     Eigen::Quaterniond orientation;
-    eslam::BodyContactPoints state;
+    eslam::BodyContactState state;
 
     /** Odometry configuration */
     asguard::odometry::Configuration config;
 
-    GaussianSamplingPose3D sampling;
+    asguard::odometry::GaussianSamplingPose3D sampling;
 };
 
 }

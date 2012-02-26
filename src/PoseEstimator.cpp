@@ -10,7 +10,7 @@
 
 using namespace eslam;
 
-PoseEstimator::PoseEstimator(asguard::odometry::Wheel& odometry, const eslam::Configuration &config, const asguard::Configuration& asguardConfig )
+PoseEstimator::PoseEstimator( odometry::FootContact& odometry, const eslam::Configuration &config, const asguard::Configuration& asguardConfig )
     : ParticleFilter<Particle>(config.seed), 
     rand_norm(rand_gen, boost::normal_distribution<>(0,1.0) ),
     rand_uni(rand_gen, boost::uniform_real<>(0,1.0) ),
@@ -116,7 +116,7 @@ double weightingFunction( double x, double alpha = 0.1, double beta = 0.9, doubl
     return 0.0;
 }
 
-void PoseEstimator::sampleFromHash( double replace_percentage, const BodyContactPoints& state, const base::Quaterniond& orientation )
+void PoseEstimator::sampleFromHash( double replace_percentage, const BodyContactState& state, const base::Quaterniond& orientation )
 {
     assert( hash );
     // use the hash function to spawn new particles 
@@ -170,7 +170,7 @@ void PoseEstimator::sampleFromHash( double replace_percentage, const BodyContact
     //std::cerr << "done." << std::endl;
 }
 
-void PoseEstimator::project(const BodyContactPoints& state, const base::Quaterniond& orientation)
+void PoseEstimator::project(const BodyContactState& state, const base::Quaterniond& orientation)
 {
     Eigen::Affine3d dtrans = orientation * odometry.getPoseDelta().toTransform();
     const double z_delta = dtrans.translation().z();
@@ -218,7 +218,7 @@ void PoseEstimator::project(const BodyContactPoints& state, const base::Quaterni
 	sampleFromHash( hash->config.percentage, state, orientation );
 }
 
-void PoseEstimator::update(const BodyContactPoints& state, const base::Quaterniond& orientation, const std::vector<terrain_estimator::TerrainClassification>& ltc )
+void PoseEstimator::update(const BodyContactState& state, const base::Quaterniond& orientation, const std::vector<terrain_estimator::TerrainClassification>& ltc )
 {
     contactModel.setTerrainClassification( ltc );
     updateWeights(state, orientation);
@@ -231,7 +231,7 @@ void PoseEstimator::update(const BodyContactPoints& state, const base::Quaternio
     }
 }
 
-void PoseEstimator::updateWeights(const BodyContactPoints& state, const base::Quaterniond& orientation)
+void PoseEstimator::updateWeights(const BodyContactState& state, const base::Quaterniond& orientation)
 {
     if( !env )
 	throw std::runtime_error("No environment attached.");

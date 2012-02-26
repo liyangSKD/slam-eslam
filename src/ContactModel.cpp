@@ -13,14 +13,14 @@ ContactModel::ContactModel()
 }
 
 
-void ContactModel::setContactPoints( const BodyContactPoints& state, const base::Quaterniond& orientation )
+void ContactModel::setContactPoints( const BodyContactState& state, const base::Quaterniond& orientation )
 {
     // generate a copy of the provided contact points, transform them using the
     // given orientation and possibly augment probabilities based on group
     // information.
 
     // copy the contact points
-    contactPoints = state;
+    contactState = state;
 
     // keep track of the points of the group with the lowest z-value
     lowestPointsPerGroup.clear();
@@ -28,6 +28,7 @@ void ContactModel::setContactPoints( const BodyContactPoints& state, const base:
     // get the orientation first and remove any rotation around the z axis
     base::Quaterniond zCompensatedOrientation = base::removeYaw( orientation );
 
+    std::vector<BodyContactPoint> &contactPoints( contactState.points );
     std::vector<std::pair<double, int> > group;
     for(size_t i=0; i<contactPoints.size(); i++)
     {
@@ -69,6 +70,7 @@ bool ContactModel::evaluatePose( const base::Affine3d& pose, double measVar, boo
 {
     // this funtion finds and stores environment contact points
     contact_points.clear();
+    std::vector<BodyContactPoint> &contactPoints( contactState.points );
 
     // Loop over all the contact points, and add valid contacts to the vector
     // of contact_points (which are effectively environment contact points)
