@@ -68,6 +68,9 @@ const std::vector<base::Vector3d>& ContactModel::getLowestPointPerGroup()
 
 bool ContactModel::evaluatePose( const base::Affine3d& pose, double measVar, boost::function<bool (const base::Vector3d&, envire::MLSGrid::SurfacePatch&)> map )
 {
+    if (measVar == 0)
+        throw std::runtime_error("using a zero measurement variance leads to singularities");
+
     // this funtion finds and stores environment contact points
     contact_points.clear();
     std::vector<BodyContactPoint> &contactPoints( contactState.points );
