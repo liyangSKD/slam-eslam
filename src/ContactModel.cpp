@@ -104,7 +104,7 @@ bool ContactModel::evaluatePose( const base::Affine3d& pose, double measVar, boo
 	    if( !valid || zdiff < p.zdiff )
 	    {
 		const double zvar = pow(patch.stdev, 2) + measVar;
-		p = ContactPoint( contact_point_w - base::Vector3d::UnitZ() * zdiff, zdiff, zvar );
+		p = ContactPoint( base::Vector3d(contact_point_w.x(), contact_point_w.y(), patch.mean), zdiff, zvar );
 	    }
 	    valid = true;
 	}
