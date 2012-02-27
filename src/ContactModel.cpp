@@ -111,8 +111,8 @@ bool ContactModel::evaluatePose( const base::Affine3d& pose, double measVar, boo
 
 	// in case of groups only evaluate at the end of a group interval
 	if( valid && ( groupId == -1 
-		    || i+1 > contactPoints.size() 
-		    || groupId != contactPoints[i].groupId) )
+		    || i+1 == contactPoints.size() 
+		    || groupId != contactPoints[i + 1].groupId) )
 	{
 	    // also include terrain classification information if it exists
 	    if( !terrain_classification.empty() )
