@@ -31,6 +31,19 @@ struct FakeMLSAccess
     }
 };
 
+void check_lowest_point_selection(std::vector<base::Vector3d> const& selected,
+        BodyContactState const& state,
+        std::vector<int> expected)
+{
+    BOOST_CHECK_EQUAL(selected.size(), expected.size());
+    for (unsigned int i = 0; i < expected.size(); ++i)
+    {
+        int expected_idx = expected[i];
+        base::Vector3d p = state.points[expected_idx].position;
+        BOOST_CHECK_EQUAL(selected[i], p);
+    }
+}
+
 void check_contact_point_selection(std::vector<ContactPoint> const& selected,
         BodyContactState const& state,
         double const* z,
@@ -47,7 +60,7 @@ void check_contact_point_selection(std::vector<ContactPoint> const& selected,
     }
 }
 
-BOOST_AUTO_TEST_CASE( test_eslam_passes_valid_global_position )
+BOOST_AUTO_TEST_CASE( test_eslam_passes_valid_global_position_to_map_accessor )
 {
     BodyContactState state;
     state.time = base::Time::now();
@@ -92,7 +105,7 @@ BOOST_AUTO_TEST_CASE( test_eslam_passes_valid_global_position )
     }
 }
 
-BOOST_AUTO_TEST_CASE( test_nogroup )
+BOOST_AUTO_TEST_CASE( test_updatePose_nogroup )
 {
     BodyContactState state;
     state.time = base::Time::now();
@@ -157,7 +170,73 @@ BOOST_AUTO_TEST_CASE( test_nogroup )
 }
 
 
-BOOST_AUTO_TEST_CASE( test_group )
+BOOST_AUTO_TEST_CASE( test_lowest_points_without_groups )
+{
+    BodyContactState state;
+    state.time = base::Time::now();
+    state.points.resize(4);
+    state.points[0].position = base::Vector3d(-1, -1, 0.1);
+    state.points[0].contact  = base::unknown<float>();
+    state.points[0].slip  = 0;
+    state.points[0].groupId  = -1;
+    state.points[1].position = base::Vector3d(1, -1, -0.1);
+    state.points[1].contact  = base::unknown<float>();
+    state.points[1].slip  = 0;
+    state.points[1].groupId  = -1;
+    state.points[2].position = base::Vector3d(-1, 1, 0.1);
+    state.points[2].contact  = base::unknown<float>();
+    state.points[2].slip  = 0;
+    state.points[2].groupId  = -1;
+    state.points[3].position = base::Vector3d(1, 1, -0.1);
+    state.points[3].contact  = base::unknown<float>();
+    state.points[3].slip  = 0;
+    state.points[3].groupId  = -1;
+
+    ContactModel model;
+    model.setContactPoints(state, base::Quaterniond::Identity());
+
+    std::vector<int> expected_points;
+    expected_points.push_back(0);
+    expected_points.push_back(1);
+    expected_points.push_back(2);
+    expected_points.push_back(3);
+    check_lowest_point_selection(model.getLowestPointPerGroup(),
+            state, expected_points);
+}
+
+BOOST_AUTO_TEST_CASE( test_lowest_points_with_group )
+{
+    BodyContactState state;
+    state.time = base::Time::now();
+    state.points.resize(4);
+    state.points[0].position = base::Vector3d(-1, -1, 0.1);
+    state.points[0].contact  = base::unknown<float>();
+    state.points[0].slip  = 0;
+    state.points[0].groupId  = 0;
+    state.points[1].position = base::Vector3d(1, -1, -0.1);
+    state.points[1].contact  = base::unknown<float>();
+    state.points[1].slip  = 0;
+    state.points[1].groupId  = 0;
+    state.points[2].position = base::Vector3d(-1, 1, 0.1);
+    state.points[2].contact  = base::unknown<float>();
+    state.points[2].slip  = 0;
+    state.points[2].groupId  = 1;
+    state.points[3].position = base::Vector3d(1, 1, -0.1);
+    state.points[3].contact  = base::unknown<float>();
+    state.points[3].slip  = 0;
+    state.points[3].groupId  = 1;
+
+    ContactModel model;
+    model.setContactPoints(state, base::Quaterniond::Identity());
+
+    std::vector<int> expected_points;
+    expected_points.push_back(1);
+    expected_points.push_back(3);
+    check_lowest_point_selection(model.getLowestPointPerGroup(),
+            state, expected_points);
+}
+
+BOOST_AUTO_TEST_CASE( test_updatePose_group )
 {
     BodyContactState state;
     state.time = base::Time::now();
