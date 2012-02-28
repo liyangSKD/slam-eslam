@@ -3,6 +3,7 @@ set(FILTER_HDRS
     PoseEstimator.hpp
     PoseParticle.hpp
     ContactModel.hpp
+    ContactState.hpp
     ContactOdometry.hpp
     EmbodiedSlamFilter.hpp
     GaussianMixture.hpp
