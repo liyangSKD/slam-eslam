@@ -50,7 +50,7 @@ void ContactModel::setContactPoints( const BodyContactState& state, const base::
 	    lowestPointsPerGroup.push_back( contactPoints[ group[0].second ].position );
 	    group.clear();
 	}
-	else
+	else if (group.empty())
 	{
 	    lowestPointsPerGroup.push_back( contactPoints[i].position );
 	}
