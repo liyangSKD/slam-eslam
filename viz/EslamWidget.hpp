@@ -2,7 +2,7 @@
 #define __VIZKIT_ESLAMWIDGET__
 
 #include <Eigen/Geometry>
-#include <asguard/BodyState.hpp>
+#include <eslam/ContactState.hpp>
 #include <envire/Core.hpp>
 #include <base/pose.h>
 
@@ -33,7 +33,7 @@ public:
     EslamWidget( QWidget* parent = 0, Qt::WindowFlags f = 0 );
     ~EslamWidget();
     void setPoseDistribution( const eslam::PoseDistribution& dist );
-    void setBodyState( const asguard::BodyState& body_state ); 
+    void setBodyState( const eslam::BodyContactState& body_state ); 
     void setReferencePose( const base::Pose& pose );
     void setCentroidPose( const base::Pose& pose );
     void setEnvironment( envire::Environment *env );
@@ -54,7 +54,7 @@ private:
     boost::shared_ptr<TrajectoryVisualization> referenceViz;
     boost::shared_ptr<TrajectoryVisualization> centroidViz;
 
-    vizkit::AsguardState asguardState;
+//    vizkit::AsguardState asguardState;
 
     boost::shared_ptr<MapVizEventFilter> filter;
 

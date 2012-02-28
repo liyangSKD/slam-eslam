@@ -135,7 +135,6 @@ void ParticleVisualization::operatorIntern ( osg::Node* node, osg::NodeVisitor* 
     if( inspectIdx >= 0 )
     {
 	const size_t i = inspectIdx;
-	asguard::BodyState &bodyState( dist.bodyState );
 	eslam::PoseParticle &pose( v[i] );
 
 	Eigen::Affine3d t = 
@@ -144,8 +143,10 @@ void ParticleVisualization::operatorIntern ( osg::Node* node, osg::NodeVisitor* 
 
 	Eigen::Affine3d transform( t * base::removeYaw( dist.orientation ) );
 
-
 	// add asguard robot
+	// TODO reinstantiate visualisation of robot
+	/*
+	asguard::BodyState &bodyState( dist.bodyState );
 	asguard->setBodyState( bodyState );
 	osg::PositionAttitudeTransform *asguardPose = new osg::PositionAttitudeTransform();
 	Eigen::Vector3d apos( transform.translation() );
@@ -156,6 +157,7 @@ void ParticleVisualization::operatorIntern ( osg::Node* node, osg::NodeVisitor* 
 
 	offsetNode->asGroup()->addChild( asguardPose );
 	asguardPose->addChild( asguard );
+	*/
 
 	for(size_t j=0;j<pose.cpoints.size();j++)
 	{

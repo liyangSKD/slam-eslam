@@ -166,10 +166,12 @@ void EslamWidget::setPoseDistribution( const eslam::PoseDistribution& dist )
     particleViz->updateData( dist );
 }
 
-void EslamWidget::setBodyState( const asguard::BodyState& body_state ) 
+void EslamWidget::setBodyState( const eslam::BodyContactState& body_state ) 
 {
+    /*
     asguardState.bodyState = body_state;
     robotViz->updateData( asguardState );
+    */
 }
 
 void EslamWidget::setCentroidPose( const base::Pose& pose )
@@ -179,10 +181,12 @@ void EslamWidget::setCentroidPose( const base::Pose& pose )
     
 void EslamWidget::setReferencePose( const base::Pose& pose )
 {
+    /*
     asguardState.rigidBodyState.position = pose.position;
     asguardState.rigidBodyState.orientation = pose.orientation;
     
     robotViz->updateData( asguardState );
+    */
     referenceViz->updateData( base::Vector3d( pose.position ) );
 }
 
