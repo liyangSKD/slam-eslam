@@ -45,13 +45,9 @@ void ContactModel::setContactPoints( const BodyContactState& state, const base::
 		&& (i+1 == contactPoints.size() 
 		    || contactPoints[i+1].groupId != contactPoints[i].groupId ) )
 	{
-	    // group finished sort by z value 
-	    // and mark the lower 3 as equaliy likely candidates
-	    // TODO this is very Asguard specific and should likely go somewhere else
+	    // Group finished, sort by z value 
 	    std::sort( group.begin(), group.end() );
-	    for(size_t j=0; j<group.size(); j++)
-		contactPoints[ group[j].first ].contact = (j < 3) ? 1.0/3.0 : 0.0;
-	    lowestPointsPerGroup.push_back( contactPoints[ group[0].first ].position );
+	    lowestPointsPerGroup.push_back( contactPoints[ group[0].second ].position );
 	    group.clear();
 	}
 	else
