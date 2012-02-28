@@ -42,7 +42,7 @@ void ContactModel::setContactPoints( const BodyContactState& state, const base::
 	}
 
 	if( !group.empty() 
-		&& (i+1 > contactPoints.size() 
+		&& (i+1 == contactPoints.size() 
 		    || contactPoints[i+1].groupId != contactPoints[i].groupId ) )
 	{
 	    // group finished sort by z value 
