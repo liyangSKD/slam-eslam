@@ -13,6 +13,7 @@
 #include <vector>
 
 #include <eslam/GaussianMixture.hpp>
+#include <eslam/ContactState.hpp>
 
 namespace eslam
 {
@@ -102,7 +103,7 @@ struct PoseDistribution
     std::vector<PoseParticle> particles;
     GMM gmm;
     base::Quaterniond orientation;
-    asguard::BodyState bodyState;
+    eslam::BodyContactState bodyState;
 };
 
 }
