@@ -176,19 +176,19 @@ BOOST_AUTO_TEST_CASE( test_lowest_points_without_groups )
     state.time = base::Time::now();
     state.points.resize(4);
     state.points[0].position = base::Vector3d(-1, -1, 0.1);
-    state.points[0].contact  = base::unknown<float>();
+    state.points[0].contact  = 1;
     state.points[0].slip  = 0;
     state.points[0].groupId  = -1;
     state.points[1].position = base::Vector3d(1, -1, -0.1);
-    state.points[1].contact  = base::unknown<float>();
+    state.points[1].contact  = 2;
     state.points[1].slip  = 0;
     state.points[1].groupId  = -1;
     state.points[2].position = base::Vector3d(-1, 1, 0.1);
-    state.points[2].contact  = base::unknown<float>();
+    state.points[2].contact  = 3;
     state.points[2].slip  = 0;
     state.points[2].groupId  = -1;
     state.points[3].position = base::Vector3d(1, 1, -0.1);
-    state.points[3].contact  = base::unknown<float>();
+    state.points[3].contact  = 4;
     state.points[3].slip  = 0;
     state.points[3].groupId  = -1;
 
@@ -202,6 +202,17 @@ BOOST_AUTO_TEST_CASE( test_lowest_points_without_groups )
     expected_points.push_back(3);
     check_lowest_point_selection(model.getLowestPointPerGroup(),
             state, expected_points);
+
+    // The contact probabilities should not have changed
+    BodyContactState const& updatedState(model.getContactState());
+    for (int i = 0; i < 4; ++i)
+        BOOST_CHECK_CLOSE(updatedState.points[i].contact, state.points[i].contact, 1e-9);
+
+    // Call updateContactStateUsingLowestPointHeuristic. The probabilities
+    // should still have not changed as there are no groups
+    model.updateContactStateUsingLowestPointHeuristic();
+    for (int i = 0; i < 4; ++i)
+        BOOST_CHECK_CLOSE(updatedState.points[i].contact, state.points[i].contact, 1e-9);
 }
 
 BOOST_AUTO_TEST_CASE( test_lowest_points_with_group )
@@ -210,19 +221,19 @@ BOOST_AUTO_TEST_CASE( test_lowest_points_with_group )
     state.time = base::Time::now();
     state.points.resize(4);
     state.points[0].position = base::Vector3d(-1, -1, 0.1);
-    state.points[0].contact  = base::unknown<float>();
+    state.points[0].contact  = 1;
     state.points[0].slip  = 0;
     state.points[0].groupId  = 0;
     state.points[1].position = base::Vector3d(1, -1, -0.1);
-    state.points[1].contact  = base::unknown<float>();
+    state.points[1].contact  = 2;
     state.points[1].slip  = 0;
     state.points[1].groupId  = 0;
     state.points[2].position = base::Vector3d(-1, 1, 0.1);
-    state.points[2].contact  = base::unknown<float>();
+    state.points[2].contact  = 3;
     state.points[2].slip  = 0;
     state.points[2].groupId  = 1;
     state.points[3].position = base::Vector3d(1, 1, -0.1);
-    state.points[3].contact  = base::unknown<float>();
+    state.points[3].contact  = 4;
     state.points[3].slip  = 0;
     state.points[3].groupId  = 1;
 
@@ -234,6 +245,17 @@ BOOST_AUTO_TEST_CASE( test_lowest_points_with_group )
     expected_points.push_back(3);
     check_lowest_point_selection(model.getLowestPointPerGroup(),
             state, expected_points);
+
+    // It should not have updated the contact probabilities
+    BodyContactState const& updatedState(model.getContactState());
+    for (int i = 0; i < 4; ++i)
+        BOOST_CHECK_CLOSE(updatedState.points[i].contact, state.points[i].contact, 1e-9);
+
+    // Now, it should have !
+    model.updateContactStateUsingLowestPointHeuristic();
+    double expected[4] = { 0, 1, 0, 1 };
+    for (int i = 0; i < 4; ++i)
+        BOOST_CHECK_CLOSE(updatedState.points[i].contact, expected[i], 1e-9);
 }
 
 BOOST_AUTO_TEST_CASE( test_updatePose_group )

@@ -76,6 +76,8 @@ protected:
     double m_zVar;
     double m_weight;
 
+    void lowestPointHeuristic(bool update_probabilities);
+
 public:
     static const int GROUP_SIZE = 4;
 
@@ -90,6 +92,15 @@ public:
      */
     //void generateCandidatePoints( const BodyContactState& state, const base::Quaterniond& orientation );
     void setContactPoints( const BodyContactState& state, const base::Quaterniond& orientation );
+
+    /** Update the internal contact probabilities using the lowest-point
+     * heuristic
+     */
+    void updateContactStateUsingLowestPointHeuristic();
+
+    /** Returns the contact state as stored internally by the contact model.
+     */
+    BodyContactState const& getContactState() const;
 
     /** 
      * Will set the optional terrain classification information, which may be

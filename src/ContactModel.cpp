@@ -22,43 +22,67 @@ void ContactModel::setContactPoints( const BodyContactState& state, const base::
     // copy the contact points
     contactState = state;
 
-    // keep track of the points of the group with the lowest z-value
+    // Clear the lowestPointsPerGroup set. It is updated lazily if
+    // getLowestPointPerGroup is called
     lowestPointsPerGroup.clear();
 
     // get the orientation first and remove any rotation around the z axis
-    base::Quaterniond zCompensatedOrientation = base::removeYaw( orientation );
+    base::Quaterniond yawCompensatedOrientation = base::removeYaw( orientation );
 
     std::vector<BodyContactPoint> &contactPoints( contactState.points );
+    for(size_t i=0; i<contactPoints.size(); i++)
+	// store the foot position in yaw compensated rotation frame 
+	contactPoints[i].position = yawCompensatedOrientation * contactPoints[i].position;
+}
+
+BodyContactState const& ContactModel::getContactState() const
+{
+    return contactState;
+}
+
+void ContactModel::lowestPointHeuristic(bool update_probabilities)
+{
+    lowestPointsPerGroup.clear();
+    std::vector<BodyContactPoint> &contactPoints( contactState.points );
     std::vector<std::pair<double, int> > group;
+
     for(size_t i=0; i<contactPoints.size(); i++)
     {
-	// store the foot position in yaw compensated rotation frame 
-	contactPoints[i].position = zCompensatedOrientation * contactPoints[i].position;
-
 	if( contactPoints[i].groupId >= 0 )
 	{
 	    // add to group
 	    group.push_back( std::make_pair( contactPoints[i].position.z(), i ) );
+            if (update_probabilities)
+                contactPoints[i].contact = 0;
 	}
 
-	if( !group.empty() 
-		&& (i+1 == contactPoints.size() 
-		    || contactPoints[i+1].groupId != contactPoints[i].groupId ) )
+	if (group.empty())
+	    lowestPointsPerGroup.push_back( contactPoints[i].position );
+        else if (i+1 == contactPoints.size() 
+		    || contactPoints[i+1].groupId != contactPoints[i].groupId )
 	{
 	    // Group finished, sort by z value 
 	    std::sort( group.begin(), group.end() );
-	    lowestPointsPerGroup.push_back( contactPoints[ group[0].second ].position );
+
+            BodyContactPoint& contact = contactPoints[group[0].second];
+	    lowestPointsPerGroup.push_back( contact.position );
+            if (update_probabilities)
+                contact.contact = 1;
 	    group.clear();
-	}
-	else if (group.empty())
-	{
-	    lowestPointsPerGroup.push_back( contactPoints[i].position );
 	}
     }
 }
 
+void ContactModel::updateContactStateUsingLowestPointHeuristic()
+{
+    lowestPointHeuristic(true);
+}
+
 const std::vector<base::Vector3d>& ContactModel::getLowestPointPerGroup()
 {
+    if (lowestPointsPerGroup.empty())
+        lowestPointHeuristic(false);
+
     return lowestPointsPerGroup;
 }
 
