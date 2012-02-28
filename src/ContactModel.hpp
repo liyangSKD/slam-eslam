@@ -85,7 +85,7 @@ public:
     ContactModel(); 
 
     /** given a @param state configuration state of the system and an @param
-     * orientation, candidate contact points are calculated in the yaw
+     * orientation, candidate contact points are calculated and stored in the yaw
      * compensated body frame. 
      */
     //void generateCandidatePoints( const BodyContactState& state, const base::Quaterniond& orientation );
@@ -119,13 +119,13 @@ public:
      * point and zvar it's variance. map needs to return true if a map cell was
      * found and false otherwise.
      *
-     * @param pose - yaw compensated body to world pose of the robot
+     * @param pose - position and heading of the robot, composed in a pose
      * @param measVar - measurement variance of the contact model alogn z-axis 
      * @param map - map callback
      *
      * @result true if any contact points have been found.
      */
-    bool evaluatePose( const base::Affine3d& pose, double measVar, boost::function<bool (const base::Vector3d&, envire::MLSGrid::SurfacePatch&)> map );
+    bool evaluatePose( const base::Affine3d& pos_and_heading, double measVar, boost::function<bool (const base::Vector3d&, envire::MLSGrid::SurfacePatch&)> map );
 
     virtual void evaluateWeight( double measVar );
 

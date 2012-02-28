@@ -62,7 +62,7 @@ const std::vector<base::Vector3d>& ContactModel::getLowestPointPerGroup()
     return lowestPointsPerGroup;
 }
 
-bool ContactModel::evaluatePose( const base::Affine3d& pose, double measVar, boost::function<bool (const base::Vector3d&, envire::MLSGrid::SurfacePatch&)> map )
+bool ContactModel::evaluatePose( const base::Affine3d& pos_and_heading, double measVar, boost::function<bool (const base::Vector3d&, envire::MLSGrid::SurfacePatch&)> map )
 {
     if (measVar == 0)
         throw std::runtime_error("using a zero measurement variance leads to singularities");
@@ -84,7 +84,7 @@ bool ContactModel::evaluatePose( const base::Affine3d& pose, double measVar, boo
 	// get contact point candidate and transform it into world
 	// coordinates using the supplied pose transform
 	const base::Vector3d &contact_point( contactPoints[i].position );
-	base::Vector3d contact_point_w = pose * contact_point;
+	base::Vector3d contact_point_w = pos_and_heading * contact_point;
 
 	// get the relevant surface patch based on the grid point
 	typedef envire::MultiLevelSurfaceGrid::SurfacePatch Patch;
