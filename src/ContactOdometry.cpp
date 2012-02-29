@@ -62,103 +62,67 @@ base::Pose FootContact::getPoseDelta()
     return asguard::odometry::getPoseFromVector6d( sampling.poseMean );
 }
 
-void FootContact::update(const eslam::BodyContactState& state, const Eigen::Quaterniond& orientation)
+void FootContact::update(const eslam::BodyContactState& bs, const Eigen::Quaterniond& orientation)
 {
-
-    /*
     // update state
-    state.update(bs);
+    state.update( bs );
     this->orientation = orientation;
 
-    std::vector<Eigen::Vector3d> p_k, p_kp;
-
-    // go through all feets and check if they have maintained contact
-    for(int ii=0;ii<4;ii++)
+    if( !state.isValid() )
     {
-	wheelIdx i = static_cast<wheelIdx>(ii);
+	state.update( bs );
+	prevOrientation = orientation;
+    }
 
-	for(int j=0;j<5;j++)
-	{
-	    WheelContact wc_ki = state.getPrevious().getWheelContact(i, j);
-	    WheelContact wc_kpi = state.getCurrent().getWheelContact(i, j);
+    // get relative rotation between updates
+    // this is assumed to be the correct rotation (with error of course)
+    Eigen::Quaterniond delta_rotq( prevOrientation.inverse() * orientation );
 
-	
-	    if( wc_ki.contact > 0.5 && wc_kpi.contact > 0.5 ) 
-	    {
-		p_k.push_back( asguardConfig.getFootPosition( state.getPrevious(), i, j ) );
-		p_kp.push_back( asguardConfig.getFootPosition( state.getCurrent(), i, j ) );
-	    }
-	}
-    }	
+    // the translation we get from the fact, that we assume that contact points
+    // with the environment stay static. We do this by rotating the current 
+    // contact points into the previous frame, and look at the difference between
+    // points that have been in contact in the current and in the previous frame.
+    // Assuming equal slip conditions in all directions (could be changed later)
+    // the overal translation should be the mean of those differences
 
-    // p_k and p_kp contain foot positions that have maintained contact
-    // and can be used for calculation of the pose change
-
-    // the approach is to take all subsets of the contact pairs with 3 
-    // members and align the the pose using the following method
-    // - align the first point pair (translate)
-    // - align the second point pair (rotate around first pair)
-    // - align the third pair (rotate around line between first and second pair)
-    //
-    const size_t num_contacts = p_k.size();
-    size_t num_samples = 0; 
-
-    Matrix6d Sxx( Matrix6d::Zero() );
-    Vector6d Sx( Vector6d::Zero() );
-
-    for(size_t i=0;i<num_contacts;i++)
+    const double contact_threshold = 0.5;
+    Eigen::Vector3d sum = Eigen::Vector3d::Zero();
+    int count = 0;
+    for( size_t i=0; i < state.getPrevious().points.size(); i++ )
     {
-	for(size_t j=0;j<num_contacts;j++)
+	const eslam::BodyContactPoint &prevPoint( state.getPrevious().points[i] );
+	const eslam::BodyContactPoint &point( state.getCurrent().points[i] );
+
+	if( prevPoint.contact > contact_threshold 
+		&& point.contact > contact_threshold )
 	{
-	    if( i == j )
-		continue;
-
-	    for(size_t k=0;k<num_contacts;k++)
-	    {
-		if( k == i || k == j )
-		    continue;
-
-		// the transformations are from the common contact frame into the
-		// respective body frame (current bkp and previous bk)
-		Eigen::Affine3d C_c2bk, C_c2bkp;
-		
-		if( getTransformFromPoints( p_k[i], p_k[j], p_k[k], C_c2bk )
-			&& getTransformFromPoints( p_kp[i], p_kp[j], p_kp[k], C_c2bkp ) )
-		{
-		    num_samples++;
-
-		    // get the relative transform between the frames
-		    Eigen::Affine3d C_bkp2bk( C_c2bk * C_c2bkp.inverse() );
-
-		    // construct a sample vector which is the rotation part in
-		    // scaled axis and the translation part in local frame
-		    Eigen::AngleAxisd aa( C_bkp2bk.rotation() );
-
-		    Vector6d sample;
-		    sample.head<3>() = aa.axis() * aa.angle();
-		    sample.tail<3>() = C_bkp2bk.translation();
-
-		    Sxx += sample * sample.transpose();
-		    Sx += sample;
-		}
-	    }
+	    sum += delta_rotq * point.position - prevPoint.position;
+	    count++;
 	}
     }
+    Eigen::Vector3d mean = sum / count;
 
-    if( num_samples > 0 )
-    {
-	const double num_inv = 1.0/num_samples;
-	Vector6d mean = Sx*num_inv;
-	Matrix6d cov = Sxx*num_inv - mean*( mean.transpose());
+    base::Pose delta_pose( mean, delta_rotq );
+    
+    // calculate error matrix
+    // TODO this is based on the wheel odometry error model I think it could be
+    // more accurate by looking the the covariance of the contact position
+    // differences 
+    
+    double tilt = acos(Eigen::Vector3d::UnitZ().dot(orientation*Eigen::Vector3d::UnitZ()));
+    double d = mean.norm();
+    double dtheta = Eigen::AngleAxisd( delta_rotq ).angle();
 
-	// TODO make sure there are no zeros here
-	Matrix6d llt = cov.llt().matrixL();
-	sampling.update( mean, llt );
-    }
-    else
-    {
-	// use fixed error model here
-	sampling.update( Vector6d::Zero(), fixedError );
-    }
-    */
+    Eigen::Vector4d vec =
+	config.constError.toVector4d() +
+	d * config.distError.toVector4d() +
+	tilt * config.tiltError.toVector4d() +
+	dtheta * config.dthetaError.toVector4d();
+
+    Vector6d var;
+    var << 0, 0, vec.w(), vec.head<3>();
+
+    sampling.update( asguard::odometry::getVector6dFromPose(delta_pose), var.asDiagonal() );
+
+    prevOrientation = orientation;
 }

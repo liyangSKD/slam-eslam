@@ -30,10 +30,10 @@ public:
     base::Pose getPoseDeltaSample();
     base::Pose2D getPoseDeltaSample2D();
 
-private:
-    Eigen::Quaterniond orientation;
-    eslam::BodyContactState state;
+    Eigen::Quaterniond orientation, prevOrientation;
+    base::odometry::State<eslam::BodyContactState> state;
 
+private:
     /** Odometry configuration */
     asguard::odometry::Configuration config;
 
