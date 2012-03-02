@@ -101,6 +101,7 @@ bool ContactModel::evaluatePose( const base::Affine3d& pos_and_heading, double m
     // only use the contact_point with the lowest z-value in this group. 
     ContactPoint p;
     bool valid = false; // validity of current contact point
+    const double contact_threshold = 0.2; // fixed for now
     for(size_t i=0; i<contactPoints.size(); i++)
     {
 	int groupId = contactPoints[i].groupId;
@@ -113,7 +114,7 @@ bool ContactModel::evaluatePose( const base::Affine3d& pos_and_heading, double m
 	// get the relevant surface patch based on the grid point
 	typedef envire::MultiLevelSurfaceGrid::SurfacePatch Patch;
 	Patch patch( contact_point_w.z(), sqrt(measVar) );
-	if( map( contact_point_w, patch ) )
+	if( contactPoints[i].contact > contact_threshold && map( contact_point_w, patch ) )
 	{
 	    // find the zdiff, which is the difference between contact
 	    // point z-value and environment z-value
