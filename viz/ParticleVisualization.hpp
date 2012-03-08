@@ -14,6 +14,8 @@ namespace vizkit
 
 class ParticleVisualization : public VizPluginAdapter<eslam::PoseDistribution>
 {
+	Q_OBJECT
+
     public:
 	EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 	ParticleVisualization();
@@ -21,8 +23,16 @@ class ParticleVisualization : public VizPluginAdapter<eslam::PoseDistribution>
 	void setVisualiseContacts(bool viscontacts);
 	void inspectParticle(int index);
 	int getInspectedParticle() const { return inspectIdx; }
+
+	Q_INVOKABLE void updatePoseDistribution( const eslam::PoseDistribution& data );
+	Q_PROPERTY( bool show_gmm READ getShowGMM WRITE setShowGMM )
+    
+    public slots:
+	bool getShowGMM() const { return show_gmm; }
+	void setShowGMM( bool show ) { show_gmm = show; emit propertyChanged("show_gmm"); }
 	    
     private:
+	bool show_gmm;
 	bool viscontacts;
 
 	virtual void updateDataIntern ( const eslam::PoseDistribution& data );

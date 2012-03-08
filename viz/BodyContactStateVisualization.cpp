@@ -55,5 +55,5 @@ void BodyContactStateVisualization::updateDataIntern(eslam::BodyContactState con
     this->state = state;
 }
 
-VizkitQtPlugin( BodyContactStateVisualization )
+//VizkitQtPlugin( BodyContactStateVisualization )
 
