@@ -54,8 +54,6 @@ private:
     boost::shared_ptr<TrajectoryVisualization> referenceViz;
     boost::shared_ptr<TrajectoryVisualization> centroidViz;
 
-    vizkit::AsguardState asguardState;
-
     boost::shared_ptr<MapVizEventFilter> filter;
 
 };
