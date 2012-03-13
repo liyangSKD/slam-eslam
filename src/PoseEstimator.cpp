@@ -21,6 +21,8 @@ PoseEstimator::PoseEstimator(asguard::odometry::Wheel& odometry, const eslam::Co
     env(NULL), 
     max_weight(0)
 {
+    contactModel.useShapeUpdate( config.useShapeUpdate );
+    contactModel.useTerrainUpdate( config.useSlipUpdate );
 }
 
 PoseEstimator::~PoseEstimator()
@@ -100,6 +102,16 @@ void PoseEstimator::init(int numParticles, const base::Pose2D& mu, const base::P
     }
 }
 
+/**
+ * this is a piecewise linear function, with 
+ * @param x as the function input
+ * @param alpha minimum threshold any value of x below this value will be 1.0
+ * @param beta any x above beta will be set to gamma
+ * @param gamma result if x is above beta
+ *
+ * the interval between alpha and beta is linear, so that the function is
+ * continous.
+ */
 double weightingFunction( double x, double alpha = 0.1, double beta = 0.9, double gamma = 0.05 )
 {
     if( x < alpha )
@@ -296,7 +308,12 @@ void PoseEstimator::updateWeights(const asguard::BodyState& state, const base::Q
 	    //xi_k[i].w *= 0.99;
 	}
 
+	// make logging of debug data optional, since it really makes the logs quite big
 	pose.cpoints.swap( contactModel.getContactPoints() );
+	if( config.logDebug )
+	    std::copy( contactModel.getSlipPoints().begin(), contactModel.getSlipPoints().end(), std::back_inserter( pose.spoints ) );
+
+	contactModel.getSlipPoints().clear();
     }
 
     const double floating_weight = data_particles>0 ? sum_data_weights/data_particles : 1.0;
@@ -312,6 +329,9 @@ void PoseEstimator::updateWeights(const asguard::BodyState& state, const base::Q
 	
 	(*it).weight *= factor;
 	//}
+	//
+	if( !config.logDebug )
+	    (*it).cpoints.clear();
     }
 
     if( total_points == 0 )

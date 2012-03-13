@@ -10,7 +10,9 @@ template <class T, int N>
 
 ContactModel::ContactModel( const asguard::Configuration& asguardConfig ) 
     : candidate_group( GROUP_SIZE ),
-    asguardConfig( asguardConfig )
+    asguardConfig( asguardConfig ),
+    m_useTerrainUpdate( true ),
+    m_useShapeUpdate( true )
 {
 }
 
@@ -87,8 +89,18 @@ bool ContactModel::evaluatePose( const base::Affine3d& pose, double measVar, boo
 			    // classification
 			    double prob = terrain_classification[i].jointProbability( visual_tc );
 
+			    //std::cout << patch.color.transpose() << std::endl;
+			    //std::cout << prob << std::endl;
+
 			    // store this information with the contact point
 			    p.prob *= prob;
+
+			    // create debug slip point
+			    SlipPoint sp;
+			    sp.position = contact_point_w;
+			    sp.color = terrain_classification[i].toRGB();
+			    sp.prob = prob;
+			    slip_points.push_back( sp );
 			}
 		    }
 		}
@@ -133,8 +145,12 @@ void ContactModel::evaluateWeight( double measVar )
 	const double odiff = (p.zdiff - delta)/sqrt(p.zvar);
 
 	const double zk = exp(-(odiff*odiff)/(2.0));
-	pz *= zk;
-	pz *= p.prob;
+	if( m_useShapeUpdate )
+	    pz *= zk;
+
+	// also include the probability stored in the contact point itself
+	if( m_useTerrainUpdate )
+	    pz *= p.prob;
     }
 
     const double zd = delta/sqrt( measVar );

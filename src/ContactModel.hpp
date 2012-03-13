@@ -53,6 +53,7 @@ protected:
     std::vector<vec3array> candidate_group;
 
     std::vector<ContactPoint> contact_points;
+    std::vector<SlipPoint> slip_points;
 
     asguard::Configuration asguardConfig;
 
@@ -62,8 +63,21 @@ protected:
     double m_zVar;
     double m_weight;
 
+    bool m_useShapeUpdate;
+    bool m_useTerrainUpdate;
+
 public:
     static const int GROUP_SIZE = 4;
+
+    void useShapeUpdate( bool use )
+    {
+	m_useShapeUpdate = use;
+    }
+
+    void useTerrainUpdate( bool use )
+    {
+	m_useTerrainUpdate = use;
+    }	
 
     /** Constructor that takes a @param asguardConfig configuration model as the
      * basis.
@@ -137,6 +151,11 @@ public:
     std::vector<ContactPoint>& getContactPoints()
     {
 	return contact_points;
+    }
+
+    std::vector<SlipPoint>& getSlipPoints()
+    {
+	return slip_points;
     }
 };
 

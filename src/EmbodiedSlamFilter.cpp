@@ -26,16 +26,16 @@ EmbodiedSlamFilter::EmbodiedSlamFilter(
 
 MLSGrid* EmbodiedSlamFilter::createGridTemplate( envire::Environment* env )
 {
-    const double size = 20;
-    const double resolution = 0.05;
+    const double size = eslamConfig.gridSize;
+    const double resolution = eslamConfig.gridResolution;
     envire::MLSGrid* gridTemplate = 
 	    new envire::MLSGrid( size/resolution, size/resolution, resolution, resolution );
     envire::FrameNode *gridNode = new envire::FrameNode( Eigen::Affine3d( Eigen::Translation3d( -size/2.0, -size/2.0, 0 ) ) ); 
     env->addChild( env->getRootNode(), gridNode );
     env->setFrameNode( gridTemplate, gridNode );
 
-    gridTemplate->setHorizontalPatchThickness( 0.1 );
-    gridTemplate->setGapSize( 1.50 );
+    gridTemplate->setHorizontalPatchThickness( eslamConfig.gridPatchThickness );
+    gridTemplate->setGapSize( eslamConfig.gridGapSize );
 
     return gridTemplate;
 }
@@ -45,6 +45,11 @@ MLSMap* EmbodiedSlamFilter::createMapTemplate( envire::Environment* env, const b
     envire::MLSGrid* gridTemplate = 
 	createGridTemplate( env );
 
+    // generate a solid surface patch around the start
+    // position, so that we can align to a single height
+    // even with bad odometry
+    // TODO we won't need this if we get proper z information
+    // from the odometry
     envire::MLSGrid::SurfacePatch p( 0, 1.0, 0, true );
     const size_t cx = gridTemplate->getWidth() / 2.0;
     const size_t cy = gridTemplate->getHeight() / 2.0;
@@ -166,7 +171,7 @@ void EmbodiedSlamFilter::init( envire::Environment* env, const base::Pose& pose,
     distPc = new envire::TriMesh();
     env->setFrameNode( distPc, distFrame );
     distOp = new envire::DistanceGridToPointcloud();
-    distOp->setMaxDistance( 3.0 );
+    distOp->setMaxDistance( eslamConfig.maxSensorRange );
     env->attachItem( distOp );
     distOp->addOutput( distPc );
 
@@ -193,9 +198,14 @@ void EmbodiedSlamFilter::updateMap( MLSGrid* scanMap )
 		    Eigen::AngleAxisd( p.orientation, Eigen::Vector3d::UnitZ() )
 		    ) );
 
-	// create a new map every n-steps (needs better criteria)
-	//if( ((update_idx+1) % 300) == 0 )
-	if( false )
+	// we are looking for the transform between the active map,
+	// and the current particle
+	Transform tf = scanFrame->relativeTransform( pgrid->getFrameNode() );
+
+	// creating a new map is then a matter of looking if either x
+	// or y is gone over a portion of the map size.
+	const double newMapThreshold = eslamConfig.gridSize * eslamConfig.gridThreshold;
+	if( fabs(tf.translation().x()) > newMapThreshold || fabs(tf.translation().y()) > newMapThreshold )
 	{
 	    // experimental: try to match the currently active grid
 	    // with any of the previous grids
@@ -212,9 +222,9 @@ void EmbodiedSlamFilter::updateMap( MLSGrid* scanMap )
 	    }
 	    */
 
-	    // we are looking for the transform between the active map,
-	    // and the current particle
-	    Transform tf = scanFrame->relativeTransform( pgrid->getFrameNode() );
+	    // create a new grid map. 
+	    // TODO the offset functionality to get to the center of the grid 
+	    // can be implemented easier now, since the grids also have an offset parameter
 	    envire::MLSGrid::Point2D cp = pgrid->getCenterPoint();
 	    pmap->createGrid( tf * Eigen::Translation3d( -cp.x(), -cp.y(), 0 ) );
 	    pgrid = pmap->getActiveGrid().get();
@@ -232,7 +242,7 @@ void EmbodiedSlamFilter::updateMap( MLSGrid* scanMap )
 	typedef std::pair<position, patch> pos_patch;
 	std::vector<pos_patch> patches;
 
-	double d1=0, d2=0;
+	double d1=0, d2=0, vp = 1.0;
 
 	// index the patches 
 	for(std::set<position>::iterator it = cells.begin(); it != cells.end(); it++)
@@ -262,10 +272,16 @@ void EmbodiedSlamFilter::updateMap( MLSGrid* scanMap )
 			const double var = sq( tar_patch->stdev ) + sq( meas_patch.stdev );
 			d1 += diff / var;
 			d2 += 1.0 / var;
+
+			vp = (meas_patch.color - tar_patch->color).norm();
 		    }
 		}
 	    }
 	}
+	vp /= cells.size();
+	if( eslamConfig.useVisualUpdate )
+	    p.weight *= (1.0 - vp);
+
 	double delta = p.zPos;
 	if( d2 > 0 )
 	{
@@ -275,6 +291,7 @@ void EmbodiedSlamFilter::updateMap( MLSGrid* scanMap )
 	    kalman_update( p.zPos, p.zSigma, p.zPos+mean, var );
 	}
 	delta = p.zPos - delta;
+	delta = 0.0; // don't use visual method to correct height for now
 
 	// need to handle cell color here for the update
 	// we need to set the pgrid cell color, such that it matches
@@ -436,7 +453,7 @@ bool EmbodiedSlamFilter::update( const Eigen::Affine3d& body2odometry, const asg
     odometry.update( bs, orientation );
     filter.project( bs, orientation );
 
-    if( eslamConfig.measurementThreshold.test( udPose.inverse() * body2odometry ) )
+    if( eslamConfig.measurementThreshold.test( udPose.inverse() * body2odometry ) || ltc.size() > 0 )
     {
 	filter.update( bs, orientation, ltc );
 	udPose = body2odometry;
