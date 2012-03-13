@@ -42,6 +42,13 @@ struct ContactPoint
     double prob;
 };
 
+struct SlipPoint
+{
+    base::Vector3d position;
+    base::Vector3d color;
+    double prob;
+};
+
 struct PoseParticle
 {
     PoseParticle() {};
@@ -70,6 +77,7 @@ struct PoseParticle
 
     // debug information
     std::vector<ContactPoint> cpoints;
+    std::vector<SlipPoint> spoints;
     base::Vector3d meas_pos;
     double meas_theta;
 

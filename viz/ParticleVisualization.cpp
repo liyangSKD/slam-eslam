@@ -180,6 +180,30 @@ void ParticleVisualization::operatorIntern ( osg::Node* node, osg::NodeVisitor* 
 	    offsetNode->asGroup()->addChild( geode );
 
 	}
+
+	for(size_t j=0;j<pose.spoints.size();j++)
+	{
+	    const eslam::SlipPoint &cp(pose.spoints[j]);
+	    const double radius = 0.05;
+	    const double height = cp.prob;
+	    const osg::Vec3 pos( cp.position.x(), cp.position.y(), cp.position.z() ); 
+
+	    osg::Geode* geode = new osg::Geode;
+
+	    osg::Sphere* sphereShape = new osg::Sphere( pos, radius );
+	    osg::ShapeDrawable *sphere = new osg::ShapeDrawable( sphereShape ); 
+
+	    sphere->setColor( osg::Vec4(cp.color.x(), cp.color.y(), cp.color.z(), 1.0 ) );
+	    geode->addDrawable( sphere );
+
+	    osg::Cylinder* cylinderShape = new osg::Cylinder( pos+osg::Vec3(0,0,height*.5), radius*.5, height );
+	    osg::ShapeDrawable *cylinder = new osg::ShapeDrawable(cylinderShape);
+
+	    cylinder->setColor( osg::Vec4(1.0f, 1.0f, 0.0f, 1.0f) );
+	    geode->addDrawable( cylinder );
+
+	    offsetNode->asGroup()->addChild( geode );
+	}
     }
 }
 
