@@ -19,12 +19,14 @@ int main( int argc, char **argv )
 
     for(int i=0;i<500 && app.isRunning();i++)
     {
-	asguard::BodyState bs;
+	eslam::BodyContactState bs;
 	double r = i/10.0;
 
+	/*
 	bs.twistAngle = sin(r);
 	for(int j=0;j<4;j++)
 	    bs.wheelPos[j] = r;
+	    */
 
 	app.getWidget()->setBodyState( bs );
 	app.getWidget()->setReferencePose( base::Pose( Eigen::Vector3d( 0, r * 0.1, 0 ), Eigen::Quaterniond::Identity() ) );

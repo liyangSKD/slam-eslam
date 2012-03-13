@@ -7,26 +7,10 @@
 #include <terrain_estimator/TerrainConfiguration.hpp>
 #include <envire/maps/MLSGrid.hpp>
 #include <asguard/Configuration.hpp>
+#include <eslam/ContactState.hpp>
 
 namespace eslam
 {
-
-struct BodyContact
-{
-    /**
-     * candidate groups are used for contact point estimation.  Each of the
-     * groups represent a number of potential contact points. Which of these
-     * points have contact can be resolved using a terrain model.  All points
-     * are provided in body frame coordinates.
-     */
-    std::vector<std::vector<base::Vector3d> > candidate_groups;
-
-    /** 
-     * contact_points represent actual points of contact with the environment.
-     * All points are provided in body frame coordinates.
-     */
-    std::vector<ContactPoint> contact_points;
-};
 
 /** 
  * Contactmodel class that relates the kinematic configuration of a robot with
@@ -49,13 +33,17 @@ struct BodyContact
 class ContactModel
 {
 protected:
-    typedef std::vector<base::Vector3d> vec3array;
-    std::vector<vec3array> candidate_group;
-
+    BodyContactState contactState;
+    std::vector<base::Vector3d> lowestPointsPerGroup;
     std::vector<ContactPoint> contact_points;
     std::vector<SlipPoint> slip_points;
 
+    /*
+    typedef std::vector<base::Vector3d> vec3array;
+    std::vector<vec3array> candidate_group;
     asguard::Configuration asguardConfig;
+    std::vector<BodyContactPoint> contactPoints;
+    */
 
     std::vector<terrain_estimator::TerrainClassification> terrain_classification;
 
@@ -65,6 +53,8 @@ protected:
 
     bool m_useShapeUpdate;
     bool m_useTerrainUpdate;
+
+    void lowestPointHeuristic(bool update_probabilities);
 
 public:
     static const int GROUP_SIZE = 4;
@@ -82,13 +72,23 @@ public:
     /** Constructor that takes a @param asguardConfig configuration model as the
      * basis.
      */
-    ContactModel( const asguard::Configuration& asguardConfig );
+    ContactModel(); 
 
     /** given a @param state configuration state of the system and an @param
-     * orientation, candidate contact points are calculated in the yaw
+     * orientation, candidate contact points are calculated and stored in the yaw
      * compensated body frame. 
      */
-    void generateCandidatePoints( const asguard::BodyState& state, const base::Quaterniond& orientation );
+    //void generateCandidatePoints( const BodyContactState& state, const base::Quaterniond& orientation );
+    void setContactPoints( const BodyContactState& state, const base::Quaterniond& orientation );
+
+    /** Update the internal contact probabilities using the lowest-point
+     * heuristic
+     */
+    void updateContactStateUsingLowestPointHeuristic();
+
+    /** Returns the contact state as stored internally by the contact model.
+     */
+    BodyContactState const& getContactState() const;
 
     /** 
      * Will set the optional terrain classification information, which may be
@@ -99,7 +99,11 @@ public:
 	terrain_classification = ltc;
     }
 
-    const std::vector<vec3array>& getCandidatePoints() const { return candidate_group; }
+    /**
+     * will for each group return the candidate contact point with the lowest z
+     * value or all candidate points if there are no groups.
+     */
+    const std::vector<base::Vector3d>& getLowestPointPerGroup();
 
     /** needs to have a prior call generateCandidatePoints. Those candidate
      * points will be evaluated for the given pose and variances on the map
@@ -114,13 +118,13 @@ public:
      * point and zvar it's variance. map needs to return true if a map cell was
      * found and false otherwise.
      *
-     * @param pose - yaw compensated body to world pose of the robot
+     * @param pose - position and heading of the robot, composed in a pose
      * @param measVar - measurement variance of the contact model alogn z-axis 
      * @param map - map callback
      *
      * @result true if any contact points have been found.
      */
-    bool evaluatePose( const base::Affine3d& pose, double measVar, boost::function<bool (const base::Vector3d&, envire::MLSGrid::SurfacePatch&)> map );
+    bool evaluatePose( const base::Affine3d& pos_and_heading, double measVar, boost::function<bool (const base::Vector3d&, envire::MLSGrid::SurfacePatch&)> map );
 
     virtual void evaluateWeight( double measVar );
 
@@ -168,7 +172,7 @@ public:
 class ChittaContactModel : public ContactModel
 {
 public:
-    ChittaContactModel( const asguard::Configuration& asguardConfig );
+    ChittaContactModel();
 
     virtual void evaluateWeight( double measVar );
 };

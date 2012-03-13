@@ -4,7 +4,7 @@
 #include "PoseEstimator.hpp"
 #include "Configuration.hpp"
 
-#include <asguard/Odometry.hpp>
+#include <eslam/ContactOdometry.hpp>
 
 #include <envire/Core.hpp>
 #include <envire/maps/MLSGrid.hpp>
@@ -28,7 +28,7 @@ class EmbodiedSlamFilter
     asguard::Configuration asguardConfig;
     asguard::odometry::Configuration odometryConfig;
 
-    asguard::odometry::Wheel odometry;
+    odometry::FootContact odometry;
     eslam::PoseEstimator filter;
 
     /** pose of last update an mapping step */
@@ -66,7 +66,7 @@ public:
     void updateMap( envire::MLSGrid* scanMap );
     bool update( const Eigen::Affine3d& body2odometry, const base::samples::LaserScan& scan, const Eigen::Affine3d& laser2body );
     bool update( const Eigen::Affine3d& body2odometry, const base::samples::DistanceImage& dimage, const Eigen::Affine3d& camera2body, const base::samples::frame::Frame* timage = NULL );
-    bool update( const Eigen::Affine3d& body2odometry, const asguard::BodyState& bs, const std::vector<terrain_estimator::TerrainClassification>& ltc );
+    bool update( const Eigen::Affine3d& body2odometry, const BodyContactState& bs, const std::vector<terrain_estimator::TerrainClassification>& ltc );
 
     std::vector<eslam::PoseEstimator::Particle>& getParticles();
     base::Affine3d getCentroid();

@@ -8,108 +8,166 @@ template <class T, int N>
     return a[N] < b[N];
 }
 
-ContactModel::ContactModel( const asguard::Configuration& asguardConfig ) 
-    : candidate_group( GROUP_SIZE ),
-    asguardConfig( asguardConfig ),
-    m_useTerrainUpdate( true ),
-    m_useShapeUpdate( true )
+ContactModel::ContactModel() 
+    : m_useShapeUpdate( true ),
+    m_useTerrainUpdate( true )
 {
 }
 
-void ContactModel::generateCandidatePoints( const asguard::BodyState& state, const base::Quaterniond& orientation )
-{
-    // get the orientation first and remove any rotation around the z axis
-    base::Quaterniond zCompensatedOrientation = base::removeYaw( orientation );
 
-    for(int i=0;i<4;i++)
+void ContactModel::setContactPoints( const BodyContactState& state, const base::Quaterniond& orientation )
+{
+    // generate a copy of the provided contact points, transform them using the
+    // given orientation and possibly augment probabilities based on group
+    // information.
+
+    // copy the contact points
+    contactState = state;
+
+    // Clear the lowestPointsPerGroup set. It is updated lazily if
+    // getLowestPointPerGroup is called
+    lowestPointsPerGroup.clear();
+
+    // get the orientation first and remove any rotation around the z axis
+    base::Quaterniond yawCompensatedOrientation = base::removeYaw( orientation );
+
+    std::vector<BodyContactPoint> &contactPoints( contactState.points );
+    for(size_t i=0; i<contactPoints.size(); i++)
+	// store the foot position in yaw compensated rotation frame 
+	contactPoints[i].position = yawCompensatedOrientation * contactPoints[i].position;
+}
+
+BodyContactState const& ContactModel::getContactState() const
+{
+    return contactState;
+}
+
+void ContactModel::lowestPointHeuristic(bool update_probabilities)
+{
+    lowestPointsPerGroup.clear();
+    std::vector<BodyContactPoint> &contactPoints( contactState.points );
+    std::vector<std::pair<double, int> > group;
+
+    for(size_t i=0; i<contactPoints.size(); i++)
     {
-	candidate_group[i].clear();
-	for(int j=0;j<5;j++) 
+	if( contactPoints[i].groupId >= 0 )
 	{
-	    base::Vector3d f = asguardConfig.getFootPosition( state, static_cast<asguard::wheelIdx>(i), j );
-	    candidate_group[i].push_back( zCompensatedOrientation * f );	
+	    // add to group
+	    group.push_back( std::make_pair( contactPoints[i].position.z(), i ) );
+            if (update_probabilities)
+                contactPoints[i].contact = 0;
 	}
-	// remove the two wheels with the highest z value
-	std::sort( candidate_group[i].begin(), candidate_group[i].end(), compareElement<base::Vector3d,2> );
-	candidate_group[i].resize( 3 );
+
+	if (group.empty())
+	    lowestPointsPerGroup.push_back( contactPoints[i].position );
+        else if (i+1 == contactPoints.size() 
+		    || contactPoints[i+1].groupId != contactPoints[i].groupId )
+	{
+	    // Group finished, sort by z value 
+	    std::sort( group.begin(), group.end() );
+
+            BodyContactPoint& contact = contactPoints[group[0].second];
+	    lowestPointsPerGroup.push_back( contact.position );
+            if (update_probabilities)
+                contact.contact = 1;
+	    group.clear();
+	}
     }
 }
 
-
-bool ContactModel::evaluatePose( const base::Affine3d& pose, double measVar, boost::function<bool (const base::Vector3d&, envire::MLSGrid::SurfacePatch&)> map )
+void ContactModel::updateContactStateUsingLowestPointHeuristic()
 {
+    lowestPointHeuristic(true);
+}
+
+const std::vector<base::Vector3d>& ContactModel::getLowestPointPerGroup()
+{
+    if (lowestPointsPerGroup.empty())
+        lowestPointHeuristic(false);
+
+    return lowestPointsPerGroup;
+}
+
+bool ContactModel::evaluatePose( const base::Affine3d& pos_and_heading, double measVar, boost::function<bool (const base::Vector3d&, envire::MLSGrid::SurfacePatch&)> map )
+{
+    if (measVar == 0)
+        throw std::runtime_error("using a zero measurement variance leads to singularities");
+
+    // this funtion finds and stores environment contact points
     contact_points.clear();
+    std::vector<BodyContactPoint> &contactPoints( contactState.points );
 
-    for( size_t group_idx = 0; group_idx < candidate_group.size(); group_idx++ )
+    // Loop over all the contact points, and add valid contacts to the vector
+    // of contact_points (which are effectively environment contact points)
+    // It's a little bit twisted because of the groupId thing.  In a group,
+    // only use the contact_point with the lowest z-value in this group. 
+    ContactPoint p;
+    bool valid = false; // validity of current contact point
+    const double contact_threshold = 0.2; // fixed for now
+    for(size_t i=0; i<contactPoints.size(); i++)
     {
-	// find the contact points with the lowest zdiff per wheel
-	ContactPoint p;
-	bool contact = true;
-	for( std::vector<base::Vector3d>::iterator it = candidate_group[group_idx].begin(); it != candidate_group[group_idx].end(); it++ )
+	int groupId = contactPoints[i].groupId;
+
+	// get contact point candidate and transform it into world
+	// coordinates using the supplied pose transform
+	const base::Vector3d &contact_point( contactPoints[i].position );
+	base::Vector3d contact_point_w = pos_and_heading * contact_point;
+
+	// get the relevant surface patch based on the grid point
+	typedef envire::MultiLevelSurfaceGrid::SurfacePatch Patch;
+	Patch patch( contact_point_w.z(), sqrt(measVar) );
+	if( contactPoints[i].contact > contact_threshold && map( contact_point_w, patch ) )
 	{
-	    // get contact point candidate and transform it into world
-	    // coordinates using the supplied pose transform
-	    const base::Vector3d &contact_point(*it);
-	    base::Vector3d contact_point_w = pose * contact_point;
-
-	    // get the relevant surface patch based on the grid point
-	    typedef envire::MultiLevelSurfaceGrid::SurfacePatch Patch;
-	    Patch patch( contact_point_w.z(), sqrt(measVar) );
-	    if( !map( contact_point_w, patch ) )
-	    {
-		contact = false;
-		break;
-	    }
-
 	    // find the zdiff, which is the difference between contact
 	    // point z-value and environment z-value
 	    const double zdiff = contact_point_w.z() - patch.mean;
 
 	    // the point with the lowest zdiff value is assumed to be the
 	    // right contact point for the group
-	    if( zdiff < p.zdiff )
+	    if( !valid || zdiff < p.zdiff )
 	    {
 		const double zvar = pow(patch.stdev, 2) + measVar;
-		p = ContactPoint( contact_point_w - base::Vector3d::UnitZ() * zdiff, zdiff, zvar );
+		p = ContactPoint( base::Vector3d(contact_point_w.x(), contact_point_w.y(), patch.mean), zdiff, zvar );
+	    }
+	    valid = true;
+	}
 
-		// also include terrain classification information if it exists
-		if( !terrain_classification.empty() )
+	// in case of groups only evaluate at the end of a group interval
+	if( valid && ( groupId == -1 
+		    || i+1 == contactPoints.size() 
+		    || groupId != contactPoints[i + 1].groupId) )
+	{
+	    // also include terrain classification information if it exists
+	    if( !terrain_classification.empty() )
+	    {
+		// look for the terrain classification data which
+		// corresponds to the current group_idx (wheel in asguard case)
+		for( size_t i = 0; i < terrain_classification.size(); i++ )
 		{
-		    // look for the terrain classification data which
-		    // corresponds to the current group_idx (wheel in asguard case)
-		    for( size_t i = 0; i < terrain_classification.size(); i++ )
+		    if( static_cast<size_t>(terrain_classification[i].wheel_idx) == groupId )
 		    {
-			if( static_cast<size_t>(terrain_classification[i].wheel_idx) == group_idx )
-			{
-			    // use the RGB value from the terrain patch to get the terrain class
-			    terrain_estimator::TerrainClassification visual_tc =
-				terrain_estimator::TerrainClassification::fromRGB( patch.color );
+			// use the RGB value from the terrain patch to get the terrain class
+			terrain_estimator::TerrainClassification visual_tc =
+			    terrain_estimator::TerrainClassification::fromRGB( patch.color );
 
-			    // get the joint probability from from visual and proprioceptive 
-			    // classification
-			    double prob = terrain_classification[i].jointProbability( visual_tc );
+			// get the joint probability from from visual and proprioceptive 
+			// classification
+			double prob = terrain_classification[i].jointProbability( visual_tc );
 
-			    //std::cout << patch.color.transpose() << std::endl;
-			    //std::cout << prob << std::endl;
+			// store this information with the contact point
+			p.prob *= prob;
 
-			    // store this information with the contact point
-			    p.prob *= prob;
-
-			    // create debug slip point
-			    SlipPoint sp;
-			    sp.position = contact_point_w;
-			    sp.color = terrain_classification[i].toRGB();
-			    sp.prob = prob;
-			    slip_points.push_back( sp );
-			}
+			// create debug slip point
+			SlipPoint sp;
+			sp.position = contact_point_w;
+			sp.color = terrain_classification[i].toRGB();
+			sp.prob = prob;
+			slip_points.push_back( sp );
 		    }
 		}
 	    }
-	}
-
-	if( contact )
-	{
 	    contact_points.push_back( p );
+	    valid = false;
 	}
     }
 
@@ -176,8 +234,7 @@ void ContactModel::evaluateWeight( double measVar )
        */
 }
 
-ChittaContactModel::ChittaContactModel( const asguard::Configuration& asguardConfig ) 
-    :  ContactModel( asguardConfig )
+ChittaContactModel::ChittaContactModel() 
 {
 }
 

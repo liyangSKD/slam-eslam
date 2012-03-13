@@ -17,7 +17,7 @@ EmbodiedSlamFilter::EmbodiedSlamFilter(
 :   eslamConfig( eslamConfig ),
     asguardConfig( asguardConfig ),
     odometryConfig( odometryConfig ),
-    odometry( odometryConfig, asguardConfig ), 
+    odometry( odometryConfig ), 
     filter( odometry, eslamConfig, asguardConfig ), 
     sharedMap(NULL),
     distGrid(NULL),
@@ -446,7 +446,7 @@ bool EmbodiedSlamFilter::update( const Eigen::Affine3d& body2odometry, const bas
     return false;
 }
 
-bool EmbodiedSlamFilter::update( const Eigen::Affine3d& body2odometry, const asguard::BodyState& bs, const std::vector<terrain_estimator::TerrainClassification>& ltc )
+bool EmbodiedSlamFilter::update( const Eigen::Affine3d& body2odometry, const BodyContactState& bs, const std::vector<terrain_estimator::TerrainClassification>& ltc )
 {
     Eigen::Quaterniond orientation( body2odometry.linear() );
 

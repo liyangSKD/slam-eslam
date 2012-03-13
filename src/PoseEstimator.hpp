@@ -13,7 +13,7 @@
 
 #include <base/pose.h>
 #include <asguard/BodyState.hpp>
-#include <asguard/Odometry.hpp>
+#include <eslam/ContactOdometry.hpp>
 
 #include <envire/Core.hpp>
 #include <envire/maps/MLSMap.hpp>
@@ -116,13 +116,13 @@ class PoseEstimator :
     public ParticleFilter<PoseParticleGA>
 {
 public:
-    PoseEstimator(asguard::odometry::Wheel& odometry, const eslam::Configuration &config, const asguard::Configuration& asguardConfig );
+    PoseEstimator(odometry::FootContact& odometry, const eslam::Configuration &config, const asguard::Configuration& asguardConfig );
     ~PoseEstimator();
 
     void init( int numParticles, SurfaceHash *hash );
     void init(int numParticles, const base::Pose2D& mu, const base::Pose2D& sigma, double zpos = 0, double zsigma = 0);
-    void project(const asguard::BodyState& state, const base::Quaterniond& orientation);
-    void update(const asguard::BodyState& state, const base::Quaterniond& orientation, const std::vector<terrain_estimator::TerrainClassification>& ltc );
+    void project(const BodyContactState& state, const base::Quaterniond& orientation);
+    void update(const BodyContactState& state, const base::Quaterniond& orientation, const std::vector<terrain_estimator::TerrainClassification>& ltc );
 
     void setEnvironment(envire::Environment *env, envire::MLSMap::Ptr map, bool useShared );
     void cloneMaps();
@@ -130,16 +130,16 @@ public:
     base::Pose getCentroid();
 
 private:
-    void updateWeights(const asguard::BodyState& state, const base::Quaterniond& orientation);
+    void updateWeights(const BodyContactState& state, const base::Quaterniond& orientation);
 
     boost::variate_generator<boost::minstd_rand&, boost::normal_distribution<> > rand_norm;
     boost::variate_generator<boost::minstd_rand&, boost::uniform_real<> > rand_uni;
     base::Pose2D samplePose2D( const base::Pose2D& mu, const base::Pose2D& sigma );
-    void sampleFromHash( double replace_percentage, const asguard::BodyState& state, const base::Quaterniond& orientation );
+    void sampleFromHash( double replace_percentage, const BodyContactState& state, const base::Quaterniond& orientation );
 
     eslam::Configuration config;
     ContactModel contactModel;
-    asguard::odometry::Wheel &odometry;
+    odometry::FootContact &odometry;
 
     SurfaceHash *hash;
     

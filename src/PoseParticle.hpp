@@ -13,6 +13,7 @@
 #include <vector>
 
 #include <eslam/GaussianMixture.hpp>
+#include <eslam/ContactState.hpp>
 
 namespace eslam
 {
@@ -22,14 +23,14 @@ struct ContactPoint
     ContactPoint() : 
 	point( Eigen::Vector3d(0,0,0)), 
 	zdiff(std::numeric_limits<double>::infinity()),
+        zvar(std::numeric_limits<double>::infinity()),
 	prob(1.0) {}
 
     ContactPoint(const base::Vector3d& point, double zdiff, double zvar) :
 	point(point),
 	zdiff(zdiff),
 	zvar(zvar),
-	prob(1.0)
-    {}
+        prob(1.0) {}
 
     bool operator<( const ContactPoint& other ) const 
     {
@@ -110,7 +111,7 @@ struct PoseDistribution
     std::vector<PoseParticle> particles;
     GMM gmm;
     base::Quaterniond orientation;
-    asguard::BodyState bodyState;
+    eslam::BodyContactState bodyState;
 };
 
 }

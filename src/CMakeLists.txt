@@ -3,6 +3,8 @@ set(FILTER_HDRS
     PoseEstimator.hpp
     PoseParticle.hpp
     ContactModel.hpp
+    ContactState.hpp
+    ContactOdometry.hpp
     EmbodiedSlamFilter.hpp
     GaussianMixture.hpp
     ExpectationMaximization.hpp
@@ -14,6 +16,7 @@ set(FILTER_SRCS
     PoseEstimator.cpp
     ContactModel.cpp
     EmbodiedSlamFilter.cpp
+    ContactOdometry.cpp
     )
 
 rock_library(eslam
