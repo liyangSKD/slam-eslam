@@ -50,7 +50,7 @@ MLSMap* EmbodiedSlamFilter::createMapTemplate( envire::Environment* env, const b
     // even with bad odometry
     // TODO we won't need this if we get proper z information
     // from the odometry
-    envire::MLSGrid::SurfacePatch p( 0, 1.0, 0, true );
+    envire::MLSGrid::SurfacePatch p( 0, 1.0, 0, envire::MLSGrid::SurfacePatch::HORIZONTAL );
     const size_t cx = gridTemplate->getWidth() / 2.0;
     const size_t cy = gridTemplate->getHeight() / 2.0;
     for( int x=-20; x<20; x++ )
@@ -266,7 +266,7 @@ void EmbodiedSlamFilter::updateMap( MLSGrid* scanMap )
 
 		    // find a patch in the target map and see if its relevant for measurement
 		    patch *tar_patch = pgrid->get( pos, meas_patch, 0.5 ); 
-		    if( tar_patch && tar_patch->horizontal && meas_patch.horizontal && (tar_patch->update_idx + 0 < meas_patch.update_idx ) && false )
+		    if( tar_patch && tar_patch->isHorizontal() && meas_patch.isHorizontal() && (tar_patch->update_idx + 0 < meas_patch.update_idx ) && false )
 		    {
 			const double diff = meas_patch.mean - tar_patch->mean;
 			const double var = sq( tar_patch->stdev ) + sq( meas_patch.stdev );

@@ -26,7 +26,7 @@ struct FakeMLSAccess
         patch.mean = z[index];
         patch.stdev = stddev[index];
         patch.height = 0;
-        patch.horizontal = true;
+	patch.setHorizontal();
         return true;
     }
 };
