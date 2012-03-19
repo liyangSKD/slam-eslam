@@ -2,7 +2,7 @@
 #include "ParticleVisualization.hpp"
 #include "BodyContactStateVisualization.hpp"
 
-namespace vizkit {
+namespace eslam {
     class QtPluginVizkit : public vizkit::VizkitPluginFactory {
     private:
     public:
