@@ -93,8 +93,8 @@ void FootContact::update(const eslam::BodyContactState& bs, const Eigen::Quatern
 	const eslam::BodyContactPoint &prevPoint( state.getPrevious().points[i] );
 	const eslam::BodyContactPoint &point( state.getCurrent().points[i] );
 
-	if( prevPoint.contact > contact_threshold 
-		&& point.contact > contact_threshold )
+	if( prevPoint.contact >= contact_threshold 
+		&& point.contact >= contact_threshold )
 	{
 	    sum += prevPoint.position - delta_rotq * point.position;
 	    count++;
