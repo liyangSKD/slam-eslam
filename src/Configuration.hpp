@@ -68,6 +68,7 @@ struct Configuration
 	gridThreshold( 0.5 ),
 	gridPatchThickness( 0.1 ),
 	gridGapSize( 1.5 ),
+	gridUseNegativeInformation( false ),
 	maxSensorRange( 3.0 ),
 	useVisualUpdate( false ),
 	useSlipUpdate( false ),
@@ -140,6 +141,10 @@ struct Configuration
     /** gapSize parameter for the MLS
      */
     double gridGapSize;
+    /** if set to true, negative information (like the absence of things) will
+     * also be used in the processing chain.
+     */
+    bool gridUseNegativeInformation;
     /** maximum range value for camera sensor data
      */
     double maxSensorRange;

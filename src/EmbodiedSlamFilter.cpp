@@ -164,6 +164,7 @@ void EmbodiedSlamFilter::init( envire::Environment* env, const base::Pose& pose,
     mlsOp->addInput( pcNode );
     mlsOp->addOutput( scanMap );
     mlsOp->useUncertainty( true );
+    mlsOp->useNegativeInformation( eslamConfig.gridUseNegativeInformation );
 
     // camera related setup
     distFrame = new envire::FrameNode();
