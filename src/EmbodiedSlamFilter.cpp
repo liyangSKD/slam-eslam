@@ -29,8 +29,8 @@ MLSGrid* EmbodiedSlamFilter::createGridTemplate( envire::Environment* env )
     const double size = eslamConfig.gridSize;
     const double resolution = eslamConfig.gridResolution;
     envire::MLSGrid* gridTemplate = 
-	    new envire::MLSGrid( size/resolution, size/resolution, resolution, resolution );
-    envire::FrameNode *gridNode = new envire::FrameNode( Eigen::Affine3d( Eigen::Translation3d( -size/2.0, -size/2.0, 0 ) ) ); 
+	    new envire::MLSGrid( size/resolution, size/resolution, resolution, resolution, -size/2.0, -size/2.0  );
+    envire::FrameNode *gridNode = new envire::FrameNode(); 
     env->addChild( env->getRootNode(), gridNode );
     env->setFrameNode( gridTemplate, gridNode );
 
@@ -224,10 +224,7 @@ void EmbodiedSlamFilter::updateMap( MLSGrid* scanMap )
 	    */
 
 	    // create a new grid map. 
-	    // TODO the offset functionality to get to the center of the grid 
-	    // can be implemented easier now, since the grids also have an offset parameter
-	    envire::MLSGrid::Point2D cp = pgrid->getCenterPoint();
-	    pmap->createGrid( tf * Eigen::Translation3d( -cp.x(), -cp.y(), 0 ) );
+	    pmap->createGrid( tf );
 	    pgrid = pmap->getActiveGrid().get();
 	}
 
