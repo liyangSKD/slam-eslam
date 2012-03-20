@@ -205,7 +205,7 @@ void EmbodiedSlamFilter::updateMap( MLSGrid* scanMap )
 
 	// creating a new map is then a matter of looking if either x
 	// or y is gone over a portion of the map size.
-	const double newMapThreshold = eslamConfig.gridSize * eslamConfig.gridThreshold;
+	const double newMapThreshold = eslamConfig.gridSize / 2.0 * eslamConfig.gridThreshold;
 	if( fabs(tf.translation().x()) > newMapThreshold || fabs(tf.translation().y()) > newMapThreshold )
 	{
 	    // experimental: try to match the currently active grid
