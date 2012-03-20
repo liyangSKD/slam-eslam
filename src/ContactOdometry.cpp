@@ -100,7 +100,9 @@ void FootContact::update(const eslam::BodyContactState& bs, const Eigen::Quatern
 	    count++;
 	}
     }
-    Eigen::Vector3d mean = sum / count;
+    Eigen::Vector3d mean = sum;
+    if( count > 0 ) 
+	mean /= count;
 
     base::Pose delta_pose( mean, delta_rotq );
     
