@@ -69,6 +69,7 @@ public:
     bool update( const Eigen::Affine3d& body2odometry, const BodyContactState& bs, const std::vector<terrain_estimator::TerrainClassification>& ltc );
 
     std::vector<eslam::PoseEstimator::Particle>& getParticles();
+    size_t getBestParticleIndex() const;
     base::Affine3d getCentroid();
 };
 

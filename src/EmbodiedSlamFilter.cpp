@@ -467,6 +467,11 @@ std::vector<eslam::PoseEstimator::Particle>& EmbodiedSlamFilter::getParticles()
     return filter.getParticles();
 }
 
+size_t EmbodiedSlamFilter::getBestParticleIndex() const
+{
+    return filter.getBestParticleIndex();
+}
+
 base::Affine3d EmbodiedSlamFilter::getCentroid()
 {
     return filter.getCentroid().toTransform();

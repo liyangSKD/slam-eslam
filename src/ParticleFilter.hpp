@@ -4,6 +4,7 @@
 #include <boost/random/linear_congruential.hpp>
 #include <boost/random/uniform_real.hpp>
 #include <boost/random/variate_generator.hpp>
+#include <limits>
 
 namespace eslam 
 {
@@ -94,6 +95,20 @@ public:
 	return xi_k;
     };
 
+    size_t getBestParticleIndex() const 
+    {
+	size_t index = 0;
+	double weight = -std::numeric_limits<double>::infinity();
+	for(size_t i=0;i<xi_k.size();i++)
+	{
+	    if( xi_k[i].weight > weight )
+	    {
+		index = i;
+		weight = xi_k[i].weight;
+	    }
+	}
+	return index;
+    }
 
 protected:
     std::vector<Particle> xi_k;
