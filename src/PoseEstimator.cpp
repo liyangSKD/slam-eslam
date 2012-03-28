@@ -184,6 +184,7 @@ void PoseEstimator::sampleFromHash( double replace_percentage, const BodyContact
 
 void PoseEstimator::project(const BodyContactState& state, const base::Quaterniond& orientation)
 {
+    zCompensatedOrientation = base::removeYaw( orientation );
     Eigen::Affine3d dtrans = orientation * odometry.getPoseDelta().toTransform();
     const double z_delta = dtrans.translation().z();
     
