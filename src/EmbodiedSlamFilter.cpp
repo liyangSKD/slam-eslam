@@ -96,7 +96,10 @@ void EmbodiedSlamFilter::init( envire::Environment* env, const base::Pose& pose,
 	    MLSMap* mapTemplate = new MLSMap();
 	    FrameNode *mapNode = new envire::FrameNode(); 
 	    env->addChild( env->getRootNode(), mapNode );
-	    env->addChild( mapNode, gridTemplate->getFrameNode() );
+	    if( gridTemplate->getFrameNode() == env->getRootNode() )
+		env->setFrameNode( gridTemplate, mapNode );
+	    else
+		env->addChild( mapNode, gridTemplate->getFrameNode() );
 	    env->setFrameNode( mapTemplate, mapNode );
 	    mapTemplate->addGrid( gridTemplate );
 
