@@ -113,7 +113,10 @@ void EmbodiedSlamFilter::init( envire::Environment* env, const base::Pose& pose,
 	    sharedMap = mapTemplate;
 	}
 	else
-	    sharedMap = createMapTemplate( env );
+	{
+	    throw std::runtime_error("The provided environment does not contain an mls grid.");
+	    //sharedMap = createMapTemplate( env );
+	}
     }
 
     const double angle = pose.orientation.toRotationMatrix().eulerAngles(2,1,0)[0];
