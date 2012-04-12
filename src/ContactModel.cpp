@@ -148,7 +148,7 @@ bool ContactModel::evaluatePose( const base::Affine3d& pos_and_heading, double m
 		    {
 			// use the RGB value from the terrain patch to get the terrain class
 			terrain_estimator::TerrainClassification visual_tc =
-			    terrain_estimator::TerrainClassification::fromRGB( patch.color );
+			    terrain_estimator::TerrainClassification::fromRGB( patch.getColor() );
 
 			// get the joint probability from from visual and proprioceptive 
 			// classification

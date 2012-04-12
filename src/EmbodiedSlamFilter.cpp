@@ -277,7 +277,7 @@ void EmbodiedSlamFilter::updateMap( MLSGrid* scanMap )
 			d1 += diff / var;
 			d2 += 1.0 / var;
 
-			vp = (meas_patch.color - tar_patch->color).norm();
+			vp = (meas_patch.getColor() - tar_patch->getColor()).norm();
 		    }
 		}
 	    }
