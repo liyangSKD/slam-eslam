@@ -63,7 +63,7 @@ public:
 	for( std::set<envire::EnvironmentItem*>::iterator it = add.begin(); it != add.end(); it++ )
 	{
 	    items.insert( *it );
-	    handler->handle( envire::Event( envire::event::ITEM, envire::event::ADD, *it ) );
+	    handle( envire::Event( envire::event::ITEM, envire::event::ADD, *it ) );
 	}
 
 	for( std::set<envire::EnvironmentItem*>::iterator it = add.begin(); it != add.end(); it++ )
@@ -80,7 +80,7 @@ public:
 
 	for( std::set<envire::EnvironmentItem*>::iterator it = remove.begin(); it != remove.end(); it++ )
 	{
-	    handler->handle( envire::Event( envire::event::ITEM, envire::event::REMOVE, *it ) );
+	    handle( envire::Event( envire::event::ITEM, envire::event::REMOVE, *it ) );
 	    items.erase( *it );
 	}
     }
@@ -91,18 +91,18 @@ protected:
 	if( dynamic_cast<envire::CartesianMap*>( item ) )
 	{
 	    envire::MLSGrid *grid = dynamic_cast<envire::MLSGrid*>( item );
-	    handler->handle( envire::Event( envire::event::FRAMENODE, op, grid, grid->getFrameNode() ) );
+	    handle( envire::Event( envire::event::FRAMENODE, op, grid, grid->getFrameNode() ) );
 	}
 	else if( dynamic_cast<envire::FrameNode*>( item ) )
 	{
 	    envire::FrameNode *fn = dynamic_cast<envire::FrameNode*>( item );
 	    if( env->getRootNode() == fn )
 	    {
-		handler->handle( envire::Event( envire::event::ROOT, op, fn ) );
+		handle( envire::Event( envire::event::ROOT, op, fn ) );
 	    }
 	    else
 	    {
-		handler->handle( envire::Event( envire::event::FRAMENODE_TREE, op, fn->getParent(), fn ) );
+		handle( envire::Event( envire::event::FRAMENODE_TREE, op, fn->getParent(), fn ) );
 	    }
 	}
 	else
