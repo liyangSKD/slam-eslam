@@ -16,7 +16,7 @@ using namespace envire;
 
 EslamWidget::EslamWidget( QWidget* parent, Qt::WindowFlags f )
     : Vizkit3DWidget( parent, f ),
-    envViz( new EnvireVisualization() ),
+    envViz( new envire::EnvireVisualization() ),
     robotViz( new AsguardVisualization() ),
     particleViz( new ParticleVisualization() ),
     referenceViz( new TrajectoryVisualization() ),

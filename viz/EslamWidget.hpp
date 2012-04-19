@@ -17,11 +17,11 @@ namespace eslam
 namespace envire
 {
     class MLSMap;
+    class EnvireVisualization;
 }
 
 namespace vizkit
 {
-class EnvireVisualization;
 class AsguardVisualization;
 class ParticleVisualization;
 class TrajectoryVisualization;
@@ -47,7 +47,7 @@ public:
     bool isDirty() const;
 
 private:
-    boost::shared_ptr<EnvireVisualization> envViz;
+    boost::shared_ptr<envire::EnvireVisualization> envViz;
     boost::shared_ptr<AsguardVisualization> robotViz;
     boost::shared_ptr<ParticleVisualization> particleViz;
 
