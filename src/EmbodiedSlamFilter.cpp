@@ -332,7 +332,7 @@ bool EmbodiedSlamFilter::update(
 	const Eigen::Affine3d& body2odometry, const base::samples::DistanceImage& dimage, 
 	const Eigen::Affine3d& camera2body, const base::samples::frame::Frame* timage )
 {
-    if( eslamConfig.mappingCameraThreshold.test( stereoPose.inverse() * body2odometry ) )
+    if( eslamConfig.mappingCameraThreshold.test( stereoPose.inverse() * body2odometry * camera2body ) )
     {
 	Eigen::Quaterniond orientation( body2odometry.linear() );
 
@@ -392,7 +392,7 @@ bool EmbodiedSlamFilter::update(
 
 	updateMap( scanMap );
 
-	stereoPose = body2odometry;
+	stereoPose = body2odometry * camera2body;
 
 	return true;
     }
@@ -402,7 +402,7 @@ bool EmbodiedSlamFilter::update(
 
 bool EmbodiedSlamFilter::update( const Eigen::Affine3d& body2odometry, const base::samples::LaserScan& scan, const Eigen::Affine3d& laser2body )
 {
-    if( eslamConfig.mappingThreshold.test( mapPose.inverse() * body2odometry ) )
+    if( eslamConfig.mappingThreshold.test( mapPose.inverse() * body2odometry * laser2body ) )
     {
 	Eigen::Quaterniond orientation( body2odometry.linear() );
 
@@ -443,7 +443,7 @@ bool EmbodiedSlamFilter::update( const Eigen::Affine3d& body2odometry, const bas
 	    updateMap( scanMap );
 	}
 
-	mapPose = body2odometry;
+	mapPose = body2odometry * laser2body;
 
 	return true;
     }
