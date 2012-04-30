@@ -45,22 +45,6 @@ MLSMap* EmbodiedSlamFilter::createMapTemplate( envire::Environment* env, const b
     envire::MLSGrid* gridTemplate = 
 	createGridTemplate( env );
 
-    // generate a solid surface patch around the start
-    // position, so that we can align to a single height
-    // even with bad odometry
-    // TODO we won't need this if we get proper z information
-    // from the odometry
-    envire::MLSGrid::SurfacePatch p( 0, 1.0, 0, envire::MLSGrid::SurfacePatch::HORIZONTAL );
-    const size_t cx = gridTemplate->getWidth() / 2.0;
-    const size_t cy = gridTemplate->getHeight() / 2.0;
-    for( int x=-20; x<20; x++ )
-    {
-	for( int y=-20; y<20; y++ )
-	{
-	    gridTemplate->insertTail( cx + x, cy + y, p );
-	}
-    }
-
     MLSMap* mapTemplate = new MLSMap();
     FrameNode *mapNode = new envire::FrameNode(); 
     env->addChild( env->getRootNode(), mapNode );
