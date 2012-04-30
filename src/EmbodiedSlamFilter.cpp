@@ -145,7 +145,7 @@ void EmbodiedSlamFilter::init( envire::Environment* env, const base::Pose& pose,
     if( sharedMap )
 	filter.setEnvironment( env, sharedMap, useSharedMap );
     else
-	filter.setEnvironment( env, createMapTemplate( env ), useSharedMap );
+	filter.setEnvironment( env, createMapTemplate( env, pose ), useSharedMap );
 
     // setup environment for converting scans
     scanMap = createGridTemplate( env ); 
