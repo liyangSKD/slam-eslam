@@ -56,6 +56,7 @@ struct Configuration
 	initialError(0.1), 
 	measurementError( 0.1 ),
 	discountFactor( 0.9 ),
+	minContacts( 3 ),
 	spreadThreshold( 0.9 ),
 	spreadTranslationFactor( 0.1 ),
 	spreadRotationFactor( 0.05 ),
@@ -102,6 +103,11 @@ struct Configuration
      * activated when the maximum particle weight is below this value.
      * Set to 0.0 to disable spreading.
      */ 
+    size_t minContacts;
+    /** minimum number of contact points that have valid information
+     * in order to consider a height measurement valid. Particles
+     * with less than this number will be considered floating.
+     */
     double spreadThreshold;
     /** spread factor for translational component
      */

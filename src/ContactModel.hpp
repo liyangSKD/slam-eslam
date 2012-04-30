@@ -53,6 +53,7 @@ protected:
 
     bool m_useShapeUpdate;
     bool m_useTerrainUpdate;
+    size_t m_minContacts;
 
     void lowestPointHeuristic(bool update_probabilities);
 
@@ -68,6 +69,14 @@ public:
     {
 	m_useTerrainUpdate = use;
     }	
+
+    /** @brief set minimum number of valid contacts in order for 
+     * the measurement to be valid.
+     */
+    void setMinContacts( size_t min_contacts )
+    {
+	m_minContacts = min_contacts;
+    }
 
     /** Constructor that takes a @param asguardConfig configuration model as the
      * basis.

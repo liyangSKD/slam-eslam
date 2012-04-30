@@ -10,7 +10,8 @@ template <class T, int N>
 
 ContactModel::ContactModel() 
     : m_useShapeUpdate( true ),
-    m_useTerrainUpdate( true )
+    m_useTerrainUpdate( true ),
+    m_minContacts( 1 )
 {
 }
 
@@ -171,7 +172,7 @@ bool ContactModel::evaluatePose( const base::Affine3d& pos_and_heading, double m
 	}
     }
 
-    if( contact_points.size() > 0 ) 
+    if( contact_points.size() >= m_minContacts ) 
     {
 	evaluateWeight( measVar );
 	return true;
