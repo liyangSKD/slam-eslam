@@ -89,7 +89,10 @@ const std::vector<base::Vector3d>& ContactModel::getLowestPointPerGroup()
     return lowestPointsPerGroup;
 }
 
-bool ContactModel::evaluatePose( const base::Affine3d& pos_and_heading, double measVar, boost::function<bool (const base::Vector3d&, envire::MLSGrid::SurfacePatch&)> map )
+bool ContactModel::evaluatePose( 
+	const base::Affine3d& pos_and_heading, 
+	double measVar, 
+	boost::function<bool (const base::Vector3d&, envire::MLSGrid::SurfacePatch&)> map )
 {
     if (measVar == 0)
         throw std::runtime_error("using a zero measurement variance leads to singularities");
