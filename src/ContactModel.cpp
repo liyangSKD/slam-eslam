@@ -107,6 +107,7 @@ bool ContactModel::evaluatePose(
     // only use the contact_point with the lowest z-value in this group. 
     ContactPoint p;
     bool valid = false; // validity of current contact point
+    bool group_valid = true; // validity of current contact group
     const double contact_threshold = 0.2; // fixed for now
     for(size_t i=0; i<contactPoints.size(); i++)
     {
@@ -122,57 +123,67 @@ bool ContactModel::evaluatePose(
 	Patch patch( contact_point_w.z(), sqrt(measVar) );
 
 	const float contactProbability = contactPoints[i].contact; 
-	if( !(contactProbability < contact_threshold) && map( contact_point_w, patch ) )
+	if( group_valid && !(contactProbability < contact_threshold) )
 	{
-	    // find the zdiff, which is the difference between contact
-	    // point z-value and environment z-value
-	    const double zdiff = contact_point_w.z() - patch.mean;
-
-	    // the point with the lowest zdiff value is assumed to be the
-	    // right contact point for the group
-	    if( !valid || zdiff < p.zdiff )
+	    if( map( contact_point_w, patch ) )
 	    {
-		const double zvar = pow(patch.stdev, 2) + measVar;
-		p = ContactPoint( base::Vector3d(contact_point_w.x(), contact_point_w.y(), patch.mean), zdiff, zvar );
+		// find the zdiff, which is the difference between contact
+		// point z-value and environment z-value
+		const double zdiff = contact_point_w.z() - patch.mean;
+
+		// the point with the lowest zdiff value is assumed to be the
+		// right contact point for the group
+		if( !valid || zdiff < p.zdiff )
+		{
+		    const double zvar = pow(patch.stdev, 2) + measVar;
+		    p = ContactPoint( base::Vector3d(contact_point_w.x(), contact_point_w.y(), patch.mean), zdiff, zvar );
+		    valid = true;
+		}
 	    }
-	    valid = true;
+	    else
+		group_valid = false;
 	}
 
 	// in case of groups only evaluate at the end of a group interval
-	if( valid && ( groupId == -1 
-		    || i+1 == contactPoints.size() 
-		    || groupId != contactPoints[i + 1].groupId) )
+	if( valid && 
+		( groupId == -1 
+		  || i+1 == contactPoints.size() 
+		  || groupId != contactPoints[i + 1].groupId ) )
 	{
-	    // also include terrain classification information if it exists
-	    if( !terrain_classification.empty() )
+	    if( group_valid )
 	    {
-		// look for the terrain classification data which
-		// corresponds to the current group_idx (wheel in asguard case)
-		for( size_t i = 0; i < terrain_classification.size(); i++ )
+		// also include terrain classification information if it exists
+		if( !terrain_classification.empty() )
 		{
-		    if( static_cast<size_t>(terrain_classification[i].wheel_idx) == groupId )
+		    // look for the terrain classification data which
+		    // corresponds to the current group_idx (wheel in asguard case)
+		    for( size_t i = 0; i < terrain_classification.size(); i++ )
 		    {
-			// use the RGB value from the terrain patch to get the terrain class
-			terrain_estimator::TerrainClassification visual_tc =
-			    terrain_estimator::TerrainClassification::fromRGB( patch.getColor() );
+			if( static_cast<size_t>(terrain_classification[i].wheel_idx) == groupId )
+			{
+			    // use the RGB value from the terrain patch to get the terrain class
+			    terrain_estimator::TerrainClassification visual_tc =
+				terrain_estimator::TerrainClassification::fromRGB( patch.getColor() );
 
-			// get the joint probability from from visual and proprioceptive 
-			// classification
-			double prob = terrain_classification[i].jointProbability( visual_tc );
+			    // get the joint probability from from visual and proprioceptive 
+			    // classification
+			    double prob = terrain_classification[i].jointProbability( visual_tc );
 
-			// store this information with the contact point
-			p.prob *= prob;
+			    // store this information with the contact point
+			    p.prob *= prob;
 
-			// create debug slip point
-			SlipPoint sp;
-			sp.position = contact_point_w;
-			sp.color = terrain_classification[i].toRGB();
-			sp.prob = prob;
-			slip_points.push_back( sp );
+			    // create debug slip point
+			    SlipPoint sp;
+			    sp.position = contact_point_w;
+			    sp.color = terrain_classification[i].toRGB();
+			    sp.prob = prob;
+			    slip_points.push_back( sp );
+			}
 		    }
 		}
+		contact_points.push_back( p );
 	    }
-	    contact_points.push_back( p );
+	    group_valid = true;
 	    valid = false;
 	}
     }

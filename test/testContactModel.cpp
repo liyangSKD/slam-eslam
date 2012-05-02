@@ -8,10 +8,11 @@ struct FakeMLSAccess
 {
     double const* z;
     double const* stddev;
+    bool const* res;
     std::vector<base::Vector3d> points;
 
-    FakeMLSAccess(double const* z, double const* stddev)
-        : z(z), stddev(stddev) {}
+    FakeMLSAccess(double const* z, double const* stddev, bool const* res = 0)
+        : z(z), stddev(stddev), res( res ) {}
 
     bool get(base::Vector3d const& pos, envire::MLSGrid::SurfacePatch& patch)
     {
@@ -27,6 +28,10 @@ struct FakeMLSAccess
         patch.stdev = stddev[index];
         patch.height = 0;
 	patch.setHorizontal();
+
+	if( res )
+	    return res[index];
+
         return true;
     }
 };
@@ -314,6 +319,44 @@ BOOST_AUTO_TEST_CASE( test_updatePose_group )
         BOOST_CHECK_SMALL(model.getZDelta(), 1e-6);
         BOOST_CHECK_CLOSE(model.getZVar(), 1, 1e-6);
         BOOST_CHECK_CLOSE(model.getWeight(), 1, 1e-2);
+    }
+}
+
+BOOST_AUTO_TEST_CASE( test_mapAbsence_group )
+{
+    BodyContactState state;
+    state.time = base::Time::now();
+    state.points.resize(4);
+    state.points[0].position = base::Vector3d(-1, -1, 0.1);
+    state.points[0].contact  = base::unknown<float>();
+    state.points[0].slip  = 0;
+    state.points[0].groupId  = 0;
+    state.points[1].position = base::Vector3d(1, -1, -0.1);
+    state.points[1].contact  = base::unknown<float>();
+    state.points[1].slip  = 0;
+    state.points[1].groupId  = 0;
+    state.points[2].position = base::Vector3d(-1, 1, 0.1);
+    state.points[2].contact  = base::unknown<float>();
+    state.points[2].slip  = 0;
+    state.points[2].groupId  = 1;
+    state.points[3].position = base::Vector3d(1, 1, -0.1);
+    state.points[3].contact  = base::unknown<float>();
+    state.points[3].slip  = 0;
+    state.points[3].groupId  = 1;
+
+    ContactModel model;
+    model.setContactPoints(state, base::Quaterniond::Identity());
+    {
+        double z[4] = { -0.1, -0.1, -0.1, -0.1 };
+        double stddev[4] = { 1e9, 1, 1e9, 1 };
+	bool res[4] = { true, true, true, false };
+        FakeMLSAccess access(z, stddev, res);
+        base::Affine3d pose(Eigen::Translation3d(0, 0, 0));
+
+        BOOST_REQUIRE(model.evaluatePose(pose, 1,
+            boost::bind(&FakeMLSAccess::get, &access, _1, _2)));
+
+	BOOST_CHECK_EQUAL( model.getContactPoints().size(), 1 );
     }
 }
 
