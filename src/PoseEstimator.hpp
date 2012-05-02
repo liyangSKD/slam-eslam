@@ -82,6 +82,11 @@ public:
 	return map.get();
     }
 
+    const envire::MLSMap* getMap() const
+    {
+	return map.get();
+    }
+
     void copy( const GridAccess& other )
     {
 	envire::MLSMap::Ptr new_map = other.map->cloneDeep();

@@ -95,6 +95,11 @@ public:
 	return xi_k;
     };
 
+    const std::vector<Particle>& getParticles() const
+    {
+	return xi_k;
+    };
+
     size_t getBestParticleIndex() const 
     {
 	size_t index = 0;
