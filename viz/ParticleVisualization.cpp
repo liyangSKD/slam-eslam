@@ -57,6 +57,13 @@ void ParticleVisualization::inspectParticle( int index )
 {
     inspectIdx = index;
     setDirty();
+
+    emit inspectParticleUpdate( index );
+}
+
+int ParticleVisualization::getInspectedParticle() const
+{
+    return inspectIdx;
 }
 
 ParticleVisualization::ParticleVisualization()

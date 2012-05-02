@@ -21,8 +21,7 @@ class ParticleVisualization : public VizPluginAdapter<eslam::PoseDistribution>
 	ParticleVisualization();
 
 	void setVisualiseContacts(bool viscontacts);
-	void inspectParticle(int index);
-	int getInspectedParticle() const { return inspectIdx; }
+	int getInspectedParticle() const; 
 
 	Q_INVOKABLE void updatePoseDistribution( const eslam::PoseDistribution& data );
 	Q_PROPERTY( bool show_gmm READ getShowGMM WRITE setShowGMM )
@@ -30,6 +29,10 @@ class ParticleVisualization : public VizPluginAdapter<eslam::PoseDistribution>
     public slots:
 	bool getShowGMM() const { return show_gmm; }
 	void setShowGMM( bool show ) { show_gmm = show; emit propertyChanged("show_gmm"); }
+	void inspectParticle(int index);
+
+    signals:
+	void inspectParticleUpdate(int index);
 	    
     private:
 	bool show_gmm;

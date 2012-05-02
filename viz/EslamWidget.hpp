@@ -3,6 +3,7 @@
 
 #include <Eigen/Geometry>
 #include <eslam/ContactState.hpp>
+#include <eslam/PoseEstimator.hpp>
 #include <envire/Core.hpp>
 #include <base/pose.h>
 
@@ -29,22 +30,27 @@ class MapVizEventFilter;
 
 class EslamWidget : public Vizkit3DWidget
 {
+    Q_OBJECT 
+
 public:
     EslamWidget( QWidget* parent = 0, Qt::WindowFlags f = 0 );
     ~EslamWidget();
+
     void setPoseDistribution( const eslam::PoseDistribution& dist );
     void setBodyState( const eslam::BodyContactState& body_state ); 
     void setReferencePose( const base::Pose& pose );
     void setCentroidPose( const base::Pose& pose );
     void setEnvironment( envire::Environment *env );
+    void setPoseParticles( std::vector<eslam::PoseParticleGA> *pe );
 
     int getInspectedParticleIndex() const;
     void setInspectedParticleIndex( int index );
 
-    void viewMap( envire::MLSMap* map );
-
     void setDirty(); 
     bool isDirty() const;
+
+public slots:
+    void viewMap( int particle_idx );
 
 private:
     boost::shared_ptr<envire::EnvireVisualization> envViz;
@@ -56,6 +62,7 @@ private:
 
     boost::shared_ptr<MapVizEventFilter> filter;
 
+    std::vector<eslam::PoseParticleGA> *pe;
 };
 
 }

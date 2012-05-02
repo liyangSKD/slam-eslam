@@ -21,7 +21,8 @@ EslamWidget::EslamWidget( QWidget* parent, Qt::WindowFlags f )
     particleViz( new ParticleVisualization() ),
     referenceViz( new TrajectoryVisualization() ),
     centroidViz( new TrajectoryVisualization() ),
-    filter( new MapVizEventFilter() )
+    filter( new MapVizEventFilter() ),
+    pe( NULL )
 {
     addDataHandler( envViz.get() );
     addDataHandler( robotViz.get() );
@@ -37,6 +38,9 @@ EslamWidget::EslamWidget( QWidget* parent, Qt::WindowFlags f )
 
     // attach the filter
     envViz->setFilter( filter.get() );
+
+    // connect signals for particle inspection
+    connect( particleViz.get(), SIGNAL(inspectParticleUpdate(int)), this, SLOT(viewMap(int)) );
 }
 
 EslamWidget::~EslamWidget()
@@ -89,6 +93,11 @@ void EslamWidget::setEnvironment( envire::Environment *env )
     envViz->updateData( env );
 }
 
+void EslamWidget::setPoseParticles( std::vector<eslam::PoseParticleGA> *pe )
+{
+    this->pe = pe;
+}
+
 void EslamWidget::setDirty() 
 {
     envViz->setDirty();
@@ -97,11 +106,14 @@ void EslamWidget::setDirty()
 bool EslamWidget::isDirty() const
 {
     return envViz->isDirty();
-    envViz->setDirty();
 }
 
-void EslamWidget::viewMap( envire::MLSMap* map )
+void EslamWidget::viewMap( int particle_idx )
 {
-    filter->viewMap( map );
-    envViz->setDirty();
+    if( pe && particle_idx >= 0 && (size_t)particle_idx < pe->size() )
+    {
+	envire::MLSMap *map = (*pe)[particle_idx].grid.getMap();
+	filter->viewMap( map );
+	envViz->setDirty();
+    }
 }
