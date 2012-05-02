@@ -120,7 +120,9 @@ bool ContactModel::evaluatePose(
 	// get the relevant surface patch based on the grid point
 	typedef envire::MultiLevelSurfaceGrid::SurfacePatch Patch;
 	Patch patch( contact_point_w.z(), sqrt(measVar) );
-	if( contactPoints[i].contact > contact_threshold && map( contact_point_w, patch ) )
+
+	const float contactProbability = contactPoints[i].contact; 
+	if( !(contactProbability < contact_threshold) && map( contact_point_w, patch ) )
 	{
 	    // find the zdiff, which is the difference between contact
 	    // point z-value and environment z-value

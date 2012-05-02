@@ -55,7 +55,7 @@ void check_contact_point_selection(std::vector<ContactPoint> const& selected,
         int expected_idx = expected[i];
         base::Vector3d p = state.points[expected_idx].position;
         p.z() = z[expected_idx];
-        BOOST_CHECK_EQUAL(selected[i].point, p);
+        BOOST_CHECK(selected[i].point.isApprox(p, 1e-6));
         BOOST_CHECK_SMALL((selected[i].point.z() - state.points[expected_idx].position.z()) - (z[i] - state.points[expected_idx].position.z()), 1e-6);
     }
 }
@@ -66,11 +66,11 @@ BOOST_AUTO_TEST_CASE( test_eslam_passes_valid_global_position_to_map_accessor )
     state.time = base::Time::now();
     state.points.resize(4);
     state.points[0].position = base::Vector3d(1, 0, 0);
-    state.points[0].contact  = 0.1;
+    state.points[0].contact  = 0.5;
     state.points[0].slip  = 0;
     state.points[0].groupId  = -1;
     state.points[1].position = base::Vector3d(-1, 0, 0);
-    state.points[1].contact  = 0.1;
+    state.points[1].contact  = 0.5;
     state.points[1].slip  = 0;
     state.points[1].groupId  = -1;
 
@@ -84,10 +84,17 @@ BOOST_AUTO_TEST_CASE( test_eslam_passes_valid_global_position_to_map_accessor )
         model.evaluatePose(pose, 1,
             boost::bind(&FakeMLSAccess::get, &access, _1, _2));
 
-        // Check that the translation got applied. We assume that the contact
-        // model processes the contact points in order, which it does so far
-        BOOST_CHECK_SMALL( (access.points[0] - base::Vector3d(1.25, 0, 0)).norm(), 1e-6 );
-        BOOST_CHECK_SMALL( (access.points[1] - base::Vector3d(-0.75, 0, 0)).norm(), 1e-6 );
+	if( access.points.size() )
+	{
+	    // Check that the translation got applied. We assume that the contact
+	    // model processes the contact points in order, which it does so far
+	    BOOST_CHECK_SMALL( (access.points[0] - base::Vector3d(1.25, 0, 0)).norm(), 1e-6 );
+	    BOOST_CHECK_SMALL( (access.points[1] - base::Vector3d(-0.75, 0, 0)).norm(), 1e-6 );
+	}
+	else
+	{
+	    BOOST_FAIL( "No mls points have been accessed." );
+	}
     }
     {
         double z[4] = { 0, 0, 0, 0 };
@@ -97,11 +104,18 @@ BOOST_AUTO_TEST_CASE( test_eslam_passes_valid_global_position_to_map_accessor )
         model.evaluatePose(pose, 1,
             boost::bind(&FakeMLSAccess::get, &access, _1, _2));
 
-        // Check that the complete transform got applied. We assume that the
-        // contact model processes the contact points in order, which it does so
-        // far
-        BOOST_CHECK_SMALL( (access.points[0] - base::Vector3d(.25, 1, 0)).norm(), 1e-6 );
-        BOOST_CHECK_SMALL( (access.points[1] - base::Vector3d(.25, -1, 0)).norm(), 1e-6 );
+	if( access.points.size() )
+	{
+	    // Check that the complete transform got applied. We assume that the
+	    // contact model processes the contact points in order, which it does so
+	    // far
+	    BOOST_CHECK_SMALL( (access.points[0] - base::Vector3d(.25, 1, 0)).norm(), 1e-6 );
+	    BOOST_CHECK_SMALL( (access.points[1] - base::Vector3d(.25, -1, 0)).norm(), 1e-6 );
+	}
+	else
+	{
+	    BOOST_FAIL( "No mls points have been accessed." );
+	}
     }
 }
 
@@ -111,19 +125,19 @@ BOOST_AUTO_TEST_CASE( test_updatePose_nogroup )
     state.time = base::Time::now();
     state.points.resize(4);
     state.points[0].position = base::Vector3d(-1, -1, 0);
-    state.points[0].contact  = 0.1;
+    state.points[0].contact  = 0.5;
     state.points[0].slip  = 0;
     state.points[0].groupId  = -1;
     state.points[1].position = base::Vector3d(1, -1, 0);
-    state.points[1].contact  = 0.1;
+    state.points[1].contact  = 0.5;
     state.points[1].slip  = 0;
     state.points[1].groupId  = -1;
     state.points[2].position = base::Vector3d(-1, 1, 0);
-    state.points[2].contact  = 0.1;
+    state.points[2].contact  = 0.5;
     state.points[2].slip  = 0;
     state.points[2].groupId  = -1;
     state.points[3].position = base::Vector3d(1, 1, 0);
-    state.points[3].contact  = 0.1;
+    state.points[3].contact  = 0.5;
     state.points[3].slip  = 0;
     state.points[3].groupId  = -1;
 
@@ -297,7 +311,7 @@ BOOST_AUTO_TEST_CASE( test_updatePose_group )
         check_contact_point_selection(model.getContactPoints(),
                 state, z, expected_points);
 
-        BOOST_CHECK_CLOSE(model.getZDelta(), -0, 1e-6);
+        BOOST_CHECK_SMALL(model.getZDelta(), 1e-6);
         BOOST_CHECK_CLOSE(model.getZVar(), 1, 1e-6);
         BOOST_CHECK_CLOSE(model.getWeight(), 1, 1e-2);
     }
