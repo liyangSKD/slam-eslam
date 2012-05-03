@@ -12,7 +12,7 @@
 
 #include <vector>
 
-#include <eslam/GaussianMixture.hpp>
+#include <envire/tools/GaussianMixture.hpp>
 #include <eslam/ContactState.hpp>
 
 namespace eslam
@@ -98,7 +98,7 @@ struct PoseDistribution
 	typedef base::Matrix2d Matrix;
     };
 
-    typedef GaussianMixture<double, 2, BaseAdapter> GMM;
+    typedef envire::GaussianMixture<double, 2, BaseAdapter> GMM;
     // Force instanciation of some of the templated code. This is needed for
     // gccxml (and therefore orogen)
     //

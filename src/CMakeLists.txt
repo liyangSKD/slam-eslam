@@ -6,8 +6,6 @@ set(FILTER_HDRS
     ContactState.hpp
     ContactOdometry.hpp
     EmbodiedSlamFilter.hpp
-    GaussianMixture.hpp
-    ExpectationMaximization.hpp
     Configuration.hpp
     SurfaceHash.hpp
     )

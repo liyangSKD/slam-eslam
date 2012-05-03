@@ -9,7 +9,4 @@ if( vizkit_FOUND )
 	DEPS eslam-viz 
 	DEPS_PKGCONFIG asguard envire vizkit)
 
-    rock_testsuite(test_gmm GMMEM.cpp
-	DEPS_PKGCONFIG vizkit)
-
 endif( vizkit_FOUND )
