@@ -49,7 +49,7 @@ Matrix6d FootContact::getPoseError()
 
 base::Pose FootContact::getPoseDeltaSample()
 {
-    return asguard::odometry::getPoseFromVector6d( sampling.sample() );
+    return base::Pose( sampling.sample() );
 }
 
 base::Pose2D FootContact::getPoseDeltaSample2D()
@@ -59,7 +59,7 @@ base::Pose2D FootContact::getPoseDeltaSample2D()
 
 base::Pose FootContact::getPoseDelta()
 {
-    return asguard::odometry::getPoseFromVector6d( sampling.poseMean );
+    return base::Pose( sampling.poseMean );
 }
 
 void FootContact::update(const eslam::BodyContactState& bs, const Eigen::Quaterniond& orientation)
@@ -124,7 +124,7 @@ void FootContact::update(const eslam::BodyContactState& bs, const Eigen::Quatern
     Vector6d var;
     var << 0, 0, vec.w(), vec.head<3>();
 
-    sampling.update( asguard::odometry::getVector6dFromPose(delta_pose), var.asDiagonal() );
+    sampling.update( delta_pose.toVector6d(), var.asDiagonal() );
 
     prevOrientation = orientation;
 }
