@@ -9,4 +9,8 @@ if( vizkit_FOUND )
 	DEPS eslam-viz 
 	DEPS_PKGCONFIG asguard envire vizkit)
 
+    rock_testsuite(testMap testMap.cpp
+	DEPS eslam-viz 
+	DEPS_PKGCONFIG asguard envire vizkit)
+
 endif( vizkit_FOUND )
