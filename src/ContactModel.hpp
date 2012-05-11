@@ -6,16 +6,14 @@
 #include <eslam/PoseParticle.hpp>
 #include <terrain_estimator/TerrainConfiguration.hpp>
 #include <envire/maps/MLSGrid.hpp>
-#include <asguard/Configuration.hpp>
-#include <eslam/ContactState.hpp>
+#include <odometry/ContactState.hpp>
 
 namespace eslam
 {
 
 /** 
  * Contactmodel class that relates the kinematic configuration of a robot with
- * an environment model. As it is, the class implements the asguard model, but
- * could be generalized for other models as well.
+ * an environment model.  
  *
  * The class works in two steps.
  *
@@ -33,17 +31,10 @@ namespace eslam
 class ContactModel
 {
 protected:
-    BodyContactState contactState;
+    odometry::BodyContactState contactState;
     std::vector<base::Vector3d> lowestPointsPerGroup;
     std::vector<ContactPoint> contact_points;
     std::vector<SlipPoint> slip_points;
-
-    /*
-    typedef std::vector<base::Vector3d> vec3array;
-    std::vector<vec3array> candidate_group;
-    asguard::Configuration asguardConfig;
-    std::vector<BodyContactPoint> contactPoints;
-    */
 
     std::vector<terrain_estimator::TerrainClassification> terrain_classification;
 
@@ -78,8 +69,7 @@ public:
 	m_minContacts = min_contacts;
     }
 
-    /** Constructor that takes a @param asguardConfig configuration model as the
-     * basis.
+    /** @brief default constructor
      */
     ContactModel(); 
 
@@ -88,7 +78,7 @@ public:
      * compensated body frame. 
      */
     //void generateCandidatePoints( const BodyContactState& state, const base::Quaterniond& orientation );
-    void setContactPoints( const BodyContactState& state, const base::Quaterniond& orientation );
+    void setContactPoints( const odometry::BodyContactState& state, const base::Quaterniond& orientation );
 
     /** Update the internal contact probabilities using the lowest-point
      * heuristic
@@ -97,7 +87,7 @@ public:
 
     /** Returns the contact state as stored internally by the contact model.
      */
-    BodyContactState const& getContactState() const;
+    odometry::BodyContactState const& getContactState() const;
 
     /** 
      * Will set the optional terrain classification information, which may be

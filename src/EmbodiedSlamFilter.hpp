@@ -4,7 +4,8 @@
 #include "PoseEstimator.hpp"
 #include "Configuration.hpp"
 
-#include <eslam/ContactOdometry.hpp>
+#include <odometry/ContactOdometry.hpp>
+#include <odometry/Configuration.hpp>
 
 #include <envire/Core.hpp>
 #include <envire/maps/MLSGrid.hpp>
@@ -26,7 +27,7 @@ class EmbodiedSlamFilter
 {
     eslam::Configuration eslamConfig;
     asguard::Configuration asguardConfig;
-    asguard::odometry::Configuration odometryConfig;
+    odometry::Configuration odometryConfig;
 
     odometry::FootContact odometry;
     eslam::PoseEstimator filter;
@@ -56,7 +57,7 @@ class EmbodiedSlamFilter
 public:
     EmbodiedSlamFilter(
 	const asguard::Configuration& asguardConfig,
-	const asguard::odometry::Configuration& odometryConfig, 
+	const odometry::Configuration& odometryConfig, 
 	const eslam::Configuration& eslamConfig );
 
     envire::MLSMap* createMapTemplate( envire::Environment* env, const base::Pose& origin = base::Pose() );
@@ -66,7 +67,7 @@ public:
     void updateMap( envire::MLSGrid* scanMap );
     bool update( const Eigen::Affine3d& body2odometry, const base::samples::LaserScan& scan, const Eigen::Affine3d& laser2body );
     bool update( const Eigen::Affine3d& body2odometry, const base::samples::DistanceImage& dimage, const Eigen::Affine3d& camera2body, const base::samples::frame::Frame* timage = NULL );
-    bool update( const Eigen::Affine3d& body2odometry, const BodyContactState& bs, const std::vector<terrain_estimator::TerrainClassification>& ltc );
+    bool update( const Eigen::Affine3d& body2odometry, const odometry::BodyContactState& bs, const std::vector<terrain_estimator::TerrainClassification>& ltc );
 
     std::vector<eslam::PoseEstimator::Particle>& getParticles();
     size_t getBestParticleIndex() const;

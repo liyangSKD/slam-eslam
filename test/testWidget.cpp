@@ -19,7 +19,7 @@ int main( int argc, char **argv )
 
     for(int i=0;i<500 && app.isRunning();i++)
     {
-	eslam::BodyContactState bs;
+	odometry::BodyContactState bs;
 	double r = i/10.0;
 
 	/*

@@ -13,7 +13,7 @@
 #include <vector>
 
 #include <envire/tools/GaussianMixture.hpp>
-#include <eslam/ContactState.hpp>
+#include <odometry/ContactState.hpp>
 
 namespace eslam
 {
@@ -111,7 +111,7 @@ struct PoseDistribution
     std::vector<PoseParticle> particles;
     GMM gmm;
     base::Quaterniond orientation;
-    eslam::BodyContactState bodyState;
+    odometry::BodyContactState bodyState;
 };
 
 }

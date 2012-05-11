@@ -16,7 +16,7 @@ ContactModel::ContactModel()
 }
 
 
-void ContactModel::setContactPoints( const BodyContactState& state, const base::Quaterniond& orientation )
+void ContactModel::setContactPoints( const odometry::BodyContactState& state, const base::Quaterniond& orientation )
 {
     // generate a copy of the provided contact points, transform them using the
     // given orientation and possibly augment probabilities based on group
@@ -32,13 +32,13 @@ void ContactModel::setContactPoints( const BodyContactState& state, const base::
     // get the orientation first and remove any rotation around the z axis
     base::Quaterniond yawCompensatedOrientation = base::removeYaw( orientation );
 
-    std::vector<BodyContactPoint> &contactPoints( contactState.points );
+    std::vector<odometry::BodyContactPoint> &contactPoints( contactState.points );
     for(size_t i=0; i<contactPoints.size(); i++)
 	// store the foot position in yaw compensated rotation frame 
 	contactPoints[i].position = yawCompensatedOrientation * contactPoints[i].position;
 }
 
-BodyContactState const& ContactModel::getContactState() const
+odometry::BodyContactState const& ContactModel::getContactState() const
 {
     return contactState;
 }
@@ -46,7 +46,7 @@ BodyContactState const& ContactModel::getContactState() const
 void ContactModel::lowestPointHeuristic(bool update_probabilities)
 {
     lowestPointsPerGroup.clear();
-    std::vector<BodyContactPoint> &contactPoints( contactState.points );
+    std::vector<odometry::BodyContactPoint> &contactPoints( contactState.points );
     std::vector<std::pair<double, int> > group;
 
     for(size_t i=0; i<contactPoints.size(); i++)
@@ -67,7 +67,7 @@ void ContactModel::lowestPointHeuristic(bool update_probabilities)
 	    // Group finished, sort by z value 
 	    std::sort( group.begin(), group.end() );
 
-            BodyContactPoint& contact = contactPoints[group[0].second];
+	    odometry::BodyContactPoint& contact = contactPoints[group[0].second];
 	    lowestPointsPerGroup.push_back( contact.position );
             if (update_probabilities)
                 contact.contact = 1;
@@ -99,7 +99,7 @@ bool ContactModel::evaluatePose(
 
     // this funtion finds and stores environment contact points
     contact_points.clear();
-    std::vector<BodyContactPoint> &contactPoints( contactState.points );
+    std::vector<odometry::BodyContactPoint> &contactPoints( contactState.points );
 
     // Loop over all the contact points, and add valid contacts to the vector
     // of contact_points (which are effectively environment contact points)

@@ -6,7 +6,7 @@
 #include <osg/Shape>
 
 using namespace vizkit;
-using namespace eslam;
+using namespace odometry;
 
 BodyContactStateVisualization::BodyContactStateVisualization()
 {
@@ -16,7 +16,7 @@ BodyContactStateVisualization::~BodyContactStateVisualization()
 {
 }
 
-void BodyContactStateVisualization::updateContactState( const eslam::BodyContactState& state )
+void BodyContactStateVisualization::updateContactState( const odometry::BodyContactState& state )
 {
     updateData( state );
 }
@@ -33,7 +33,7 @@ void BodyContactStateVisualization::updateMainNode(osg::Node* node)
 
     for(size_t j=0;j<state.points.size();j++)
     {
-	const eslam::BodyContactPoint &cp(state.points[j]);
+	const odometry::BodyContactPoint &cp(state.points[j]);
 	const double radius = 0.01;
 	const double visible = cp.contact;
 	const osg::Vec3 pos( cp.position.x(), cp.position.y(), cp.position.z() ); 
@@ -50,7 +50,7 @@ void BodyContactStateVisualization::updateMainNode(osg::Node* node)
     }
 }
 
-void BodyContactStateVisualization::updateDataIntern(eslam::BodyContactState const& state)
+void BodyContactStateVisualization::updateDataIntern(odometry::BodyContactState const& state)
 {
     this->state = state;
 }

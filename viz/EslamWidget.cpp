@@ -65,7 +65,7 @@ void EslamWidget::setPoseDistribution( const eslam::PoseDistribution& dist )
     particleViz->updateData( dist );
 }
 
-void EslamWidget::setBodyState( const eslam::BodyContactState& body_state ) 
+void EslamWidget::setBodyState( const odometry::BodyContactState& body_state ) 
 {
     /*
     asguardState.bodyState = body_state;

@@ -129,7 +129,7 @@ double weightingFunction( double x, double alpha = 0.1, double beta = 0.9, doubl
     return 0.0;
 }
 
-void PoseEstimator::sampleFromHash( double replace_percentage, const BodyContactState& state, const base::Quaterniond& orientation )
+void PoseEstimator::sampleFromHash( double replace_percentage, const odometry::BodyContactState& state, const base::Quaterniond& orientation )
 {
     assert( hash );
     // use the hash function to spawn new particles 
@@ -183,7 +183,7 @@ void PoseEstimator::sampleFromHash( double replace_percentage, const BodyContact
     //std::cerr << "done." << std::endl;
 }
 
-void PoseEstimator::project(const BodyContactState& state, const base::Quaterniond& orientation)
+void PoseEstimator::project(const odometry::BodyContactState& state, const base::Quaterniond& orientation)
 {
     zCompensatedOrientation = base::removeYaw( orientation );
     Eigen::Affine3d dtrans = orientation * odometry.getPoseDelta().toTransform();
@@ -232,7 +232,7 @@ void PoseEstimator::project(const BodyContactState& state, const base::Quaternio
 	sampleFromHash( hash->config.percentage, state, orientation );
 }
 
-void PoseEstimator::update(const BodyContactState& state, const base::Quaterniond& orientation, const std::vector<terrain_estimator::TerrainClassification>& ltc )
+void PoseEstimator::update(const odometry::BodyContactState& state, const base::Quaterniond& orientation, const std::vector<terrain_estimator::TerrainClassification>& ltc )
 {
     contactModel.setTerrainClassification( ltc );
     updateWeights(state, orientation);
@@ -245,7 +245,7 @@ void PoseEstimator::update(const BodyContactState& state, const base::Quaternion
     }
 }
 
-void PoseEstimator::updateWeights(const BodyContactState& state, const base::Quaterniond& orientation)
+void PoseEstimator::updateWeights(const odometry::BodyContactState& state, const base::Quaterniond& orientation)
 {
     if( !env )
 	throw std::runtime_error("No environment attached.");

@@ -12,7 +12,7 @@ using namespace envire;
 
 EmbodiedSlamFilter::EmbodiedSlamFilter(
 	const asguard::Configuration& asguardConfig,
-	const asguard::odometry::Configuration& odometryConfig, 
+	const odometry::Configuration& odometryConfig, 
 	const eslam::Configuration& eslamConfig )
 :   eslamConfig( eslamConfig ),
     asguardConfig( asguardConfig ),
@@ -436,7 +436,7 @@ bool EmbodiedSlamFilter::update( const Eigen::Affine3d& body2odometry, const bas
     return false;
 }
 
-bool EmbodiedSlamFilter::update( const Eigen::Affine3d& body2odometry, const BodyContactState& bs, const std::vector<terrain_estimator::TerrainClassification>& ltc )
+bool EmbodiedSlamFilter::update( const Eigen::Affine3d& body2odometry, const odometry::BodyContactState& bs, const std::vector<terrain_estimator::TerrainClassification>& ltc )
 {
     Eigen::Quaterniond orientation( body2odometry.linear() );
 

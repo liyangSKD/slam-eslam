@@ -2,7 +2,7 @@
 #define __VIZKIT_ESLAMWIDGET__
 
 #include <Eigen/Geometry>
-#include <eslam/ContactState.hpp>
+#include <odometry/ContactState.hpp>
 #include <eslam/PoseEstimator.hpp>
 #include <envire/Core.hpp>
 #include <base/pose.h>
@@ -37,7 +37,7 @@ public:
     ~EslamWidget();
 
     void setPoseDistribution( const eslam::PoseDistribution& dist );
-    void setBodyState( const eslam::BodyContactState& body_state ); 
+    void setBodyState( const odometry::BodyContactState& body_state ); 
     void setReferencePose( const base::Pose& pose );
     void setCentroidPose( const base::Pose& pose );
     void setEnvironment( envire::Environment *env );

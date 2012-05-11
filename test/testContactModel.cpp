@@ -2,6 +2,7 @@
 #include <boost/test/included/unit_test.hpp>
 
 #include <eslam/ContactModel.hpp>
+using namespace odometry;
 using namespace eslam;
 
 struct FakeMLSAccess

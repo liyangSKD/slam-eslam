@@ -4,12 +4,12 @@
 #include <boost/noncopyable.hpp>
 #include <vizkit/Vizkit3DPlugin.hpp>
 #include <osg/Geode>
-#include <eslam/ContactState.hpp>
+#include <odometry/ContactState.hpp>
 
 namespace vizkit
 {
     class BodyContactStateVisualization
-        : public vizkit::Vizkit3DPlugin<eslam::BodyContactState>
+        : public vizkit::Vizkit3DPlugin<odometry::BodyContactState>
         , boost::noncopyable
     {
     Q_OBJECT
@@ -18,15 +18,15 @@ namespace vizkit
         BodyContactStateVisualization();
         ~BodyContactStateVisualization();
 
-	Q_INVOKABLE void updateContactState( const eslam::BodyContactState& state );
+	Q_INVOKABLE void updateContactState( const odometry::BodyContactState& state );
 
     protected:
 	virtual osg::ref_ptr<osg::Node> createMainNode();
         virtual void updateMainNode(osg::Node* node);
-        virtual void updateDataIntern(eslam::BodyContactState const& plan);
+        virtual void updateDataIntern(odometry::BodyContactState const& plan);
         
     private:
-	eslam::BodyContactState state;
+	odometry::BodyContactState state;
     };
 }
 #endif
