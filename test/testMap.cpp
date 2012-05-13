@@ -7,8 +7,46 @@
 
 #include <Eigen/Geometry>
 
+#include <boost/random/normal_distribution.hpp>
+#include <boost/random/mersenne_twister.hpp>
+#include <boost/random/variate_generator.hpp>
+
 using namespace envire;
 using namespace vizkit;
+
+struct AsguardSim
+{
+    asguard::Configuration asguardConfig;
+    asguard::BodyState bodyState;
+    odometry::FootContact odometry;
+    Eigen::Affine3d body2world;
+
+    AsguardSim()
+	: odometry( odometry::Configuration() )
+    {
+	body2world = Eigen::Affine3d::Identity();
+	for(int j=0;j<4;j++)
+	    bodyState.wheelPos[j] = 0.0;
+	bodyState.twistAngle = 0;
+	body2world.translation().z() = 
+	    -asguardConfig.getLowestFootPosition( bodyState ).z();
+    }
+
+    void step()
+    {
+	for( int s=0; s<10; s++ )
+	{
+	    // odometry udpate
+	    for(int j=0;j<4;j++)
+		bodyState.wheelPos[j] += 0.01;
+
+	    odometry::BodyContactState bcs;
+	    asguardConfig.setContactState( bodyState, bcs );
+	    odometry.update( bcs, Eigen::Quaterniond::Identity() );
+	    body2world = body2world * odometry.getPoseDelta().toTransform();
+	}
+    }
+};
 
 struct MapTest
 {
@@ -16,13 +54,19 @@ struct MapTest
     AsguardVisualization aviz;
     Environment *env;
     MLSGrid* grid; 
-    asguard::Configuration asguardConfig;
-    asguard::BodyState bodyState;
-    odometry::FootContact odometry;
-    Eigen::Affine3d body2world;
+
+    AsguardSim sim;
+    boost::variate_generator<boost::mt19937, boost::normal_distribution<> > nrand;
+
+    double sigma_step, sigma_body, sigma_sensor;
+    double z_var, z_pos;
 
     MapTest()
-	: odometry( odometry::Configuration() )
+	: nrand( boost::mt19937(time(0)),
+	     boost::normal_distribution<>()),
+	sigma_step( 0.0 ),
+	sigma_body( 0.0 ),
+	sigma_sensor( 0.0 )
     {
     }
 
@@ -32,10 +76,11 @@ struct MapTest
 	app.getWidget()->addPlugin( &aviz );
 	env = app.getWidget()->getEnvironment();
 
-	grid = new MLSGrid( 100, 100, 0.05, 0.05, -2.5, -2.5 );
+	grid = new MLSGrid( 200, 200, 0.05, 0.05, -5, -5 );
 	env->setFrameNode( grid, env->getRootNode() );
 
-	body2world = Eigen::Affine3d::Identity();
+	z_pos = sim.body2world.translation().z();
+	z_var = 0;
     }
 
     void run()
@@ -43,34 +88,58 @@ struct MapTest
 	for(int i=0;i<500 && app.isRunning();i++)
 	{
 	    step( i );
-	    usleep(50*1000);
+	    usleep(100*1000);
 	}
+    }
+
+    void updateViz()
+    {
+	// viz update
+	aviz.updateData( sim.bodyState );
+	aviz.updateTransform( sim.body2world );
+
+	env->itemModified( grid );
     }
 
     void step( int i )
     {
-	// odometry udpate
-	for(int j=0;j<4;j++)
-	    bodyState.wheelPos[j] += 0.1;
+	// run simulation and get real z_delta
+	double z_delta = sim.body2world.translation().z();
+	sim.step();
+	z_delta = sim.body2world.translation().z() - z_delta;
 
-	odometry::BodyContactState bcs;
-	asguardConfig.setContactState( bodyState, bcs );
-	odometry.update( bcs, Eigen::Quaterniond::Identity() );
-	body2world = body2world * odometry.getPoseDelta().toTransform();
+	// handle z position uncertainty
+	z_pos += z_delta + nrand() * sigma_step;
+	z_var += pow(sigma_step,2);
 
-	aviz.updateData( bodyState );
-	aviz.updateTransform( body2world );
+	// our believe of body2world
+	Eigen::Affine3d body2world( sim.body2world );
+	body2world.translation().z() = z_pos;
 
-	// grid update
-	MLSGrid::Position p;
-	if( grid->toGrid( Eigen::Vector2d( 0, (i+0.5)/20.0 ), p ) )
+	// generate grid cells
+	for( size_t i=0; i<50; i++ )
 	{
-	    grid->updateCell( 
-		    p,
-		    MLSGrid::SurfacePatch( 0.0, 0.1 ) );
+	    // z height of measurement
+	    double z_meas = 
+		-sim.body2world.translation().z() 
+		+ nrand() * sigma_sensor; 
 
-	    env->itemModified( grid );
+	    Eigen::Vector3d m_pos( 
+		    ((float)i-25.0)*0.02, 
+		    1.0, 
+		    z_meas );
+	    m_pos = body2world * m_pos;
+	    MLSGrid::Position p;
+	    if( grid->toGrid( (m_pos).head<2>(), p ) )
+	    {
+		double sigma = sqrt( pow(sigma_sensor,2) + z_var );
+		grid->updateCell( 
+			p,
+			MLSGrid::SurfacePatch( m_pos.z(), sigma ) );
+	    }
 	}
+	
+	updateViz();
     }
 
 };
