@@ -11,6 +11,8 @@
 #include <boost/random/mersenne_twister.hpp>
 #include <boost/random/variate_generator.hpp>
 
+#include <boost/lexical_cast.hpp>
+
 using namespace envire;
 using namespace vizkit;
 
@@ -50,8 +52,6 @@ struct AsguardSim
 
 struct MapTest
 {
-    QtThreadedWidget<envire::EnvireWidget> app;
-    AsguardVisualization aviz;
     Environment *env;
     MLSGrid* grid; 
 
@@ -72,10 +72,6 @@ struct MapTest
 
     void init()
     {
-	app.start();
-	app.getWidget()->addPlugin( &aviz );
-	env = app.getWidget()->getEnvironment();
-
 	grid = new MLSGrid( 200, 200, 0.05, 0.05, -5, -5 );
 	env->setFrameNode( grid, env->getRootNode() );
 
@@ -83,25 +79,15 @@ struct MapTest
 	z_var = 0;
     }
 
-    void run()
+    virtual void run()
     {
-	for(int i=0;i<500 && app.isRunning();i++)
+	for(int i=0;i<500;i++)
 	{
 	    step( i );
-	    usleep(100*1000);
 	}
     }
 
-    void updateViz()
-    {
-	// viz update
-	aviz.updateData( sim.bodyState );
-	aviz.updateTransform( sim.body2world );
-
-	env->itemModified( grid );
-    }
-
-    void step( int i )
+    virtual void step( int i )
     {
 	// run simulation and get real z_delta
 	double z_delta = sim.body2world.translation().z();
@@ -138,16 +124,53 @@ struct MapTest
 			MLSGrid::SurfacePatch( m_pos.z(), sigma ) );
 	    }
 	}
-	
-	updateViz();
     }
 
 };
 
+struct VizMapTest : public MapTest
+{
+    QtThreadedWidget<envire::EnvireWidget> app;
+    AsguardVisualization aviz;
+
+    VizMapTest()
+    {
+	app.start();
+	app.getWidget()->addPlugin( &aviz );
+	env = app.getWidget()->getEnvironment();
+    }
+
+    void updateViz()
+    {
+	// viz update
+	aviz.updateData( sim.bodyState );
+	aviz.updateTransform( sim.body2world );
+
+	env->itemModified( grid );
+    }
+
+    virtual void run()
+    {
+	for(int i=0;i<500 && app.isRunning();i++)
+	{
+	    step( i );
+	    usleep(100*1000);
+	    updateViz();
+	}
+    }
+};
+
 int main( int argc, char **argv )
 {
-    MapTest mt;
-
+    VizMapTest mt;
     mt.init();
+
+    if( argc >= 2 )
+	mt.sigma_step = boost::lexical_cast<double>( argv[1] );
+    if( argc >= 3 )
+	mt.sigma_sensor = boost::lexical_cast<double>( argv[2] );
+    if( argc >= 4 )
+	mt.sigma_body = boost::lexical_cast<double>( argv[3] );
+
     mt.run();
 }
