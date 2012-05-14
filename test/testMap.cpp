@@ -4,6 +4,7 @@
 #include <vizkit/AsguardVisualization.hpp>
 #include <odometry/ContactOdometry.hpp>
 #include <asguard/Configuration.hpp>
+#include <eslam/ContactModel.hpp>
 
 #include <Eigen/Geometry>
 
@@ -28,6 +29,7 @@ struct AsguardSim
     asguard::BodyState bodyState;
     odometry::FootContact odometry;
     Eigen::Affine3d body2world;
+    odometry::BodyContactState contactState;
 
     AsguardSim()
 	: odometry( odometry::Configuration() )
@@ -48,9 +50,8 @@ struct AsguardSim
 	    for(int j=0;j<4;j++)
 		bodyState.wheelPos[j] += 0.01;
 
-	    odometry::BodyContactState bcs;
-	    asguardConfig.setContactState( bodyState, bcs );
-	    odometry.update( bcs, Eigen::Quaterniond::Identity() );
+	    asguardConfig.setContactState( bodyState, contactState );
+	    odometry.update( contactState, Eigen::Quaterniond::Identity() );
 	    body2world = body2world * odometry.getPoseDelta().toTransform();
 	}
     }
@@ -63,6 +64,7 @@ struct MapTest
 
     AsguardSim sim;
     boost::variate_generator<boost::mt19937, boost::normal_distribution<> > nrand;
+    eslam::ContactModel cmodel;
 
     double sigma_step, sigma_body, sigma_sensor;
     double z_var, z_pos;
@@ -90,7 +92,7 @@ struct MapTest
 	if( grid )
 	    env->detachItem( grid );
 
-	grid = new MLSGrid( 200, 200, 0.05, 0.05, -5, -5 );
+	grid = new MLSGrid( 200, 200, 0.05, 0.05, -5, 0 );
 	env->setFrameNode( grid, env->getRootNode() );
 
 	sim = AsguardSim();
@@ -184,6 +186,9 @@ struct StatMapTest : public MapTest
 {
     std::vector<base::Stats<double> > height;
     std::vector<double> forward;
+    std::vector<double> z_variance;
+    std::vector<base::Stats<double> > map_z;
+    std::vector<double> map_stdev;
 
     size_t max_runs;
     std::ofstream out;
@@ -194,6 +199,9 @@ struct StatMapTest : public MapTest
 	out.open( file.c_str() );
 	height.resize( max_steps );
 	forward.resize( max_steps );
+	z_variance.resize( max_steps );
+	map_z.resize( max_steps );
+	map_stdev.resize( max_steps );
 
 	env = new envire::Environment();
     }
@@ -211,8 +219,23 @@ struct StatMapTest : public MapTest
 	    for( size_t i=0; i<max_steps; i++ )
 	    {
 		step(i);
+
+		// store results
 		height[i].update( z_pos );
 		forward[i] = sim.body2world.translation().y();
+		z_variance[i] = z_var;
+
+		// get map height
+		MLSGrid::Position p;
+		if( grid->toGrid( (sim.body2world.translation()).head<2>(), p ) )
+		{
+		    MLSGrid::iterator it = grid->beginCell( p.x, p.y );
+		    if( it != grid->endCell() )
+		    {
+			map_z[i].update( it->mean );
+			map_stdev[i] = it->stdev;
+		    }
+		}
 	    }
 	    init();
 	}
@@ -224,6 +247,10 @@ struct StatMapTest : public MapTest
 		<< forward[i] << " "
 		<< height[i].mean() << " "
 		<< height[i].stdev() << " "
+		<< sqrt(z_variance[i]) << " "
+		<< map_z[i].mean() << " "
+		<< map_z[i].stdev() << " "
+		<< map_stdev[i] << " "
 		<< height[i].min() << " "
 		<< height[i].max() << " "
 		<< std::endl;
@@ -241,7 +268,7 @@ int main( int argc, char **argv )
     }
     else if( mode == "batch" )
     {
-	mt = new StatMapTest( 150, "res.out" );
+	mt = new StatMapTest( 500, "res.out" );
     }
     else
 	throw std::runtime_error("mode needs to be either viz or batch");
