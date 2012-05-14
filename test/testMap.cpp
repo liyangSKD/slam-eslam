@@ -13,8 +13,14 @@
 
 #include <boost/lexical_cast.hpp>
 
+#include <numeric/stats.hpp>
+
+#include <boost/program_options.hpp>
+#include <fstream>
+
 using namespace envire;
 using namespace vizkit;
+namespace po = boost::program_options;
 
 struct AsguardSim
 {
@@ -61,19 +67,33 @@ struct MapTest
     double sigma_step, sigma_body, sigma_sensor;
     double z_var, z_pos;
 
+    size_t max_steps;
+
     MapTest()
-	: nrand( boost::mt19937(time(0)),
-	     boost::normal_distribution<>()),
+	: 
+	env(0), grid(0),
+	nrand( boost::mt19937(time(0)),
+		boost::normal_distribution<>()),
 	sigma_step( 0.0 ),
 	sigma_body( 0.0 ),
-	sigma_sensor( 0.0 )
+	sigma_sensor( 0.0 ),
+	max_steps( 500 )
+    {
+    }
+
+    virtual ~MapTest()
     {
     }
 
     void init()
     {
+	if( grid )
+	    env->detachItem( grid );
+
 	grid = new MLSGrid( 200, 200, 0.05, 0.05, -5, -5 );
 	env->setFrameNode( grid, env->getRootNode() );
+
+	sim = AsguardSim();
 
 	z_pos = sim.body2world.translation().z();
 	z_var = 0;
@@ -81,7 +101,7 @@ struct MapTest
 
     virtual void run()
     {
-	for(int i=0;i<500;i++)
+	for(size_t i=0; i<max_steps; i++)
 	{
 	    step( i );
 	}
@@ -151,7 +171,7 @@ struct VizMapTest : public MapTest
 
     virtual void run()
     {
-	for(int i=0;i<500 && app.isRunning();i++)
+	for(size_t i=0;i<max_steps && app.isRunning();i++)
 	{
 	    step( i );
 	    usleep(100*1000);
@@ -160,17 +180,81 @@ struct VizMapTest : public MapTest
     }
 };
 
+struct StatMapTest : public MapTest
+{
+    std::vector<base::Stats<double> > height;
+    std::vector<double> forward;
+
+    size_t max_runs;
+    std::ofstream out;
+
+    StatMapTest( int max_runs, std::string const& file )
+	: max_runs( max_runs )
+    {
+	out.open( file.c_str() );
+	height.resize( max_steps );
+	forward.resize( max_steps );
+
+	env = new envire::Environment();
+    }
+
+    ~StatMapTest()
+    {
+	delete env;
+    }
+
+    virtual void run()
+    {
+	for( size_t run=0; run<max_runs; run++ )
+	{
+	    std::cerr << "run " << run << "     \r";
+	    for( size_t i=0; i<max_steps; i++ )
+	    {
+		step(i);
+		height[i].update( z_pos );
+		forward[i] = sim.body2world.translation().y();
+	    }
+	    init();
+	}
+
+	for( size_t i=0; i<max_steps; i++ )
+	{
+	    out 
+		<< i << " "
+		<< forward[i] << " "
+		<< height[i].mean() << " "
+		<< height[i].stdev() << " "
+		<< height[i].min() << " "
+		<< height[i].max() << " "
+		<< std::endl;
+	}
+    }
+};
+
 int main( int argc, char **argv )
 {
-    VizMapTest mt;
-    mt.init();
+    MapTest *mt;
+    std::string mode = argv[1];
+    if( mode == "viz" )
+    {
+	mt = new VizMapTest;
+    }
+    else if( mode == "batch" )
+    {
+	mt = new StatMapTest( 150, "res.out" );
+    }
+    else
+	throw std::runtime_error("mode needs to be either viz or batch");
 
-    if( argc >= 2 )
-	mt.sigma_step = boost::lexical_cast<double>( argv[1] );
     if( argc >= 3 )
-	mt.sigma_sensor = boost::lexical_cast<double>( argv[2] );
+	mt->sigma_step = boost::lexical_cast<double>( argv[2] );
     if( argc >= 4 )
-	mt.sigma_body = boost::lexical_cast<double>( argv[3] );
+	mt->sigma_sensor = boost::lexical_cast<double>( argv[3] );
+    if( argc >= 5 )
+	mt->sigma_body = boost::lexical_cast<double>( argv[4] );
 
-    mt.run();
+    mt->init();
+    mt->run();
+
+    delete mt;
 }
