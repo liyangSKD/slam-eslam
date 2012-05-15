@@ -13,15 +13,49 @@
 #include <boost/random/variate_generator.hpp>
 
 #include <boost/lexical_cast.hpp>
+#include <boost/algorithm/string.hpp>
 
 #include <numeric/stats.hpp>
 
-#include <boost/program_options.hpp>
 #include <fstream>
 
+using namespace std;
 using namespace envire;
 using namespace vizkit;
-namespace po = boost::program_options;
+
+struct Config
+{
+    double sigma_step, sigma_body, sigma_sensor;
+
+    size_t max_steps;
+    size_t max_runs;
+    size_t min_contacts;
+
+    string result_file;
+
+    void set( string const& conf_file )
+    {
+	ifstream cf( conf_file.c_str() );
+	string line;
+	map<string,string> conf;
+	while( getline( cf, line ) )
+	{
+	    vector<string> words;
+	    boost::split(words, line, boost::is_any_of("="), boost::token_compress_on);
+	    if( words.size() == 2 )
+	    {
+		conf[words[0]] = words[1];
+	    }
+	}
+	sigma_step = boost::lexical_cast<double>(conf["sigma_step"]);
+	sigma_body = boost::lexical_cast<double>(conf["sigma_body"]);
+	sigma_sensor = boost::lexical_cast<double>(conf["sigma_sensor"]);
+	max_steps = boost::lexical_cast<size_t>(conf["max_steps"]);
+	max_runs = boost::lexical_cast<size_t>(conf["max_runs"]);
+	min_contacts = boost::lexical_cast<size_t>(conf["min_contacts"]);
+	result_file = conf["result_file"];
+    }
+};
 
 struct AsguardSim
 {
@@ -38,6 +72,8 @@ struct AsguardSim
 	for(int j=0;j<4;j++)
 	    bodyState.wheelPos[j] = 0.0;
 	bodyState.twistAngle = 0;
+
+	// put the robot so that the feet are in 0 height
 	body2world.translation().z() = 
 	    -asguardConfig.getLowestFootPosition( bodyState ).z();
     }
@@ -54,6 +90,11 @@ struct AsguardSim
 	    odometry.update( contactState, Eigen::Quaterniond::Identity() );
 	    body2world = body2world * odometry.getPoseDelta().toTransform();
 	}
+	// odometry seems to get z height wrong in the case of
+	// a foot transition
+	// TODO investigate and fix
+	body2world.translation().z() = 
+	    -asguardConfig.getLowestFootPosition( bodyState ).z();
     }
 };
 
@@ -64,22 +105,17 @@ struct MapTest
 
     AsguardSim sim;
     boost::variate_generator<boost::mt19937, boost::normal_distribution<> > nrand;
-    eslam::ContactModel cmodel;
+    eslam::ContactModel contactModel;
 
-    double sigma_step, sigma_body, sigma_sensor;
+    Config conf;
+
     double z_var, z_pos;
-
-    size_t max_steps;
 
     MapTest()
 	: 
 	env(0), grid(0),
 	nrand( boost::mt19937(time(0)),
-		boost::normal_distribution<>()),
-	sigma_step( 0.0 ),
-	sigma_body( 0.0 ),
-	sigma_sensor( 0.0 ),
-	max_steps( 500 )
+		boost::normal_distribution<>())
     {
     }
 
@@ -87,7 +123,7 @@ struct MapTest
     {
     }
 
-    void init()
+    virtual void init()
     {
 	if( grid )
 	    env->detachItem( grid );
@@ -99,14 +135,31 @@ struct MapTest
 
 	z_pos = sim.body2world.translation().z();
 	z_var = 0;
+
+	contactModel.setMinContacts( conf.min_contacts );
     }
 
     virtual void run()
     {
-	for(size_t i=0; i<max_steps; i++)
+	for(size_t i=0; i<conf.max_steps; i++)
 	{
 	    step( i );
 	}
+    }
+
+    bool getMap( Eigen::Vector3d const& pos, MLSGrid::SurfacePatch& patch )
+    {
+	MLSGrid::Position pi;
+	if( grid->toGrid( (pos).head<2>(), pi ) )
+	{
+	    MLSGrid::SurfacePatch *p = grid->get( pi, patch ); 
+	    if( p )
+	    {
+		patch = *p;
+		return true;
+	    }
+	}
+	return false;
     }
 
     virtual void step( int i )
@@ -117,12 +170,27 @@ struct MapTest
 	z_delta = sim.body2world.translation().z() - z_delta;
 
 	// handle z position uncertainty
-	z_pos += z_delta + nrand() * sigma_step;
-	z_var += pow(sigma_step,2);
+	z_pos += z_delta + nrand() * conf.sigma_step;
+	z_var += pow(conf.sigma_step,2);
 
 	// our believe of body2world
 	Eigen::Affine3d body2world( sim.body2world );
 	body2world.translation().z() = z_pos;
+
+	// measurement of the body on the grid
+	contactModel.setContactPoints( 
+		sim.contactState, 
+		Eigen::Quaterniond(body2world.linear()) );
+
+	bool hasContact = contactModel.evaluatePose( 
+		Eigen::Affine3d( Eigen::Translation3d( body2world.translation() ) ), 
+		conf.sigma_body, 
+		boost::bind( &MapTest::getMap, this, _1, _2 ) );
+
+	if( hasContact )
+	{
+	    z_pos += contactModel.getZDelta();
+	}
 
 	// generate grid cells
 	for( size_t i=0; i<50; i++ )
@@ -130,7 +198,7 @@ struct MapTest
 	    // z height of measurement
 	    double z_meas = 
 		-sim.body2world.translation().z() 
-		+ nrand() * sigma_sensor; 
+		+ nrand() * conf.sigma_sensor; 
 
 	    Eigen::Vector3d m_pos( 
 		    ((float)i-25.0)*0.02, 
@@ -140,8 +208,10 @@ struct MapTest
 	    MLSGrid::Position p;
 	    if( grid->toGrid( (m_pos).head<2>(), p ) )
 	    {
-		double sigma = sqrt( pow(sigma_sensor,2) + z_var );
-		grid->updateCell( 
+		double sigma = sqrt( pow(conf.sigma_sensor,2) + z_var );
+		// for now, only add new cells
+		if( grid->beginCell( p.x, p.y ) == grid->endCell() )
+		    grid->updateCell( 
 			p,
 			MLSGrid::SurfacePatch( m_pos.z(), sigma ) );
 	    }
@@ -173,7 +243,7 @@ struct VizMapTest : public MapTest
 
     virtual void run()
     {
-	for(size_t i=0;i<max_steps && app.isRunning();i++)
+	for(size_t i=0;i<conf.max_steps && app.isRunning();i++)
 	{
 	    step( i );
 	    usleep(100*1000);
@@ -190,20 +260,22 @@ struct StatMapTest : public MapTest
     std::vector<base::Stats<double> > map_z;
     std::vector<double> map_stdev;
 
-    size_t max_runs;
     std::ofstream out;
 
-    StatMapTest( int max_runs, std::string const& file )
-	: max_runs( max_runs )
+    StatMapTest()
     {
-	out.open( file.c_str() );
-	height.resize( max_steps );
-	forward.resize( max_steps );
-	z_variance.resize( max_steps );
-	map_z.resize( max_steps );
-	map_stdev.resize( max_steps );
-
 	env = new envire::Environment();
+    }
+
+    void init()
+    {
+	MapTest::init();
+
+	height.resize( conf.max_steps );
+	forward.resize( conf.max_steps );
+	z_variance.resize( conf.max_steps );
+	map_z.resize( conf.max_steps );
+	map_stdev.resize( conf.max_steps );
     }
 
     ~StatMapTest()
@@ -213,15 +285,15 @@ struct StatMapTest : public MapTest
 
     virtual void run()
     {
-	for( size_t run=0; run<max_runs; run++ )
+	for( size_t run=0; run<conf.max_runs; run++ )
 	{
 	    std::cerr << "run " << run << "     \r";
-	    for( size_t i=0; i<max_steps; i++ )
+	    for( size_t i=0; i<conf.max_steps; i++ )
 	    {
 		step(i);
 
 		// store results
-		height[i].update( z_pos );
+		height[i].update( z_pos - sim.body2world.translation().z() );
 		forward[i] = sim.body2world.translation().y();
 		z_variance[i] = z_var;
 
@@ -240,7 +312,8 @@ struct StatMapTest : public MapTest
 	    init();
 	}
 
-	for( size_t i=0; i<max_steps; i++ )
+	out.open( conf.result_file.c_str() );
+	for( size_t i=0; i<conf.max_steps; i++ )
 	{
 	    out 
 		<< i << " "
@@ -268,17 +341,13 @@ int main( int argc, char **argv )
     }
     else if( mode == "batch" )
     {
-	mt = new StatMapTest( 500, "res.out" );
+	mt = new StatMapTest();
     }
     else
 	throw std::runtime_error("mode needs to be either viz or batch");
 
-    if( argc >= 3 )
-	mt->sigma_step = boost::lexical_cast<double>( argv[2] );
-    if( argc >= 4 )
-	mt->sigma_sensor = boost::lexical_cast<double>( argv[3] );
-    if( argc >= 5 )
-	mt->sigma_body = boost::lexical_cast<double>( argv[4] );
+    if( argc >=3 )
+	mt->conf.set( argv[2] );
 
     mt->init();
     mt->run();
