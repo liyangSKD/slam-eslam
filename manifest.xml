@@ -11,5 +11,6 @@
     <depend package="asguard/asguard" />
     <depend package="slam/odometry" />
     <depend package="slam/envire" />
+    <depend package="base/numeric" />
     <depend package="gui/vizkit" optional="1" />
 </package>
