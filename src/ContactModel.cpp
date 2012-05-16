@@ -152,36 +152,9 @@ bool ContactModel::evaluatePose(
 	{
 	    if( group_valid )
 	    {
-		// also include terrain classification information if it exists
-		if( !terrain_classification.empty() )
-		{
-		    // look for the terrain classification data which
-		    // corresponds to the current group_idx (wheel in asguard case)
-		    for( size_t i = 0; i < terrain_classification.size(); i++ )
-		    {
-			if( static_cast<size_t>(terrain_classification[i].wheel_idx) == groupId )
-			{
-			    // use the RGB value from the terrain patch to get the terrain class
-			    terrain_estimator::TerrainClassification visual_tc =
-				terrain_estimator::TerrainClassification::fromRGB( patch.getColor() );
-
-			    // get the joint probability from from visual and proprioceptive 
-			    // classification
-			    double prob = terrain_classification[i].jointProbability( visual_tc );
-
-			    // store this information with the contact point
-			    p.prob *= prob;
-
-			    // create debug slip point
-			    SlipPoint sp;
-			    sp.position = contact_point_w;
-			    sp.color = terrain_classification[i].toRGB();
-			    sp.prob = prob;
-			    slip_points.push_back( sp );
-			}
-		    }
-		}
 		contact_points.push_back( p );
+		if( m_useTerrainUpdate )
+		    p.prob *= matchTerrain( patch.getColor(), groupId, contact_point_w );
 	    }
 	    group_valid = true;
 	    valid = false;
@@ -195,6 +168,42 @@ bool ContactModel::evaluatePose(
     }
 
     return false;
+}
+
+double ContactModel::matchTerrain( const Eigen::Vector3d& color, size_t groupId, const Eigen::Vector3d& position )
+{
+    double result = 1.0;
+    // also include terrain classification information if it exists
+    if( !terrain_classification.empty() )
+    {
+	// look for the terrain classification data which
+	// corresponds to the current group_idx (wheel in asguard case)
+	for( size_t i = 0; i < terrain_classification.size(); i++ )
+	{
+	    if( static_cast<size_t>(terrain_classification[i].wheel_idx) == groupId )
+	    {
+		// use the RGB value from the terrain patch to get the terrain class
+		terrain_estimator::TerrainClassification visual_tc =
+		    terrain_estimator::TerrainClassification::fromRGB( color );
+
+		// get the joint probability from from visual and proprioceptive 
+		// classification
+		double prob = terrain_classification[i].jointProbability( visual_tc );
+
+		// store this information with the contact point
+		result *= prob;
+
+		// create debug slip point
+		SlipPoint sp;
+		sp.position = position;
+		sp.color = terrain_classification[i].toRGB();
+		sp.prob = prob;
+		slip_points.push_back( sp );
+	    }
+	}
+    }
+
+    return result;
 }
 
 void ContactModel::evaluateWeight( double measVar )
