@@ -184,7 +184,7 @@ struct MapTest
 
 	bool hasContact = contactModel.evaluatePose( 
 		Eigen::Affine3d( Eigen::Translation3d( body2world.translation() ) ), 
-		conf.sigma_body, 
+		pow( conf.sigma_body, 2 ), 
 		boost::bind( &MapTest::getMap, this, _1, _2 ) );
 
 	if( hasContact )
