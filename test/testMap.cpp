@@ -154,7 +154,7 @@ struct MapTest
 	MLSGrid::Position pi;
 	if( grid->toGrid( (pos).head<2>(), pi ) )
 	{
-	    MLSGrid::SurfacePatch *p = grid->get( pi, patch ); 
+	    MLSGrid::SurfacePatch *p = grid->get( pi, patch, 1e9 ); 
 	    if( p )
 	    {
 		patch = *p;
