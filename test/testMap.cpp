@@ -110,6 +110,7 @@ struct MapTest
     Config conf;
 
     double z_var, z_pos;
+    double lastY;
 
     MapTest()
 	: 
@@ -135,6 +136,7 @@ struct MapTest
 
 	z_pos = sim.body2world.translation().z();
 	z_var = 0;
+	lastY = 0;
 
 	contactModel.setMinContacts( conf.min_contacts );
     }
@@ -187,7 +189,8 @@ struct MapTest
 		pow( conf.sigma_body, 2 ), 
 		boost::bind( &MapTest::getMap, this, _1, _2 ) );
 
-	if( hasContact )
+	double y_pos = sim.body2world.translation().y();
+	if( hasContact && (lastY + 0.05) < y_pos )
 	{
 	    // do a kalman update here
 	    //z_pos += contactModel.getZDelta();
