@@ -161,6 +161,8 @@ public:
 	return slip_points;
     }
 
+    double contactLikelihoodRatio( double z, double sigma );
+
 protected:
     double matchTerrain( const Eigen::Vector3d& color, size_t group_id, const Eigen::Vector3d& position );
 };

@@ -1,4 +1,5 @@
 #include "ContactModel.hpp"
+#include <boost/math/distributions/normal.hpp>
 
 using namespace eslam;
 
@@ -89,6 +90,33 @@ const std::vector<base::Vector3d>& ContactModel::getLowestPointPerGroup()
     return lowestPointsPerGroup;
 }
 
+/**
+ * return the contact likelihood ratio (for the asguard case)
+ *
+ * this is effectively the ratio between likelihood of contact vs likelihood of
+ * non-contact, given a certain z value and a sigma.
+ * The underlying model is that the contact case is just normally distributed,
+ * vs the non-contact case, which is a convolution between a step function and
+ * the same gaussian. The step function is an aproximation of all non-contact
+ * values.
+ */
+double ContactModel::contactLikelihoodRatio( double z, double sigma )
+{
+    boost::math::normal n( 0, sigma );
+    // number of contact feet (1) vs non-contact ones (2)
+    // assuming a total of (3)
+    const double c_by_nc = 1.0;// / 2.0;
+    // maximum z_value we are evaluating (for asguard) this is the
+    // height between the heighest wheel z value and the ground
+    const double max_z = 0.4;  
+
+    double ratio = 
+	pdf( n, z ) * c_by_nc 
+	/ (cdf( n, z ) / max_z);
+
+    return ratio;
+}
+
 bool ContactModel::evaluatePose( 
 	const base::Affine3d& pos_and_heading, 
 	double measVar, 
@@ -109,6 +137,7 @@ bool ContactModel::evaluatePose(
     bool valid = false; // validity of current contact point
     bool group_valid = true; // validity of current contact group
     const double contact_threshold = 0.2; // fixed for now
+    double contact_ratio = 0;
     for(size_t i=0; i<contactPoints.size(); i++)
     {
 	int groupId = contactPoints[i].groupId;
@@ -133,12 +162,26 @@ bool ContactModel::evaluatePose(
 
 		// the point with the lowest zdiff value is assumed to be the
 		// right contact point for the group
-		if( !valid || zdiff < p.zdiff )
-		{
+		//if( !valid || zdiff < p.zdiff )
+		//{
 		    const double zvar = pow(patch.stdev, 2) + measVar;
-		    p = ContactPoint( base::Vector3d(contact_point_w.x(), contact_point_w.y(), patch.mean), zdiff, zvar );
+		    const Eigen::Vector3d surface_point(contact_point_w.x(), contact_point_w.y(), patch.mean);
+
+		    const double ratio = contactLikelihoodRatio( zdiff, sqrt(zvar) );
+
+		    if( !valid )
+		    {
+			p = ContactPoint( surface_point, zdiff * ratio, zvar * ratio );
+			contact_ratio = ratio;
+		    }
+		    else
+		    {
+			p.zdiff += zdiff * ratio;
+			p.zvar += zvar * ratio;
+			contact_ratio += ratio; 
+		    }
 		    valid = true;
-		}
+		//}
 	    }
 	    else
 		group_valid = false;
@@ -152,12 +195,17 @@ bool ContactModel::evaluatePose(
 	{
 	    if( group_valid )
 	    {
+		p.zdiff /= contact_ratio;
+		p.zvar /= contact_ratio;
+			
 		contact_points.push_back( p );
+
 		if( m_useTerrainUpdate )
 		    p.prob *= matchTerrain( patch.getColor(), groupId, contact_point_w );
 	    }
 	    group_valid = true;
 	    valid = false;
+	    contact_ratio = 0;
 	}
     }
 
