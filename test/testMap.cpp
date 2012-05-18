@@ -189,7 +189,12 @@ struct MapTest
 
 	if( hasContact )
 	{
-	    z_pos += contactModel.getZDelta();
+	    // do a kalman update here
+	    //z_pos += contactModel.getZDelta();
+	    double gain = z_var / ( z_var + contactModel.getZVar() );
+	    z_pos += gain * contactModel.getZDelta();
+	    z_var = (1.0-gain) * z_var;
+	    lastY = y_pos;
 	}
 
 	// generate grid cells
