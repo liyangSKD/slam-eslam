@@ -102,17 +102,13 @@ const std::vector<base::Vector3d>& ContactModel::getLowestPointPerGroup()
  */
 double ContactModel::contactLikelihoodRatio( double z, double sigma )
 {
-    boost::math::normal n( 0, sigma );
-    // number of contact feet (1) vs non-contact ones (2)
-    // assuming a total of (3)
-    const double c_by_nc = 1.0;// / 2.0;
-    // maximum z_value we are evaluating (for asguard) this is the
-    // height between the heighest wheel z value and the ground
-    const double max_z = 0.4;  
+    // it seems if we apply a correction factor here
+    // the bias errors get reduced. 
+    const double correction_factor = 0.33;
+    boost::math::normal n( 0, sigma * correction_factor );
 
     double ratio = 
-	pdf( n, z ) * c_by_nc 
-	/ (cdf( n, z ) / max_z);
+	pdf( n, z ) / cdf( n, z );
 
     return ratio;
 }
@@ -179,11 +175,6 @@ bool ContactModel::evaluatePose(
 		    const double zvar = std::max( pow(patch.stdev, 2) - pose_var, 0.0 ) + measVar;
 		    const Eigen::Vector3d surface_point(contact_point_w.x(), contact_point_w.y(), patch.mean);
 
-		    if( !(zvar > 0 ) )
-			std::cout << zvar << std::endl;
-
-		    assert( zvar > 0 );
-
 		    const double ratio = contactLikelihoodRatio( zdiff, sqrt(zvar) );
 
 		    if( !valid )
@@ -218,7 +209,6 @@ bool ContactModel::evaluatePose(
 		p.zdiff /= contact_ratio;
 		p.zvar /= contact_ratio;
 		poseVar += pose_var_avg / contact_ratio;
-		pose_var_avg = 0;
 			
 		contact_points.push_back( p );
 
@@ -227,6 +217,7 @@ bool ContactModel::evaluatePose(
 	    }
 	    group_valid = true;
 	    valid = false;
+	    pose_var_avg = 0;
 	    contact_ratio = 0;
 	}
     }
