@@ -123,7 +123,9 @@ public:
      *
      * @result true if any contact points have been found.
      */
-    bool evaluatePose( const base::Affine3d& pos_and_heading, double measVar, boost::function<bool (const base::Vector3d&, envire::MLSGrid::SurfacePatch&)> map );
+//    bool evaluatePose( const base::Affine3d& pos_and_heading, double measVar, boost::function<bool (const base::Vector3d&, envire::MLSGrid::SurfacePatch&)> map );
+
+    bool evaluatePose( const base::Affine3d& pos_and_heading, double measVar, boost::function<bool (const base::Vector3d&, envire::MLSGrid::SurfacePatch&, double&)> map );
 
     virtual void evaluateWeight( double measVar );
 
@@ -162,6 +164,8 @@ public:
     }
 
     double contactLikelihoodRatio( double z, double sigma );
+    
+    double poseVar;
 
 protected:
     double matchTerrain( const Eigen::Vector3d& color, size_t group_id, const Eigen::Vector3d& position );

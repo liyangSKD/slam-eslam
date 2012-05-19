@@ -117,10 +117,20 @@ double ContactModel::contactLikelihoodRatio( double z, double sigma )
     return ratio;
 }
 
+/*
 bool ContactModel::evaluatePose( 
 	const base::Affine3d& pos_and_heading, 
 	double measVar, 
 	boost::function<bool (const base::Vector3d&, envire::MLSGrid::SurfacePatch&)> map )
+{
+    throw std::runtime_error("todo");
+}
+*/
+
+bool ContactModel::evaluatePose( 
+	const base::Affine3d& pos_and_heading, 
+	double measVar, 
+	boost::function<bool (const base::Vector3d&, envire::MLSGrid::SurfacePatch&, double&)> map )
 {
     if (measVar == 0)
         throw std::runtime_error("using a zero measurement variance leads to singularities");
@@ -138,6 +148,7 @@ bool ContactModel::evaluatePose(
     bool group_valid = true; // validity of current contact group
     const double contact_threshold = 0.2; // fixed for now
     double contact_ratio = 0;
+    double pose_var_avg = 0;
     for(size_t i=0; i<contactPoints.size(); i++)
     {
 	int groupId = contactPoints[i].groupId;
@@ -154,7 +165,8 @@ bool ContactModel::evaluatePose(
 	const float contactProbability = contactPoints[i].contact; 
 	if( group_valid && !(contactProbability < contact_threshold) )
 	{
-	    if( map( contact_point_w, patch ) )
+	    double pose_var;
+	    if( map( contact_point_w, patch, pose_var ) )
 	    {
 		// find the zdiff, which is the difference between contact
 		// point z-value and environment z-value
@@ -164,8 +176,13 @@ bool ContactModel::evaluatePose(
 		// right contact point for the group
 		//if( !valid || zdiff < p.zdiff )
 		//{
-		    const double zvar = pow(patch.stdev, 2) + measVar;
+		    const double zvar = std::max( pow(patch.stdev, 2) - pose_var, 0.0 ) + measVar;
 		    const Eigen::Vector3d surface_point(contact_point_w.x(), contact_point_w.y(), patch.mean);
+
+		    if( !(zvar > 0 ) )
+			std::cout << zvar << std::endl;
+
+		    assert( zvar > 0 );
 
 		    const double ratio = contactLikelihoodRatio( zdiff, sqrt(zvar) );
 
@@ -173,14 +190,17 @@ bool ContactModel::evaluatePose(
 		    {
 			p = ContactPoint( surface_point, zdiff * ratio, zvar * ratio );
 			contact_ratio = ratio;
+			pose_var_avg = pose_var * ratio;
 		    }
 		    else
 		    {
 			p.zdiff += zdiff * ratio;
 			p.zvar += zvar * ratio;
 			contact_ratio += ratio; 
+			pose_var_avg += pose_var * ratio;
 		    }
 		    valid = true;
+
 		//}
 	    }
 	    else
@@ -193,10 +213,12 @@ bool ContactModel::evaluatePose(
 		  || i+1 == contactPoints.size() 
 		  || groupId != contactPoints[i + 1].groupId ) )
 	{
-	    if( group_valid )
+	    if( group_valid && contact_ratio > 1e-9 )
 	    {
 		p.zdiff /= contact_ratio;
 		p.zvar /= contact_ratio;
+		poseVar += pose_var_avg / contact_ratio;
+		pose_var_avg = 0;
 			
 		contact_points.push_back( p );
 

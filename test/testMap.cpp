@@ -111,6 +111,7 @@ struct MapTest
 
     double z_var, z_pos;
     double lastY;
+    std::vector<double> z_vars;
 
     MapTest()
 	: 
@@ -139,6 +140,7 @@ struct MapTest
 	lastY = 0;
 
 	contactModel.setMinContacts( conf.min_contacts );
+	z_vars.resize(0);
     }
 
     virtual void run()
@@ -149,22 +151,31 @@ struct MapTest
 	}
     }
 
-    bool getMap( Eigen::Vector3d const& pos, MLSGrid::SurfacePatch& patch )
+    MLSGrid::SurfacePatch* getMap( Eigen::Vector3d const& pos )
     {
 	MLSGrid::Position pi;
 	if( grid->toGrid( (pos).head<2>(), pi ) )
 	{
-	    MLSGrid::SurfacePatch *p = grid->get( pi, patch, 1e9 ); 
-	    if( p )
-	    {
-		patch = *p;
-		return true;
-	    }
+	    // only one patch per cell
+	    return grid->get( pi, MLSGrid::SurfacePatch(0,1e9) ); 
 	}
+	return NULL;
+    }
+
+    bool getMap( Eigen::Vector3d const& pos, MLSGrid::SurfacePatch& patch, double& pose_var )
+    {
+	MLSGrid::SurfacePatch *p = getMap( pos );
+	if( p )
+	{
+	    patch = *p;
+	    pose_var = z_vars[p->update_idx];
+	    return true;
+	}
+	
 	return false;
     }
 
-    virtual void step( int i )
+    virtual void step( int stepIdx )
     {
 	// run simulation and get real z_delta
 	double z_delta = sim.body2world.translation().z();
@@ -184,19 +195,49 @@ struct MapTest
 		sim.contactState, 
 		Eigen::Quaterniond(body2world.linear()) );
 
+	contactModel.poseVar = 0.0;
 	bool hasContact = contactModel.evaluatePose( 
 		Eigen::Affine3d( Eigen::Translation3d( body2world.translation() ) ), 
-		pow( conf.sigma_body, 2 ), 
-		boost::bind( &MapTest::getMap, this, _1, _2 ) );
+		pow( conf.sigma_body, 2 ) + z_var, 
+		boost::bind( &MapTest::getMap, this, _1, _2, _3 ) );
 
 	double y_pos = sim.body2world.translation().y();
 	if( hasContact && (lastY + 0.05) < y_pos )
 	{
+	    double pose_var = contactModel.poseVar / contactModel.getContactPoints().size(); 
+	    double delta_var = std::max(z_var - pose_var, 0.0);
+	    /*
+	    std::cout 
+		<< "z_var: " << z_var 
+		<< " pose_var: " << pose_var 
+		<< " delta_var: " << delta_var
+		<< std::endl;
+		*/
+
 	    // do a kalman update here
 	    //z_pos += contactModel.getZDelta();
 	    double gain = z_var / ( z_var + contactModel.getZVar() );
 	    z_pos += gain * contactModel.getZDelta();
-	    z_var = (1.0-gain) * z_var;
+
+	    /*
+	    std::cout 
+		<< "cmodel: " << contactModel.getZVar() 
+		<< "gain: " << gain 
+		<< " delta_var: " << delta_var
+		<< std::endl;
+		*/
+
+	    double var_gain = delta_var / ( delta_var + contactModel.getZVar() );
+	    delta_var = (1.0-var_gain) * delta_var;
+	    z_var = pose_var + delta_var;
+
+	    /*
+	    std::cout 
+		<< "z_var: " << z_var 
+		<< " delta_var: " << delta_var
+		<< std::endl;
+		*/
+
 	    lastY = y_pos;
 	}
 
@@ -219,11 +260,17 @@ struct MapTest
 		double sigma = sqrt( pow(conf.sigma_sensor,2) + z_var );
 		// for now, only add new cells
 		if( grid->beginCell( p.x, p.y ) == grid->endCell() )
+		{
+		    MLSGrid::SurfacePatch patch( m_pos.z(), sigma );
+		    patch.update_idx = stepIdx;
 		    grid->updateCell( 
 			p,
-			MLSGrid::SurfacePatch( m_pos.z(), sigma ) );
+			patch );
+		}
 	    }
 	}
+
+	z_vars.push_back( z_var );
     }
 
 };
