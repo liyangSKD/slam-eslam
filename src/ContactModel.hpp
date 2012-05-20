@@ -41,6 +41,7 @@ protected:
     double m_zDelta;
     double m_zVar;
     double m_weight;
+    double m_poseVar;
 
     bool m_useShapeUpdate;
     bool m_useTerrainUpdate;
@@ -110,9 +111,10 @@ public:
      *
      * The signature of the map callback needs to be
      *
-     * bool map( base::Vector3d const& p, double& zpos, double& zvar ),
+     * bool map( base::Vector3d const& p, SurfacePatch& patch, double& zvar ),
      *
-     * where p is the 3d map point to be evaluated, zpos and zvar are the return
+     * where p [in] is the 3d map point to be evaluated, patch is the surface patch of
+     * the MLSGrid [out], and zvar is the variance in z position of the map po
      * values from the map, with zpos the actual z position of the map at that
      * point and zvar it's variance. map needs to return true if a map cell was
      * found and false otherwise.
@@ -123,9 +125,10 @@ public:
      *
      * @result true if any contact points have been found.
      */
-//    bool evaluatePose( const base::Affine3d& pos_and_heading, double measVar, boost::function<bool (const base::Vector3d&, envire::MLSGrid::SurfacePatch&)> map );
-
-    bool evaluatePose( const base::Affine3d& pos_and_heading, double measVar, boost::function<bool (const base::Vector3d&, envire::MLSGrid::SurfacePatch&, double&)> map );
+    bool evaluatePose( 
+	    const base::Affine3d& pos_and_heading, 
+	    double measVar, 
+	    boost::function<bool (const base::Vector3d&, envire::MLSGrid::SurfacePatch&)> map );
 
     virtual void evaluateWeight( double measVar );
 
@@ -150,6 +153,15 @@ public:
 	return m_zVar;
     }
 
+    /** 
+     * update the given z-position estimate (mean,var) based on 
+     * the last pose evaluation.
+     *
+     * @param zPos [in,out] position in z of the body
+     * @param zVar [in,out] variance around z
+     */
+    void updateZPositionEstimate( double& zPos, double& zVar );
+
     /** return a reference to the vector of contact points, which store the
      * contact points of the system and the found z values of the map.
      */
@@ -164,8 +176,6 @@ public:
     }
 
     double contactLikelihoodRatio( double z, double sigma );
-    
-    double poseVar;
 
 protected:
     double matchTerrain( const Eigen::Vector3d& color, size_t group_id, const Eigen::Vector3d& position );

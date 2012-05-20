@@ -113,20 +113,10 @@ double ContactModel::contactLikelihoodRatio( double z, double sigma )
     return ratio;
 }
 
-/*
 bool ContactModel::evaluatePose( 
 	const base::Affine3d& pos_and_heading, 
 	double measVar, 
 	boost::function<bool (const base::Vector3d&, envire::MLSGrid::SurfacePatch&)> map )
-{
-    throw std::runtime_error("todo");
-}
-*/
-
-bool ContactModel::evaluatePose( 
-	const base::Affine3d& pos_and_heading, 
-	double measVar, 
-	boost::function<bool (const base::Vector3d&, envire::MLSGrid::SurfacePatch&, double&)> map )
 {
     if (measVar == 0)
         throw std::runtime_error("using a zero measurement variance leads to singularities");
@@ -145,6 +135,7 @@ bool ContactModel::evaluatePose(
     const double contact_threshold = 0.2; // fixed for now
     double contact_ratio = 0;
     double pose_var_avg = 0;
+    m_poseVar = 0;
     for(size_t i=0; i<contactPoints.size(); i++)
     {
 	int groupId = contactPoints[i].groupId;
@@ -161,8 +152,7 @@ bool ContactModel::evaluatePose(
 	const float contactProbability = contactPoints[i].contact; 
 	if( group_valid && !(contactProbability < contact_threshold) )
 	{
-	    double pose_var;
-	    if( map( contact_point_w, patch, pose_var ) )
+	    if( map( contact_point_w, patch ) )
 	    {
 		// find the zdiff, which is the difference between contact
 		// point z-value and environment z-value
@@ -172,7 +162,8 @@ bool ContactModel::evaluatePose(
 		// right contact point for the group
 		//if( !valid || zdiff < p.zdiff )
 		//{
-		    const double zvar = std::max( pow(patch.stdev, 2) - pose_var, 0.0 ) + measVar;
+		    const double pose_var = pow(patch.stdev, 2);
+		    const double zvar = pow(patch.stdev, 2) + measVar;
 		    const Eigen::Vector3d surface_point(contact_point_w.x(), contact_point_w.y(), patch.mean);
 
 		    const double ratio = contactLikelihoodRatio( zdiff, sqrt(zvar) );
@@ -208,7 +199,7 @@ bool ContactModel::evaluatePose(
 	    {
 		p.zdiff /= contact_ratio;
 		p.zvar /= contact_ratio;
-		poseVar += pose_var_avg / contact_ratio;
+		m_poseVar += pose_var_avg / contact_ratio;
 			
 		contact_points.push_back( p );
 
@@ -319,6 +310,20 @@ void ContactModel::evaluateWeight( double measVar )
        << std::endl;
        }	
        */
+}
+
+void ContactModel::updateZPositionEstimate( double& z_pos, double& z_var )
+{
+    const double pose_var = m_poseVar / getContactPoints().size(); 
+    double delta_var = std::max(z_var - pose_var, 0.0);
+
+    // do a kalman update here
+    double gain = z_var / ( z_var + getZVar() );
+    z_pos += gain * getZDelta();
+
+    double var_gain = delta_var / ( delta_var + getZVar() );
+    delta_var = (1.0-var_gain) * delta_var;
+    z_var = pose_var + delta_var;
 }
 
 ChittaContactModel::ChittaContactModel() 

@@ -276,12 +276,10 @@ void PoseEstimator::updateWeights(const odometry::BodyContactState& state, const
 	pose.meas_pos = pos; 
 	pose.meas_theta = pose.orientation;
 
-	/*
 	if( contactModel.evaluatePose( 
 		t, 
 		pow(pose.zSigma,2) + pow(config.measurementError,2), 
 		boost::bind( &GridAccess::get, pose.grid, _1, _2 ) ) )
-		*/
 	{
 	    pose.zPos += contactModel.getZDelta();
 	    pose.zSigma = sqrt(contactModel.getZVar());
@@ -300,7 +298,7 @@ void PoseEstimator::updateWeights(const odometry::BodyContactState& state, const
 	    sum_data_weights += pow( weight, 1.0/found_points );
 	    total_points += found_points;
 	}
-//	else
+	else
 	{
 	    // slowly reduce likelyhood of particles with no measurements
 	    // and mark them as floating
