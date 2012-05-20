@@ -21,9 +21,7 @@ PoseEstimator::PoseEstimator( odometry::FootContact& odometry, const eslam::Conf
     env(NULL), 
     max_weight(0)
 {
-    contactModel.useShapeUpdate( config.useShapeUpdate );
-    contactModel.useTerrainUpdate( config.useSlipUpdate );
-    contactModel.setMinContacts( config.minContacts );
+    contactModel.setConfiguration( config.contactModel );
 }
 
 PoseEstimator::~PoseEstimator()

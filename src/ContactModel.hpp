@@ -7,6 +7,7 @@
 #include <terrain_estimator/TerrainConfiguration.hpp>
 #include <envire/maps/MLSGrid.hpp>
 #include <odometry/ContactState.hpp>
+#include <eslam/Configuration.hpp>
 
 namespace eslam
 {
@@ -43,32 +44,20 @@ protected:
     double m_weight;
     double m_poseVar;
 
-    bool m_useShapeUpdate;
-    bool m_useTerrainUpdate;
-    size_t m_minContacts;
+    ContactModelConfiguration config;
 
+protected:
+    double matchTerrain( const Eigen::Vector3d& color, size_t group_id, const Eigen::Vector3d& position );
     void lowestPointHeuristic(bool update_probabilities);
+    double contactLikelihoodRatio( double z, double sigma );
 
 public:
     static const int GROUP_SIZE = 4;
 
-    void useShapeUpdate( bool use )
-    {
-	m_useShapeUpdate = use;
-    }
-
-    void useTerrainUpdate( bool use )
-    {
-	m_useTerrainUpdate = use;
-    }	
-
-    /** @brief set minimum number of valid contacts in order for 
-     * the measurement to be valid.
+    /**
+     * set configuration parameters
      */
-    void setMinContacts( size_t min_contacts )
-    {
-	m_minContacts = min_contacts;
-    }
+    void setConfiguration( const ContactModelConfiguration& config );
 
     /** @brief default constructor
      */
@@ -111,12 +100,10 @@ public:
      *
      * The signature of the map callback needs to be
      *
-     * bool map( base::Vector3d const& p, SurfacePatch& patch, double& zvar ),
+     * bool map( base::Vector3d const& p, SurfacePatch& patch )
      *
-     * where p [in] is the 3d map point to be evaluated, patch is the surface patch of
-     * the MLSGrid [out], and zvar is the variance in z position of the map po
-     * values from the map, with zpos the actual z position of the map at that
-     * point and zvar it's variance. map needs to return true if a map cell was
+     * where p [in] is the 3d map point to be evaluated, patch is the surface
+     * patch of the MLSGrid [out]. map needs to return true if a map cell was
      * found and false otherwise.
      *
      * @param pose - position and heading of the robot, composed in a pose
@@ -175,10 +162,6 @@ public:
 	return slip_points;
     }
 
-    double contactLikelihoodRatio( double z, double sigma );
-
-protected:
-    double matchTerrain( const Eigen::Vector3d& color, size_t group_id, const Eigen::Vector3d& position );
 };
 
 /** 

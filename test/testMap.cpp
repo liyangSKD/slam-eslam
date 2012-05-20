@@ -139,7 +139,9 @@ struct MapTest
 	z_var = 0;
 	lastY = 0;
 
-	contactModel.setMinContacts( conf.min_contacts );
+	eslam::ContactModelConfiguration cmconf;
+	cmconf.minContacts = conf.min_contacts;
+	contactModel.setConfiguration( cmconf );
 	z_vars.resize(0);
     }
 

@@ -47,6 +47,33 @@ struct SurfaceHashConfig
     size_t angularSteps; // circle divisions for hashing
 };
 
+struct ContactModelConfiguration
+{
+    ContactModelConfiguration() : 
+	useSlipUpdate( false ),
+	useShapeUpdate( true ),
+	minContacts( 3 ),
+	contactLikelihoodCorrection( 0.33 )
+    {
+    }
+
+    /** flag if terrain classification based update method should be used.
+     */
+    bool useSlipUpdate;
+    /** flag if shape based update method should be used
+     */
+    bool useShapeUpdate;
+    /** minimum number of contact points that have valid information
+     * in order to consider a height measurement valid. Particles
+     * with less than this number will be considered floating.
+     */
+    size_t minContacts;
+    /**
+     * @todo document
+     */
+    double contactLikelihoodCorrection;
+};
+
 struct Configuration
 {
     Configuration() :
@@ -56,7 +83,6 @@ struct Configuration
 	initialError(0.1), 
 	measurementError( 0.1 ),
 	discountFactor( 0.9 ),
-	minContacts( 3 ),
 	spreadThreshold( 0.9 ),
 	spreadTranslationFactor( 0.1 ),
 	spreadRotationFactor( 0.05 ),
@@ -72,8 +98,6 @@ struct Configuration
 	gridUseNegativeInformation( false ),
 	maxSensorRange( 3.0 ),
 	useVisualUpdate( false ),
-	useSlipUpdate( false ),
-	useShapeUpdate( true ),
 	logDebug( false )
     {};
 
@@ -103,11 +127,6 @@ struct Configuration
      * activated when the maximum particle weight is below this value.
      * Set to 0.0 to disable spreading.
      */ 
-    size_t minContacts;
-    /** minimum number of contact points that have valid information
-     * in order to consider a height measurement valid. Particles
-     * with less than this number will be considered floating.
-     */
     double spreadThreshold;
     /** spread factor for translational component
      */
@@ -157,12 +176,9 @@ struct Configuration
     /** flag if visual update method should be used.
      */
     bool useVisualUpdate;
-    /** flag if terrain classification based update method should be used.
+    /** configuration options for the contact model
      */
-    bool useSlipUpdate;
-    /** flag if shape based update method should be used
-     */
-    bool useShapeUpdate;
+    ContactModelConfiguration contactModel;
     /** if set to true, the filter will generate debug information in the particles.
      * this will result in very large log files.
      */

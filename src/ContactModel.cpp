@@ -10,12 +10,13 @@ template <class T, int N>
 }
 
 ContactModel::ContactModel() 
-    : m_useShapeUpdate( true ),
-    m_useTerrainUpdate( true ),
-    m_minContacts( 1 )
 {
 }
 
+void ContactModel::setConfiguration( const ContactModelConfiguration& config )
+{
+    this->config = config;
+}
 
 void ContactModel::setContactPoints( const odometry::BodyContactState& state, const base::Quaterniond& orientation )
 {
@@ -203,7 +204,7 @@ bool ContactModel::evaluatePose(
 			
 		contact_points.push_back( p );
 
-		if( m_useTerrainUpdate )
+		if( config.useSlipUpdate )
 		    p.prob *= matchTerrain( patch.getColor(), groupId, contact_point_w );
 	    }
 	    group_valid = true;
@@ -213,7 +214,7 @@ bool ContactModel::evaluatePose(
 	}
     }
 
-    if( contact_points.size() >= m_minContacts ) 
+    if( contact_points.size() >= config.minContacts ) 
     {
 	evaluateWeight( measVar );
 	return true;
@@ -281,11 +282,11 @@ void ContactModel::evaluateWeight( double measVar )
 	const double odiff = (p.zdiff - delta)/sqrt(p.zvar);
 
 	const double zk = exp(-(odiff*odiff)/(2.0));
-	if( m_useShapeUpdate )
+	if( config.useShapeUpdate )
 	    pz *= zk;
 
 	// also include the probability stored in the contact point itself
-	if( m_useTerrainUpdate )
+	if( config.useSlipUpdate )
 	    pz *= p.prob;
     }
 
