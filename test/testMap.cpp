@@ -26,6 +26,7 @@ using namespace vizkit;
 struct Config
 {
     double sigma_step, sigma_body, sigma_sensor;
+    double sigma_factor;
 
     size_t max_steps;
     size_t max_runs;
@@ -47,6 +48,7 @@ struct Config
 		conf[words[0]] = words[1];
 	    }
 	}
+	sigma_factor = boost::lexical_cast<double>(conf["sigma_factor"]);
 	sigma_step = boost::lexical_cast<double>(conf["sigma_step"]);
 	sigma_body = boost::lexical_cast<double>(conf["sigma_body"]);
 	sigma_sensor = boost::lexical_cast<double>(conf["sigma_sensor"]);
@@ -141,6 +143,7 @@ struct MapTest
 
 	eslam::ContactModelConfiguration cmconf;
 	cmconf.minContacts = conf.min_contacts;
+	cmconf.contactLikelihoodCorrection = conf.sigma_factor;
 	contactModel.setConfiguration( cmconf );
 	z_vars.resize(0);
     }
