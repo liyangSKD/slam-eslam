@@ -9,6 +9,11 @@
 # 9 height[i].min() << " "
 # 10 height[i].max() << " "
 
+set xlabel "distance (m)"
+set ylabel "z position (m)"
+set term pdf
+set output "res.pdf"
+
 plot \
     'res.out' using 2:3 t "mean_z meas", \
     'res.out' using 2:4 t "sigma_z meas", \
