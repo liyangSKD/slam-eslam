@@ -105,7 +105,7 @@ double ContactModel::contactLikelihoodRatio( double z, double sigma )
 {
     // it seems if we apply a correction factor here
     // the bias errors get reduced. 
-    const double correction_factor = 0.33;
+    const double correction_factor = config.contactLikelihoodCorrection;
     boost::math::normal n( 0, sigma * correction_factor );
 
     double ratio = 
@@ -144,7 +144,7 @@ bool ContactModel::evaluatePose(
 	// get contact point candidate and transform it into world
 	// coordinates using the supplied pose transform
 	const base::Vector3d &contact_point( contactPoints[i].position );
-	base::Vector3d contact_point_w = pos_and_heading * contact_point;
+	base::Vector3d contact_point_w = pos_and_heading * contact_point - Eigen::Vector3d(0,0,config.contactPointRadius);
 
 	// get the relevant surface patch based on the grid point
 	typedef envire::MultiLevelSurfaceGrid::SurfacePatch Patch;

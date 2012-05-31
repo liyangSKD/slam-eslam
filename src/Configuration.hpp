@@ -53,7 +53,8 @@ struct ContactModelConfiguration
 	useSlipUpdate( false ),
 	useShapeUpdate( true ),
 	minContacts( 3 ),
-	contactLikelihoodCorrection( 0.33 )
+	contactLikelihoodCorrection( 0.33 ),
+	contactPointRadius( 0.01 )
     {
     }
 
@@ -72,6 +73,10 @@ struct ContactModelConfiguration
      * @todo document
      */
     double contactLikelihoodCorrection;
+    /** 
+     * radius of the contact point (added as offset to contact point position)
+     */
+    double contactPointRadius;
 };
 
 struct Configuration
