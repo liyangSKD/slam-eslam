@@ -279,8 +279,10 @@ void PoseEstimator::updateWeights(const odometry::BodyContactState& state, const
 		pow(pose.zSigma,2) + pow(config.measurementError,2), 
 		boost::bind( &GridAccess::get, pose.grid, _1, _2 ) ) )
 	{
-	    pose.zPos += contactModel.getZDelta();
-	    pose.zSigma = sqrt(contactModel.getZVar());
+	    // update z position and sigma
+	    double zVar = pow( pose.zSigma, 2 );
+	    contactModel.updateZPositionEstimate( pose.zPos, zVar );
+	    pose.zSigma = sqrt( zVar );
 
 	    // use some measurement of the variance as the weight 
 	    const double weight = contactModel.getWeight();
