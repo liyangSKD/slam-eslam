@@ -344,7 +344,8 @@ base::Pose PoseEstimator::getCentroid()
 {
     // calculate the weighted mean for now
     base::Pose2D mean;
-    double zMean = 0;
+    double zMean = 0.0;
+    double sumWeights = 0.0;
     for(size_t i=0;i<xi_k.size();i++)
     {
 	const Particle &particle(xi_k[i]);
@@ -353,8 +354,12 @@ base::Pose PoseEstimator::getCentroid()
 	    mean.position += particle.position * particle.weight;
 	    mean.orientation += particle.orientation * particle.weight;
 	    zMean += particle.zPos * particle.weight;
+	    sumWeights += particle.weight;
 	}
     }
+    mean.position /= sumWeights;
+    mean.orientation /= sumWeights;
+    zMean /= sumWeights;
 
     // and convert into a 3d position
     base::Pose result( 
