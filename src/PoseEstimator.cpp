@@ -183,6 +183,7 @@ void PoseEstimator::sampleFromHash( double replace_percentage, const odometry::B
 
 void PoseEstimator::project(const odometry::BodyContactState& state, const base::Quaterniond& orientation)
 {
+    double yaw = base::getYaw( orientation );
     zCompensatedOrientation = base::removeYaw( orientation );
     Eigen::Affine3d dtrans = orientation * odometry.getPoseDelta().toTransform();
     const double z_delta = dtrans.translation().z();
@@ -203,6 +204,16 @@ void PoseEstimator::project(const odometry::BodyContactState& state, const base:
 	Particle &p( xi_k[i] );
 	p.position += Eigen::Rotation2D<double>(p.orientation) * delta.position;
 	p.orientation += delta.orientation;
+
+	if( config.maxYawDeviation > 0.0 )
+	{
+	    if( fabs(p.orientation - yaw) > config.maxYawDeviation )
+	    {
+		// TODO check how much we want to penalize particles going out
+		// of the yaw bounds
+		p.weight *= 0.7;
+	    }
+	}
 
 	p.zPos += z_delta;
 	p.zSigma = sqrt( p.zSigma*p.zSigma + z_var );

@@ -92,6 +92,7 @@ struct Configuration
 	spreadTranslationFactor( 0.1 ),
 	spreadRotationFactor( 0.05 ),
 	slipFactor( 0.05 ),
+	maxYawDeviation( 15*M_PI/180.0 ),
 	measurementThreshold( 0.1, 10*M_PI/180.0 ),
 	mappingThreshold( 0.02, 5*M_PI/180.0 ),
 	mappingCameraThreshold( 1.0, 30*M_PI/180.0 ),
@@ -146,6 +147,11 @@ struct Configuration
      * a value between 0 and 1.0
      */
     double slipFactor;
+    /** when set to a positive value, the filter will try to keep the deviation
+     * of the estimated yaw value compared to the yaw value from the odometry
+     * to this value
+     */
+    double maxYawDeviation;
     /** distance and rotation threshold for measurement updates. This provides the
      * minimum distance/rotation after which a new measurement is considered.
      */
