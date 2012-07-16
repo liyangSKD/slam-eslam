@@ -103,7 +103,8 @@ struct Configuration
 	gridUseNegativeInformation( false ),
 	maxSensorRange( 3.0 ),
 	useVisualUpdate( false ),
-	logDebug( false )
+	logDebug( false ),
+	logParticlePeriod( 100 )
     {};
 
     /** seed for all random processes in the filter */
@@ -188,6 +189,12 @@ struct Configuration
      * this will result in very large log files.
      */
     bool logDebug;
+    /** controls how often the particle distribution is logged
+     * a value of 1 will log at every step (large log file)
+     * a value of 0 will skip logging the particles
+     * values greater than 1 will log every nth distribution.
+     */
+    unsigned int logParticlePeriod;
 };
 
 }
