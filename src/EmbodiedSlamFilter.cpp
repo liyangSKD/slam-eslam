@@ -120,7 +120,7 @@ void EmbodiedSlamFilter::init( envire::Environment* env, const base::Pose& pose,
 		base::Pose2D(Eigen::Vector2d(eslamConfig.initialError,eslamConfig.initialError),eslamConfig.initialError),
 		//base::Pose2D(Eigen::Vector2d(1e-3,1e-3),1e-3),
 		pose.position.z(),
-		eslamConfig.initialError // z-sigma
+		eslamConfig.initialError + 1e-3 // z-sigma
 		);
     }
 
