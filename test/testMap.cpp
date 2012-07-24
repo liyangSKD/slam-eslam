@@ -15,7 +15,7 @@
 #include <boost/lexical_cast.hpp>
 #include <boost/algorithm/string.hpp>
 
-#include <numeric/stats.hpp>
+#include <numeric/Stats.hpp>
 
 #include <fstream>
 
