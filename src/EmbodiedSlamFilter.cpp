@@ -215,10 +215,13 @@ void EmbodiedSlamFilter::processMap( MLSGrid* scanMap, bool match, bool update )
 	if( match )
 	{
 	    const size_t sampling = 10;
-	    const float sigma = 1.0;
-	    p.weight *= pgrid->match( *scanMap, C_s2p, offsetPatch, sampling, sigma );
+	    const float sigma = 0.2;
+	    float weight = pgrid->match( *scanMap, C_s2p, offsetPatch, sampling, sigma );
+	    const float visualWeighting = 0.1;
+	    p.weight *= pow( weight, visualWeighting );
 	}
 	if( update )
+	{
 	    pgrid->merge( *scanMap, C_s2p, offsetPatch );
 	    // mark as modified to trigger updates
 	    pgrid->itemModified();
