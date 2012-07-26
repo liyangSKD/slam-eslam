@@ -174,7 +174,7 @@ void EmbodiedSlamFilter::init( envire::Environment* env, const base::Pose& pose,
     distMlsOp->useUncertainty( true );
 }
 
-void EmbodiedSlamFilter::updateMap( MLSGrid* scanMap )
+void EmbodiedSlamFilter::processMap( MLSGrid* scanMap, bool match, bool update )
 {
     static size_t update_idx = 0;
 
@@ -194,14 +194,17 @@ void EmbodiedSlamFilter::updateMap( MLSGrid* scanMap )
 	// and the current particle
 	Transform tf = scanFrame->relativeTransform( pgrid->getFrameNode() );
 
-	// creating a new map is then a matter of looking if either x
-	// or y is gone over a portion of the map size.
-	const double newMapThreshold = eslamConfig.gridSize / 2.0 * eslamConfig.gridThreshold;
-	if( fabs(tf.translation().x()) > newMapThreshold || fabs(tf.translation().y()) > newMapThreshold )
+	if( update )
 	{
-	    // create a new grid map. 
-	    pmap->createGrid( tf );
-	    pgrid = pmap->getActiveGrid().get();
+	    // creating a new map is then a matter of looking if either x
+	    // or y is gone over a portion of the map size.
+	    const double newMapThreshold = eslamConfig.gridSize / 2.0 * eslamConfig.gridThreshold;
+	    if( fabs(tf.translation().x()) > newMapThreshold || fabs(tf.translation().y()) > newMapThreshold )
+	    {
+		// create a new grid map. 
+		pmap->createGrid( tf );
+		pgrid = pmap->getActiveGrid().get();
+	    }
 	}
 
 	Eigen::Affine3d C_s2p = scanMap->getEnvironment()->relativeTransform( scanMap->getFrameNode(), pgrid->getFrameNode() );
@@ -209,13 +212,21 @@ void EmbodiedSlamFilter::updateMap( MLSGrid* scanMap )
 	// merge the scan with the map of the current particle
 	envire::MLSGrid::SurfacePatch offsetPatch( p.zPos, p.zSigma );
 	offsetPatch.update_idx = update_idx;
-	pgrid->merge( *scanMap, C_s2p, offsetPatch );
+	if( match )
+	{
+	    const size_t sampling = 10;
+	    const float sigma = 1.0;
+	    p.weight *= pgrid->match( *scanMap, C_s2p, offsetPatch, sampling, sigma );
+	}
+	if( update )
+	    pgrid->merge( *scanMap, C_s2p, offsetPatch );
 
 	// mark as modified to trigger updates
 	pgrid->itemModified();
     }
 
-    update_idx++;
+    if( update )
+	update_idx++;
 }
 
 bool EmbodiedSlamFilter::update( 
@@ -280,7 +291,7 @@ bool EmbodiedSlamFilter::update(
 	scanMap->clear();
 	distMlsOp->updateAll();
 
-	updateMap( scanMap );
+	processMap( scanMap, false, true );
 
 	stereoPose = body2odometry * camera2body;
 
@@ -301,37 +312,29 @@ bool EmbodiedSlamFilter::update( const Eigen::Affine3d& body2odometry, const bas
 	scanNode->addScanLine( 0, scan );
 	smOp->updateAll();
 
-	if( sharedMap )
-	{
-	    scanFrame->setTransform( getCentroid() * laser2body );
-	    mlsOp->removeOutputs();
-	    mlsOp->addOutput( sharedMap->getActiveGrid().get() );
-	    mlsOp->updateAll();
-	}
-	else
-	{
-	    // assume a 2 deg rotation error for the laser2Body transform
-	    const double scanAngleSigma = 5.0/180.0*M_PI;
-	    Eigen::Matrix<double,6,1> lcov;
-	    lcov << scanAngleSigma,0,0, 0,0,0;
-	    envire::TransformWithUncertainty laser2bodyU( laser2body, lcov.array().square().matrix().asDiagonal());
-	    
-	    // the covariance for the body to world transform comes from
-	    // a 1 deg error for pitch and roll
-	    // TODO: actually the errors should be in global frame, and not in body
-	    // frame... fix later
-	    const double pitchRollSigma = 3.0/180.0*M_PI;
-	    Eigen::Matrix<double,6,1> pcov;
-	    pcov << pitchRollSigma,pitchRollSigma,0, 0,0,0;
-	    envire::TransformWithUncertainty body2World( 
-		    Eigen::Affine3d( base::removeYaw(orientation) ), pcov.array().square().matrix().asDiagonal());
+	// assume a 2 deg rotation error for the laser2Body transform
+	const double scanAngleSigma = 5.0/180.0*M_PI;
+	Eigen::Matrix<double,6,1> lcov;
+	lcov << scanAngleSigma,0,0, 0,0,0;
+	envire::TransformWithUncertainty laser2bodyU( laser2body, lcov.array().square().matrix().asDiagonal());
 
-	    scannerFrame->setTransform( body2World * laser2bodyU );
-	    scanMap->clear();
-	    mlsOp->updateAll();
+	// the covariance for the body to world transform comes from
+	// a 1 deg error for pitch and roll
+	// TODO: actually the errors should be in global frame, and not in body
+	// frame... fix later
+	const double pitchRollSigma = 3.0/180.0*M_PI;
+	Eigen::Matrix<double,6,1> pcov;
+	pcov << pitchRollSigma,pitchRollSigma,0, 0,0,0;
+	envire::TransformWithUncertainty body2World( 
+		Eigen::Affine3d( base::removeYaw(orientation) ), pcov.array().square().matrix().asDiagonal());
 
-	    updateMap( scanMap );
-	}
+	scannerFrame->setTransform( body2World * laser2bodyU );
+	scanMap->clear();
+	mlsOp->updateAll();
+
+	bool match = eslamConfig.useVisualUpdate; 
+	bool update = !sharedMap;
+	processMap( scanMap, match, update );
 
 	mapPose = body2odometry * laser2body;
 

@@ -64,7 +64,7 @@ public:
     envire::MultiLevelSurfaceGrid* createGridTemplate( envire::Environment* env );
     void init( envire::Environment* env, const base::Pose& pose, bool useSharedMap = true, const SurfaceHashConfig& hashConfig = SurfaceHashConfig() );
 
-    void updateMap( envire::MLSGrid* scanMap );
+    void processMap( envire::MLSGrid* scanMap, bool match, bool update );
     bool update( const Eigen::Affine3d& body2odometry, const base::samples::LaserScan& scan, const Eigen::Affine3d& laser2body );
     bool update( const Eigen::Affine3d& body2odometry, const base::samples::DistanceImage& dimage, const Eigen::Affine3d& camera2body, const base::samples::frame::Frame* timage = NULL );
     bool update( const Eigen::Affine3d& body2odometry, const odometry::BodyContactState& bs, const std::vector<terrain_estimator::TerrainClassification>& ltc );
