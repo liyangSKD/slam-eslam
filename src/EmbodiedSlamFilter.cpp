@@ -199,21 +199,6 @@ void EmbodiedSlamFilter::updateMap( MLSGrid* scanMap )
 	const double newMapThreshold = eslamConfig.gridSize / 2.0 * eslamConfig.gridThreshold;
 	if( fabs(tf.translation().x()) > newMapThreshold || fabs(tf.translation().y()) > newMapThreshold )
 	{
-	    // experimental: try to match the currently active grid
-	    // with any of the previous grids
-	    /*
-	       std::vector<envire::MLSGrid::Ptr>& grids = pmap->getGrids();
-	       if( grids.size() > 1 )
-	       {
-	    // match against previous
-	    std::pair<double,double> res = pgrid->matchHeight( *grids[grids.size()-2] );
-	    p.zPos -= res.first;
-	    pgrid->getFrameNode()->setTransform( Eigen::Translation3d( 0,0, -res.first ) *
-	    pgrid->getFrameNode()->getTransform() );
-	    //std::cout << "height diff: " << res.first << std::endl;
-	    }
-	    */
-
 	    // create a new grid map. 
 	    pmap->createGrid( tf );
 	    pgrid = pmap->getActiveGrid().get();
@@ -221,92 +206,12 @@ void EmbodiedSlamFilter::updateMap( MLSGrid* scanMap )
 
 	Eigen::Affine3d C_s2p = scanMap->getEnvironment()->relativeTransform( scanMap->getFrameNode(), pgrid->getFrameNode() );
 
-	typedef envire::MLSGrid::Position position;
-	typedef envire::MLSGrid::SurfacePatch patch;
-	std::set<position> &cells = scanMap->getIndex()->cells;
+	// merge the scan with the map of the current particle
+	envire::MLSGrid::SurfacePatch offsetPatch( p.zPos, p.zSigma );
+	offsetPatch.update_idx = update_idx;
+	pgrid->merge( *scanMap, C_s2p, offsetPatch );
 
-	// this is a two step process.  first perform the measurement
-	// and then merge the (possibly updated measurement) into the
-	// map. 
-	typedef std::pair<position, patch> pos_patch;
-	std::vector<pos_patch> patches;
-
-	double d1=0, d2=0, vp = 1.0;
-
-	// index the patches 
-	for(std::set<position>::iterator it = cells.begin(); it != cells.end(); it++)
-	{
-	    // get center of cell
-	    Eigen::Vector3d pos( Eigen::Vector3d::Zero() );
-	    scanMap->fromGrid( it->x, it->y, pos.x(), pos.y() );
-	    pos = C_s2p * pos;
-
-	    size_t m, n;
-	    if( pgrid->toGrid( pos.x(), pos.y(), m, n ) )
-	    {
-		position pos(m, n);
-		for(envire::MLSGrid::iterator cit = scanMap->beginCell(it->x,it->y); cit != scanMap->endCell(); cit++ )
-		{
-		    patch meas_patch( *cit );
-		    meas_patch.mean += p.zPos;
-		    meas_patch.stdev = sqrt( sq( meas_patch.stdev ) + sq( p.zSigma ) );
-		    meas_patch.update_idx = update_idx;
-		    patches.push_back( std::make_pair( pos, meas_patch ) );
-
-		    // find a patch in the target map and see if its relevant for measurement
-		    patch *tar_patch = pgrid->get( pos, meas_patch, 0.5 ); 
-		    if( tar_patch && tar_patch->isHorizontal() && meas_patch.isHorizontal() && (tar_patch->update_idx + 0 < meas_patch.update_idx ) && false )
-		    {
-			const double diff = meas_patch.mean - tar_patch->mean;
-			const double var = sq( tar_patch->stdev ) + sq( meas_patch.stdev );
-			d1 += diff / var;
-			d2 += 1.0 / var;
-
-			vp = (meas_patch.getColor() - tar_patch->getColor()).norm();
-		    }
-		}
-	    }
-	}
-	vp /= cells.size();
-	if( eslamConfig.useVisualUpdate )
-	    p.weight *= (1.0 - vp);
-
-	double delta = p.zPos;
-	if( d2 > 0 )
-	{
-	    const double mean = d1 / d2;
-	    const double var = 1.0 / d2;
-
-	    kalman_update( p.zPos, p.zSigma, p.zPos+mean, var );
-	}
-	delta = p.zPos - delta;
-	delta = 0.0; // don't use visual method to correct height for now
-
-	// need to handle cell color here for the update
-	// we need to set the pgrid cell color, such that it matches
-	// that of the scanmap for the update. Afterwards, we set it 
-	// to its original value, if it previously had one.
-
-	// if the scanmap has cell color, also use it in the target grid
-	bool hadCellColor = pgrid->getHasCellColor();
-	pgrid->setHasCellColor( scanMap->getHasCellColor() );
-
-	// merge the measurement
-	for( std::vector<pos_patch>::iterator it = patches.begin();
-		it != patches.end(); it++)
-	{
-	    const position &pos( it->first );
-	    patch &pa( it->second );
-
-	    // apply the measurement difference
-	    pa.mean += delta;
-
-	    pgrid->updateCell( pos.x, pos.y, pa );
-	}
-
-	if( hadCellColor )
-	    pgrid->setHasCellColor( hadCellColor );
-
+	// mark as modified to trigger updates
 	pgrid->itemModified();
     }
 
