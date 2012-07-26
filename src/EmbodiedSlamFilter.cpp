@@ -220,9 +220,9 @@ void EmbodiedSlamFilter::processMap( MLSGrid* scanMap, bool match, bool update )
 	}
 	if( update )
 	    pgrid->merge( *scanMap, C_s2p, offsetPatch );
-
-	// mark as modified to trigger updates
-	pgrid->itemModified();
+	    // mark as modified to trigger updates
+	    pgrid->itemModified();
+	}
     }
 
     if( update )
