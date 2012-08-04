@@ -146,6 +146,7 @@ void EmbodiedSlamFilter::init( envire::Environment* env, const base::Pose& pose,
     env->setFrameNode( pcNode, scannerFrame );
 
     smOp = new envire::ScanMeshing();
+    smOp->setMaxRange( eslamConfig.maxSensorRange );
     env->attachItem( smOp );
     smOp->addInput( scanNode );
     smOp->addOutput( pcNode );
