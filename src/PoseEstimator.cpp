@@ -353,6 +353,8 @@ void PoseEstimator::updateWeights(const odometry::BodyContactState& state, const
 
 base::Pose PoseEstimator::getCentroid()
 {
+    normalizeWeights();
+
     // calculate the weighted mean for now
     base::Pose2D mean;
     double zMean = 0.0;
