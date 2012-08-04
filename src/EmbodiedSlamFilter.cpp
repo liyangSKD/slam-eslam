@@ -191,19 +191,16 @@ void EmbodiedSlamFilter::processMap( MLSGrid* scanMap, bool match, bool update )
 		    Eigen::AngleAxisd( p.orientation, Eigen::Vector3d::UnitZ() )
 		    ) );
 
-	// we are looking for the transform between the active map,
-	// and the current particle
-	Transform tf = scanFrame->relativeTransform( pgrid->getFrameNode() );
-
-	if( update )
-	{
-	    // creating a new map is then a matter of looking if either x
-	    // or y is gone over a portion of the map size.
-	    const double newMapThreshold = eslamConfig.gridSize / 2.0 * eslamConfig.gridThreshold;
+ 	if( update )
+ 	{
+	    Transform tf = scanFrame->relativeTransform( pgrid->getFrameNode() );
+ 	    // creating a new map is then a matter of looking if either x
+ 	    // or y is gone over a portion of the map size.
+ 	    const double newMapThreshold = eslamConfig.gridSize / 2.0 * eslamConfig.gridThreshold;
 	    if( fabs(tf.translation().x()) > newMapThreshold || fabs(tf.translation().y()) > newMapThreshold )
 	    {
-		// create a new grid map. 
-		pmap->createGrid( tf );
+		// see if we need to select a new grid
+		pmap->selectActiveGrid( scanFrame, newMapThreshold );
 		pgrid = pmap->getActiveGrid().get();
 	    }
 	}
