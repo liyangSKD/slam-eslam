@@ -53,7 +53,10 @@ MLSMap* EmbodiedSlamFilter::createMapTemplate( envire::Environment* env, const b
     mapTemplate->addGrid( gridTemplate );
 
     {
-	const double angle = origin.orientation.toRotationMatrix().eulerAngles(2,1,0)[0];
+	double angle = 0.0;
+	const bool aligned = true;
+	if( !aligned )
+	    angle = origin.orientation.toRotationMatrix().eulerAngles(2,1,0)[0];
 	Eigen::Vector3d pos = origin.position;
 	pos.z() = 0;
 	FrameNode *gridFrame = gridTemplate->getFrameNode();
