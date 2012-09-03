@@ -8,7 +8,6 @@
 #include <base/eigen.h>
 #include <base/pose.h>
 #include <base/time.h>
-#include <asguard/BodyState.hpp>
 
 #include <vector>
 

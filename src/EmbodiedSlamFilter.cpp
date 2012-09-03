@@ -11,14 +11,12 @@ using namespace eslam;
 using namespace envire;
 
 EmbodiedSlamFilter::EmbodiedSlamFilter(
-	const asguard::Configuration& asguardConfig,
 	const odometry::Configuration& odometryConfig, 
 	const eslam::Configuration& eslamConfig )
 :   eslamConfig( eslamConfig ),
-    asguardConfig( asguardConfig ),
     odometryConfig( odometryConfig ),
     odometry( odometryConfig ), 
-    filter( odometry, eslamConfig, asguardConfig ), 
+    filter( odometry, eslamConfig ), 
     sharedMap(NULL),
     distGrid(NULL),
     textureGrid(NULL)

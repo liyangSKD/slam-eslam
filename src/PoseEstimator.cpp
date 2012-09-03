@@ -10,7 +10,7 @@
 
 using namespace eslam;
 
-PoseEstimator::PoseEstimator( odometry::FootContact& odometry, const eslam::Configuration &config, const asguard::Configuration& asguardConfig )
+PoseEstimator::PoseEstimator( odometry::FootContact& odometry, const eslam::Configuration &config )
     : ParticleFilter<Particle>(config.seed), 
     rand_norm(rand_gen, boost::normal_distribution<>(0,1.0) ),
     rand_uni(rand_gen, boost::uniform_real<>(0,1.0) ),

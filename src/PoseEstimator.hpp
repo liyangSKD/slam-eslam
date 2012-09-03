@@ -12,8 +12,6 @@
 #include <Eigen/Geometry>
 
 #include <base/pose.h>
-#include <asguard/BodyState.hpp>
-#include <asguard/Configuration.hpp>
 #include <odometry/ContactOdometry.hpp>
 
 #include <envire/Core.hpp>
@@ -122,7 +120,7 @@ class PoseEstimator :
     public ParticleFilter<PoseParticleGA>
 {
 public:
-    PoseEstimator(odometry::FootContact& odometry, const eslam::Configuration &config, const asguard::Configuration& asguardConfig );
+    PoseEstimator(odometry::FootContact& odometry, const eslam::Configuration &config);
     ~PoseEstimator();
 
     void init( int numParticles, SurfaceHash *hash );

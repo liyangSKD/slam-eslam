@@ -26,7 +26,6 @@ namespace eslam
 class EmbodiedSlamFilter
 {
     eslam::Configuration eslamConfig;
-    asguard::Configuration asguardConfig;
     odometry::Configuration odometryConfig;
 
     odometry::FootContact odometry;
@@ -56,7 +55,6 @@ class EmbodiedSlamFilter
 
 public:
     EmbodiedSlamFilter(
-	const asguard::Configuration& asguardConfig,
 	const odometry::Configuration& odometryConfig, 
 	const eslam::Configuration& eslamConfig );
 
