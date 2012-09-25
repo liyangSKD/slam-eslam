@@ -146,8 +146,9 @@ public:
      *
      * @param zPos [in,out] position in z of the body
      * @param zVar [in,out] variance around z
+     * @result true if position was updated, false if measurement was rejected
      */
-    void updateZPositionEstimate( double& zPos, double& zVar );
+    bool updateZPositionEstimate( double& zPos, double& zVar );
 
     /** return a reference to the vector of contact points, which store the
      * contact points of the system and the found z values of the map.

@@ -313,18 +313,27 @@ void ContactModel::evaluateWeight( double measVar )
        */
 }
 
-void ContactModel::updateZPositionEstimate( double& z_pos, double& z_var )
+bool ContactModel::updateZPositionEstimate( double& z_pos, double& z_var )
 {
     const double pose_var = m_poseVar / getContactPoints().size(); 
-    double delta_var = std::max(z_var - pose_var, 0.0);
+    double delta_var = std::max(z_var - pose_var, 1e-9);
+
+    // this is an attempt at outlier rejection
+    // normalize the zDelta for sigma, and reject anything which is outside
+    // 3-sigma
+    const double z_delta = getZDelta();
+    if( fabs( z_delta / sqrt(delta_var) ) > 1.0 )
+	return false;
 
     // do a kalman update here
     double gain = z_var / ( z_var + getZVar() );
-    z_pos += gain * getZDelta();
+    z_pos += gain * z_delta;
 
     double var_gain = delta_var / ( delta_var + getZVar() );
     delta_var = (1.0-var_gain) * delta_var;
     z_var = pose_var + delta_var;
+
+    return true;
 }
 
 ChittaContactModel::ChittaContactModel() 
