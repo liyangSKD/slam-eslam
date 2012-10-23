@@ -231,6 +231,11 @@ void EmbodiedSlamFilter::processMap( MLSGrid* scanMap, bool match, bool update )
 	update_idx++;
 }
 
+bool EmbodiedSlamFilter::update( envire::Featurecloud *stereo_features )
+{
+    return false;
+}
+
 bool EmbodiedSlamFilter::update( 
 	const Eigen::Affine3d& body2odometry, const base::samples::DistanceImage& dimage, 
 	const Eigen::Affine3d& camera2body, const base::samples::frame::Frame* timage )

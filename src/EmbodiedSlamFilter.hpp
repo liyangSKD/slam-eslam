@@ -10,6 +10,7 @@
 #include <envire/Core.hpp>
 #include <envire/maps/MLSGrid.hpp>
 #include <envire/maps/Grids.hpp>
+#include <envire/maps/Featurecloud.hpp>
 #include <envire/operators/MLSProjection.hpp>
 #include <envire/operators/ScanMeshing.hpp>
 #include <envire/operators/DistanceGridToPointcloud.hpp>
@@ -66,6 +67,7 @@ public:
     bool update( const Eigen::Affine3d& body2odometry, const base::samples::LaserScan& scan, const Eigen::Affine3d& laser2body );
     bool update( const Eigen::Affine3d& body2odometry, const base::samples::DistanceImage& dimage, const Eigen::Affine3d& camera2body, const base::samples::frame::Frame* timage = NULL );
     bool update( const Eigen::Affine3d& body2odometry, const odometry::BodyContactState& bs, const std::vector<terrain_estimator::TerrainClassification>& ltc );
+    bool update( envire::Featurecloud *stereo_features );
 
     std::vector<eslam::PoseEstimator::Particle>& getParticles();
     size_t getBestParticleIndex() const;
