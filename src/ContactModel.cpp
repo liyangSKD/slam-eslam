@@ -290,8 +290,11 @@ void ContactModel::evaluateWeight( double measVar )
 	    pz *= p.prob;
     }
 
+    /*
+    // update weight according to deviation of delta
     const double zd = delta/sqrt( measVar );
     pz *= exp( -(zd*zd)/2.0 );
+    */
 
     m_weight = pz;
     m_zDelta = -delta;
