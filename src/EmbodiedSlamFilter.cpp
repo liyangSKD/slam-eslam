@@ -118,10 +118,10 @@ void EmbodiedSlamFilter::init( envire::Environment* env, const base::Pose& pose,
 	filter.init(
 		eslamConfig.particleCount, 
 		base::Pose2D(Eigen::Vector2d(pose.position.x(),pose.position.y()),angle), 
-		base::Pose2D(Eigen::Vector2d(eslamConfig.initialError,eslamConfig.initialError),eslamConfig.initialError),
+		base::Pose2D(Eigen::Vector2d(eslamConfig.initialTranslationError.x(),eslamConfig.initialTranslationError.y()),eslamConfig.initialRotationError.z()),
 		//base::Pose2D(Eigen::Vector2d(1e-3,1e-3),1e-3),
 		pose.position.z(),
-		eslamConfig.initialError + 1e-3 // z-sigma
+		eslamConfig.initialTranslationError.z() + 1e-3 // z-sigma
 		);
     }
 

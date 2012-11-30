@@ -4,6 +4,7 @@
 #include <cmath>
 #include <Eigen/Core>
 #include <Eigen/Geometry>
+#include <base/eigen.h>
 
 namespace eslam 
 {
@@ -85,7 +86,8 @@ struct Configuration
 	seed( 42u ),
 	particleCount( 250 ), 
 	minEffective( 50 ), 
-	initialError(0.1), 
+	initialRotationError( base::Vector3d(0, 0, 0.1) ),
+	initialTranslationError( base::Vector3d(0.1, 0.1, 1.0) ),
 	measurementError( 0.1 ),
 	discountFactor( 0.9 ),
 	spreadThreshold( 0.9 ),
@@ -116,11 +118,18 @@ struct Configuration
      * the particles are resampled
      */
     size_t minEffective;
-    /** initial sampling spread of the particles. This value
-     * is used for both x, y position (in m) as well as yaw
-     * (in rad).
+    /** initial sampling spread of the particles. 
+     * This vector is split into the rotational (3) and translational (3) parts
+     * of the error, so that [r t] is a 6 vector. That vector is effectively the
+     * diagonal of the full covariance matrix of the initial error distribution.
      */
-    double initialError;
+    base::Vector3d initialRotationError;
+    /** initial sampling spread of the particles. 
+     * This vector is split into the rotational (3) and translational (3) parts
+     * of the error, so that [r t] is a 6 vector. That vector is effectively the
+     * diagonal of the full covariance matrix of the initial error distribution.
+     */
+    base::Vector3d initialTranslationError;
     /** standard deviation of contact point measurement error in m.
      * This includes errors due to modelling errors, but not map errors.
      */
