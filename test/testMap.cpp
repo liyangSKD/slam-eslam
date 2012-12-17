@@ -15,7 +15,10 @@
 #include <boost/lexical_cast.hpp>
 #include <boost/algorithm/string.hpp>
 
+#include <boost/math/distributions/normal.hpp>
+
 #include <numeric/Stats.hpp>
+#include <numeric/Histogram.hpp>
 
 #include <fstream>
 
@@ -97,6 +100,80 @@ struct AsguardSim
 	// TODO investigate and fix
 	body2world.translation().z() = 
 	    -asguardConfig.getLowestFootPosition( bodyState ).z();
+    }
+};
+
+struct ContactMeasurementTest
+{
+    AsguardSim sim;
+    boost::variate_generator<boost::mt19937, boost::normal_distribution<> > nrand;
+    Config conf;
+
+    base::Histogram contact, nocontact;
+
+    ContactMeasurementTest() :
+	nrand( boost::mt19937(time(0)),
+		boost::normal_distribution<>()),
+	contact( 100, -.1, .5 ),
+	nocontact( 100, -.1, .5 )
+    {
+    }
+
+    void run()
+    {
+	for(size_t i=0; i<conf.max_steps; i++)
+	{
+	    step( i );
+	}
+
+	double scale = (contact.total() + nocontact.total()) * contact.getBucketWidth();
+
+	std::ofstream fc("contact.dat");
+	for( size_t i=0; i<contact.size(); i++)
+	    fc << contact.getCenter(i) << " " << contact[i] / scale << std::endl;
+	fc.close();
+
+	std::ofstream nc("nocontact.dat");
+	for( size_t i=0; i<nocontact.size(); i++)
+	    nc << nocontact.getCenter(i) << " " << nocontact[i] / scale << std::endl;;
+	nc.close();
+
+	boost::math::normal n( 0, conf.sigma_step );
+	std::ofstream r("pdfcdf.dat");
+	for( size_t i=0; i<contact.size(); i++)
+	{
+	    double z = contact.getCenter(i);
+	    double model = 
+		pdf( n, z ) / cdf( n, z );
+	    double ratio = 
+		nocontact[i] > 0 ?
+		contact[i] / nocontact[i] : std::numeric_limits<double>::quiet_NaN();
+		
+	    r << z << " " << ratio << " " << model << std::endl;  
+	}
+	nc.close();
+
+
+    }
+
+    void step( size_t idx )
+    {
+	sim.step();
+
+	double z_offset = sim.body2world.translation().z();
+
+	// go through all the feet on one wheel 
+	for( size_t i=0; i<asguard::NUMBER_OF_FEET; i++ )
+	{
+	    double z_pos = 
+		sim.asguardConfig.getFootPosition( sim.bodyState, asguard::FRONT_LEFT, i ).z() + z_offset;
+	    bool hasContact = fabs( z_pos ) < 1e-3; 
+	    z_pos += nrand() * conf.sigma_step;
+	    if( hasContact )
+		contact.update( z_pos );
+	    else
+		nocontact.update( z_pos );
+	}
     }
 };
 
@@ -252,6 +329,7 @@ struct VizMapTest : public MapTest
 
     VizMapTest()
     {
+	aviz.setXForward( false );
 	app.start();
 	app.getWidget()->addPlugin( &aviz );
 	env = app.getWidget()->getEnvironment();
@@ -367,6 +445,14 @@ int main( int argc, char **argv )
     else if( mode == "batch" )
     {
 	mt = new StatMapTest();
+    }
+    else if( mode == "contact" )
+    {
+	ContactMeasurementTest t;
+	if( argc >=3 )
+	    t.conf.set( argv[2] );
+	t.run();
+	exit(0);
     }
     else
 	throw std::runtime_error("mode needs to be either viz or batch");
