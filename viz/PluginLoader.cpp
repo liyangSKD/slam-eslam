@@ -1,6 +1,5 @@
 #include <vizkit/Vizkit3DPlugin.hpp>
 #include "ParticleVisualization.hpp"
-#include "BodyContactStateVisualization.hpp"
 
 namespace eslam {
     class QtPluginVizkit : public vizkit::VizkitPluginFactory {
@@ -18,7 +17,6 @@ namespace eslam {
 	{
 	    QStringList *pluginNames = new QStringList();
 	    pluginNames->push_back("ParticleVisualization");
-	    pluginNames->push_back("BodyContactStateVisualization");
 	    return pluginNames;
 	}
 	
@@ -28,10 +26,6 @@ namespace eslam {
 	    if (pluginName == "ParticleVisualization")
 	    {
 		plugin = new vizkit::ParticleVisualization();
-	    }
-	    else if (pluginName == "BodyContactStateVisualization")
-	    {
-		plugin = new vizkit::BodyContactStateVisualization();
 	    }
 
 	    if (plugin) 
