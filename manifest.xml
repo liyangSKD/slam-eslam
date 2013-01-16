@@ -7,8 +7,7 @@
         DFKI/robotik@dfki.de
     </copyright>
 
-    <depend package="asguard/terrain_estimator" />
-    <depend package="asguard/asguard" />
+    <depend package="slam/terrain_estimator" />
     <depend package="slam/odometry" />
     <depend package="slam/envire" />
     <depend package="base/numeric" />
