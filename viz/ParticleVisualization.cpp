@@ -80,8 +80,6 @@ ParticleVisualization::ParticleVisualization()
 
     offsetNode = new osg::Group();
     tn->addChild( offsetNode );
-    
-    asguard = new vizkit::AsguardModel();
 }
 
 void ParticleVisualization::operatorIntern ( osg::Node* node, osg::NodeVisitor* nv )
@@ -152,22 +150,6 @@ void ParticleVisualization::operatorIntern ( osg::Node* node, osg::NodeVisitor* 
 	    * Eigen::AngleAxisd( pose.meas_theta, Eigen::Vector3d::UnitZ() );
 
 	Eigen::Affine3d transform( t * base::removeYaw( dist.orientation ) );
-
-	// add asguard robot
-	// TODO reinstantiate visualisation of robot
-	/*
-	asguard::BodyState &bodyState( dist.bodyState );
-	asguard->setBodyState( bodyState );
-	osg::PositionAttitudeTransform *asguardPose = new osg::PositionAttitudeTransform();
-	Eigen::Vector3d apos( transform.translation() );
-	Eigen::Quaterniond arot( transform.rotation() );
-
-	asguardPose->setPosition( osg::Vec3( apos.x(), apos.y(), apos.z() ) );
-	asguardPose->setAttitude( osg::Quat( arot.x(), arot.y(), arot.z(), arot.w() ) );
-
-	offsetNode->asGroup()->addChild( asguardPose );
-	asguardPose->addChild( asguard );
-	*/
 
 	for(size_t j=0;j<pose.cpoints.size();j++)
 	{

@@ -6,8 +6,8 @@
 #include <osg/Geometry>
 
 #include <base/pose.h>
-#include <vizkit/AsguardModel.hpp>
 #include <eslam/PoseParticle.hpp>
+#include <osg/Geode>
 
 namespace vizkit 
 {
@@ -47,8 +47,6 @@ class ParticleVisualization : public VizPluginAdapter<eslam::PoseDistribution>
 	osg::ref_ptr<osg::Node> offsetNode;
 
 	int inspectIdx;
-
-	osg::ref_ptr<vizkit::AsguardModel> asguard;
 };
 
 }

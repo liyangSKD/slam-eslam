@@ -3,7 +3,6 @@
 
 #include <eslam/PoseParticle.hpp>
 
-#include <vizkit/AsguardVisualization.hpp>
 #include <vizkit/EnvireVisualization.hpp>
 #include <vizkit/TrajectoryVisualization.hpp>
 
@@ -14,10 +13,10 @@
 using namespace vizkit;
 using namespace envire;
 
-EslamWidget::EslamWidget( QWidget* parent, Qt::WindowFlags f )
+EslamWidget::EslamWidget( QWidget* parent, Qt::WindowFlags f)
     : Vizkit3DWidget( parent, f ),
     envViz( new envire::EnvireVisualization() ),
-    robotViz( new AsguardVisualization() ),
+    robotViz(),
     particleViz( new ParticleVisualization() ),
     referenceViz( new TrajectoryVisualization() ),
     centroidViz( new TrajectoryVisualization() ),
@@ -25,7 +24,6 @@ EslamWidget::EslamWidget( QWidget* parent, Qt::WindowFlags f )
     pe( NULL )
 {
     addDataHandler( envViz.get() );
-    addDataHandler( robotViz.get() );
     addDataHandler( particleViz.get() );
     addDataHandler( referenceViz.get() );
     addDataHandler( centroidViz.get() );
@@ -46,8 +44,14 @@ EslamWidget::EslamWidget( QWidget* parent, Qt::WindowFlags f )
 EslamWidget::~EslamWidget()
 {
     removeDataHandler( envViz.get() );
-    removeDataHandler( robotViz.get() );
+    if (robotViz)
+        removeDataHandler( robotViz.get() );
     removeDataHandler( particleViz.get() );
+}
+
+void EslamWidget::setRobotViz(const boost::shared_ptr< VizPluginAdapter<base::samples::RigidBodyState> >& _robotViz)
+{
+    robotViz = _robotViz;
 }
 
 int EslamWidget::getInspectedParticleIndex() const
@@ -67,10 +71,6 @@ void EslamWidget::setPoseDistribution( const eslam::PoseDistribution& dist )
 
 void EslamWidget::setBodyState( const odometry::BodyContactState& body_state ) 
 {
-    /*
-    asguardState.bodyState = body_state;
-    robotViz->updateData( asguardState );
-    */
 }
 
 void EslamWidget::setCentroidPose( const base::Pose& pose )
@@ -83,7 +83,8 @@ void EslamWidget::setReferencePose( const base::Pose& pose )
     base::samples::RigidBodyState rbs;
     rbs.position = pose.position;
     rbs.orientation = pose.orientation;
-    robotViz->updateData( rbs );
+    if (robotViz)
+        robotViz->updateData( rbs );
 
     referenceViz->updateData( base::Vector3d( pose.position ) );
 }

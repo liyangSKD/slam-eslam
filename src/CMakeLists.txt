@@ -17,7 +17,7 @@ set(FILTER_SRCS
 rock_library(eslam
     SOURCES ${FILTER_SRCS}
     HEADERS ${FILTER_HDRS}
-    DEPS_PKGCONFIG base-types envire terrain_estimator)
+    DEPS_PKGCONFIG base-types envire terrain_estimator odometry)
     
 option( USE_OPENMP "Switch on OpenMP for this library." )
 if( USE_OPENMP )

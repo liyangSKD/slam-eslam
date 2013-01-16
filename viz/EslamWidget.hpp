@@ -8,7 +8,6 @@
 #include <base/pose.h>
 
 #include <vizkit/Vizkit3DWidget.hpp>
-#include <vizkit/AsguardVisualization.hpp>
 
 namespace eslam
 {
@@ -23,7 +22,6 @@ namespace envire
 
 namespace vizkit
 {
-class AsguardVisualization;
 class ParticleVisualization;
 class TrajectoryVisualization;
 class MapVizEventFilter;
@@ -42,6 +40,7 @@ public:
     void setCentroidPose( const base::Pose& pose );
     void setEnvironment( envire::Environment *env );
     void setPoseParticles( std::vector<eslam::PoseParticleGA> *pe );
+    void setRobotViz(const boost::shared_ptr< VizPluginAdapter<base::samples::RigidBodyState> >& _robotViz);
 
     int getInspectedParticleIndex() const;
     void setInspectedParticleIndex( int index );
@@ -54,9 +53,8 @@ public slots:
 
 private:
     boost::shared_ptr<envire::EnvireVisualization> envViz;
-    boost::shared_ptr<AsguardVisualization> robotViz;
+    boost::shared_ptr< vizkit::VizPluginAdapter<base::samples::RigidBodyState> > robotViz;
     boost::shared_ptr<ParticleVisualization> particleViz;
-
     boost::shared_ptr<TrajectoryVisualization> referenceViz;
     boost::shared_ptr<TrajectoryVisualization> centroidViz;
 
