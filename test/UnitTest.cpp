@@ -113,6 +113,8 @@ BOOST_AUTO_TEST_CASE( tracking_filter )
 	filter.project( a );
 	filter.update( pos );
 	filter.resample();
+
+	BOOST_CHECK_EQUAL( filter.getParticles().size(), 100 );
     }
 }
 
