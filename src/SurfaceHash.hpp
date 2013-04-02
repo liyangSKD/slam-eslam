@@ -198,7 +198,7 @@ struct SurfaceHash
 			size_t mx, nx;
 			gridTemplate->toGrid( x + p.x(), y + p.y(), mx, nx );
 
-			envire::MLSGrid::const_iterator it = gridTemplate->beginCell( mx, nx );
+			envire::MLSGrid::iterator it = gridTemplate->beginCell( mx, nx );
 			if( it != gridTemplate->endCell() )
 			{
 			    double zval = it->mean;
