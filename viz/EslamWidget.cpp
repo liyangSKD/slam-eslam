@@ -23,10 +23,10 @@ EslamWidget::EslamWidget( QWidget* parent, Qt::WindowFlags f)
     filter( new MapVizEventFilter() ),
     pe( NULL )
 {
-    addDataHandler( envViz.get() );
-    addDataHandler( particleViz.get() );
-    addDataHandler( referenceViz.get() );
-    addDataHandler( centroidViz.get() );
+    addPlugin( envViz.get() );
+    addPlugin( particleViz.get() );
+    addPlugin( referenceViz.get() );
+    addPlugin( centroidViz.get() );
 
     referenceViz->setColor( 0, 0, 0, 1.0 );
     centroidViz->setColor( 0.0, 0.0, 1.0, 1.0 );
@@ -43,10 +43,6 @@ EslamWidget::EslamWidget( QWidget* parent, Qt::WindowFlags f)
 
 EslamWidget::~EslamWidget()
 {
-    removeDataHandler( envViz.get() );
-    if (robotViz)
-        removeDataHandler( robotViz.get() );
-    removeDataHandler( particleViz.get() );
 }
 
 void EslamWidget::setRobotViz(const boost::shared_ptr< VizPluginAdapter<base::samples::RigidBodyState> >& _robotViz)
