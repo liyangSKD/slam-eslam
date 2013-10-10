@@ -11,7 +11,7 @@
 #include <Eigen/Core>
 #include <Eigen/Geometry>
 
-#include <base/pose.h>
+#include <base/Pose.hpp>
 #include <odometry/ContactOdometry.hpp>
 
 #include <envire/Core.hpp>

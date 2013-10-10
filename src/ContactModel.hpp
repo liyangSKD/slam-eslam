@@ -2,7 +2,7 @@
 #define __ESLAM_CONTACTMODEL_HPP__
 
 #include <boost/function.hpp>
-#include <base/eigen.h>
+#include <base/Eigen.hpp>
 #include <eslam/PoseParticle.hpp>
 #include <terrain_estimator/TerrainConfiguration.hpp>
 #include <envire/maps/MLSGrid.hpp>

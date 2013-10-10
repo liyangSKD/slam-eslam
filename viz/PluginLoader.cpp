@@ -1,8 +1,8 @@
-#include <vizkit/Vizkit3DPlugin.hpp>
+#include <vizkit3d/Vizkit3DPlugin.hpp>
 #include "ParticleVisualization.hpp"
 
 namespace eslam {
-    class QtPluginVizkit : public vizkit::VizkitPluginFactory {
+    class QtPluginVizkit : public vizkit3d::VizkitPluginFactory {
     private:
     public:
 	
@@ -22,10 +22,10 @@ namespace eslam {
 	
         virtual QObject* createPlugin(QString const& pluginName)
         {
-	    vizkit::VizPluginBase* plugin = 0;
+	    vizkit3d::VizPluginBase* plugin = 0;
 	    if (pluginName == "ParticleVisualization")
 	    {
-		plugin = new vizkit::ParticleVisualization();
+		plugin = new vizkit3d::ParticleVisualization();
 	    }
 
 	    if (plugin) 

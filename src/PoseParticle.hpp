@@ -5,9 +5,9 @@
 #include <Eigen/Core>
 #include <Eigen/Geometry>
 
-#include <base/eigen.h>
-#include <base/pose.h>
-#include <base/time.h>
+#include <base/Eigen.hpp>
+#include <base/Pose.hpp>
+#include <base/Time.hpp>
 
 #include <vector>
 

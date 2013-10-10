@@ -1,7 +1,7 @@
 #ifndef ESLAM_SURFACEHASH_HPP__ 
 #define ESLAM_SURFACEHASH_HPP__ 
 
-#include <base/pose.h>
+#include <base/Pose.hpp>
 #include <envire/maps/MLSGrid.hpp>
 
 #include "PoseParticle.hpp"

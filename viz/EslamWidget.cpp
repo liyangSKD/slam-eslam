@@ -3,18 +3,18 @@
 
 #include <eslam/PoseParticle.hpp>
 
-#include <vizkit/EnvireVisualization.hpp>
-#include <vizkit/TrajectoryVisualization.hpp>
+#include <vizkit3d/EnvireVisualization.hpp>
+#include <vizkit3d/TrajectoryVisualization.hpp>
 
 #include <envire/maps/MLSMap.hpp>
 
 #include "MapVizEventFilter.hpp"
 
-using namespace vizkit;
+using namespace vizkit3d;
 using namespace envire;
 
 EslamWidget::EslamWidget( QWidget* parent, Qt::WindowFlags f)
-    : Vizkit3DWidget( parent, f ),
+    : Vizkit3DWidget( parent),
     envViz( new envire::EnvireVisualization() ),
     robotViz(),
     particleViz( new ParticleVisualization() ),

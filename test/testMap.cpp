@@ -1,7 +1,7 @@
-#include <vizkit/QtThreadedWidget.hpp>
-#include <vizkit/EnvireWidget.hpp>
+#include <vizkit3d/QtThreadedWidget.hpp>
+#include <vizkit3d/EnvireWidget.hpp>
 #include <envire/maps/MLSGrid.hpp>
-#include <vizkit/AsguardVisualization.hpp>
+#include <vizkit3d/AsguardVisualization.hpp>
 #include <odometry/ContactOdometry.hpp>
 #include <asguard/Configuration.hpp>
 #include <eslam/ContactModel.hpp>
@@ -24,7 +24,7 @@
 
 using namespace std;
 using namespace envire;
-using namespace vizkit;
+using namespace vizkit3d;
 
 struct Config
 {

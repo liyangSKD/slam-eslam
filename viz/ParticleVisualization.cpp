@@ -13,12 +13,12 @@
 #include <boost/function.hpp>
 #include <boost/bind.hpp>
 
-#include <vizkit/PickHandler.hpp>
+#include <vizkit3d/PickHandler.hpp>
 #include <Eigen/LU>
 
-#include <vizkit/Uncertainty.hpp>
+#include <vizkit3d/Uncertainty.hpp>
 
-namespace vizkit 
+namespace vizkit3d 
 {
 
 class ParticlePickedCallback : public PickedCallback
@@ -101,7 +101,7 @@ void ParticleVisualization::operatorIntern ( osg::Node* node, osg::NodeVisitor* 
 	eslam::PoseDistribution::GMM &gmm( dist.gmm );
 	for( size_t i=0; i<gmm.params.size(); i++ )
 	{
-	    vizkit::Uncertainty *u = new vizkit::Uncertainty();
+	    vizkit3d::Uncertainty *u = new vizkit3d::Uncertainty();
 	    u->setMean( static_cast<Eigen::Vector2d>( gmm.params[i].dist.mean ) );
 	    u->setCovariance( static_cast<Eigen::Matrix2d>( gmm.params[i].dist.cov ) );
 	    offsetNode->asGroup()->addChild( u );

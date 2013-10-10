@@ -4,7 +4,7 @@
 #include <cmath>
 #include <Eigen/Core>
 #include <Eigen/Geometry>
-#include <base/eigen.h>
+#include <base/Eigen.hpp>
 
 namespace eslam 
 {

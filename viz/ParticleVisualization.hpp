@@ -2,14 +2,14 @@
 #define PARTICLEVIZUALISATION_H
 #include <Eigen/Geometry>
 #include <vector>
-#include <vizkit/Vizkit3DPlugin.hpp>
+#include <vizkit3d/Vizkit3DPlugin.hpp>
 #include <osg/Geometry>
 
-#include <base/pose.h>
+#include <base/Pose.hpp>
 #include <eslam/PoseParticle.hpp>
 #include <osg/Geode>
 
-namespace vizkit 
+namespace vizkit3d 
 {
 
 class ParticleVisualization : public VizPluginAdapter<eslam::PoseDistribution>

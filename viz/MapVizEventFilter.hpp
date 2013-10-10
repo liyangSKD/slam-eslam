@@ -5,7 +5,7 @@
 #include <envire/core/EventHandler.hpp>
 #include <envire/maps/MLSGrid.hpp>
 
-namespace vizkit {
+namespace vizkit3d {
 /** this class is used to filter the events for a single particle
  * and hide the other particles (maps).
  */

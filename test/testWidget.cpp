@@ -1,11 +1,11 @@
 #include <QtGui/QApplication>
-#include <vizkit/QtThreadedWidget.hpp>
+#include <vizkit3d/QtThreadedWidget.hpp>
 
 #include "../viz/EslamWidget.hpp"
 
 int main( int argc, char **argv )
 {
-    QtThreadedWidget<vizkit::EslamWidget> app;
+    QtThreadedWidget<vizkit3d::EslamWidget> app;
     app.start();
 
     boost::shared_ptr<envire::Environment> env;

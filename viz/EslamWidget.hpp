@@ -5,9 +5,9 @@
 #include <odometry/ContactState.hpp>
 #include <eslam/PoseEstimator.hpp>
 #include <envire/Core.hpp>
-#include <base/pose.h>
+#include <base/Pose.hpp>
 
-#include <vizkit/Vizkit3DWidget.hpp>
+#include <vizkit3d/Vizkit3DWidget.hpp>
 
 namespace eslam
 {
@@ -20,7 +20,7 @@ namespace envire
     class EnvireVisualization;
 }
 
-namespace vizkit
+namespace vizkit3d
 {
 class ParticleVisualization;
 class TrajectoryVisualization;
@@ -53,7 +53,7 @@ public slots:
 
 private:
     boost::shared_ptr<envire::EnvireVisualization> envViz;
-    boost::shared_ptr< vizkit::VizPluginAdapter<base::samples::RigidBodyState> > robotViz;
+    boost::shared_ptr< vizkit3d::VizPluginAdapter<base::samples::RigidBodyState> > robotViz;
     boost::shared_ptr<ParticleVisualization> particleViz;
     boost::shared_ptr<TrajectoryVisualization> referenceViz;
     boost::shared_ptr<TrajectoryVisualization> centroidViz;

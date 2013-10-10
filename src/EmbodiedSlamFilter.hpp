@@ -15,9 +15,9 @@
 #include <envire/operators/ScanMeshing.hpp>
 #include <envire/operators/DistanceGridToPointcloud.hpp>
 
-#include <base/samples/laser_scan.h>
+#include <base/samples/LaserScan.hpp>
 
-#include <base/samples/distance_image.h>
+#include <base/samples/DistanceImage.hpp>
 
 #include "SurfaceHash.hpp"
 
